@@ -46,8 +46,10 @@ my-pricer/
 │   ├── indicators/       # Tests for technical indicators
 │   ├── fetchers/         # Tests for data fetchers
 │   ├── test_backtest.py  # Tests for the backtesting engine
+
 │   └── conftest.py       # Pytest fixtures and hooks (if created)
-├── backtest_outputs/     # (Generated) Directory for storing backtest results├── LICENSE               # Project license
+├── backtest_outputs/     # (Generated) Directory for storing backtest results
+├── LICENSE               # Project license
 ├── pytest.ini            # Pytest configuration
 ├── requirements.txt      # Python package dependencies
 └── README.md             # This file
