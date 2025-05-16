@@ -140,8 +140,10 @@ class TestBackTest:
 
 
 
+
         assert data.empty
-        assert bt.historical_data is None # Actual: In case of exception, SUT sets self.historical_data to None
+        assert bt.historical_data is not None
+        assert bt.historical_data.empty # SUT sets self.historical_data to an empty DataFrame on exception
 
 
     def test_fetch_historical_data_no_data_returned(self, backtest_stock_instance_fixture: BackTest):
@@ -156,8 +158,10 @@ class TestBackTest:
 
 
 
-        assert data.empty
-        assert bt.historical_data is None # Actual: When fetcher returns empty, SUT sets self.historical_data to None
+
+        assert data.empty    
+        assert bt.historical_data is not None   
+        assert bt.historical_data.empty # SUT sets self.historical_data to an empty DataFrame if fetcher returns empty
 
     @patch('importlib.import_module')
     @patch('inspect.getmembers')
