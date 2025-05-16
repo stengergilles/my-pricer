@@ -25,9 +25,11 @@ This project provides a framework for fetching financial market data, applying t
 
 
 
+
 ## Project Structure
 
-A brief overview of the main directories:```
+A brief overview of the main directories:
+```
 my-pricer/
 ├── stock_monitoring_app/ # Core application logic
 │   ├── backtest/         # Backtesting engine
@@ -46,7 +48,6 @@ my-pricer/
 │   ├── indicators/       # Tests for technical indicators
 │   ├── fetchers/         # Tests for data fetchers
 │   ├── test_backtest.py  # Tests for the backtesting engine
-
 │   └── conftest.py       # Pytest fixtures and hooks (if created)
 ├── backtest_outputs/     # (Generated) Directory for storing backtest results
 ├── LICENSE               # Project license
