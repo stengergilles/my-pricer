@@ -58,8 +58,11 @@ def get_sample_data(ticker="AAPL", period="1mo", interval="1d", num_placeholder_
             print(f"Fetching data for {ticker} returned empty or None. Using placeholder data.")
             return create_placeholder_data(num_placeholder_days)
     except Exception as e:
+
         print(f"Error fetching real data for {ticker}: {e}. Using placeholder data.")
-        return create_placeholder_data(num_placeholder_days)if __name__ == "__main__":
+        return create_placeholder_data(num_placeholder_days)
+
+if __name__ == "__main__":
     # Get sample data (real or placeholder)
     sample_df = get_sample_data(ticker="AAPL", period="3mo", interval="1d")
 
@@ -74,7 +77,8 @@ def get_sample_data(ticker="AAPL", period="1mo", interval="1d", num_placeholder_
     print("\n--- RSI Indicator Example ---")
     try:
         rsi_indicator = RSIIndicator(df=sample_df.copy(), period=14, rsi_oversold=30, rsi_overbought=70)
-        rsi_df = rsi_indicator.calculate()        print("RSI DataFrame (last 5 rows with RSI and signals):")
+        rsi_df = rsi_indicator.calculate()        
+        print("RSI DataFrame (last 5 rows with RSI and signals):")
         print(rsi_df[['Close', 'RSI_14', 'RSI_Oversold_Signal_14', 'RSI_Overbought_Signal_14']].tail())
         print("RSI Signal Orientations:", rsi_indicator.get_signal_orientations())
     except Exception as e:

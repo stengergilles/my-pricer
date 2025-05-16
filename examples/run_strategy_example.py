@@ -15,12 +15,14 @@ from stock_monitoring_app.config import settings
 def create_placeholder_data(num_days=60):
     """Creates minimal placeholder OHLCV data if API fetching fails."""
     print(f"Creating placeholder data for {num_days} days for strategy example.")
-    dates = [datetime(2023, 1, 1) + timedelta(days=i) for i in range(num_days)]    data = {
+    dates = [datetime(2023, 1, 1) + timedelta(days=i) for i in range(num_days)]    
+    data = {
         'Open': [150 + i * 0.1 + (i % 5) - 2 for i in range(num_days)],
         'High': [151 + i * 0.15 + (i % 3) for i in range(num_days)],
         'Low': [149 - i * 0.05 - (i % 4) + 1 for i in range(num_days)],
         'Close': [150.5 + i * 0.08 + (i % 7) - 3 for i in range(num_days)],        'Volume': [1000000 + i * 10000 + (i % 10) * 5000 for i in range(num_days)]
-    }    df = pd.DataFrame(data, index=pd.DatetimeIndex(dates))
+    }    
+    df = pd.DataFrame(data, index=pd.DatetimeIndex(dates))
     for col in ['Open', 'High', 'Low', 'Close', 'Volume']:
         df[col] = pd.to_numeric(df[col])
     return df

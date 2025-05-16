@@ -47,7 +47,8 @@ def run_stock_backtest_example():
         print(f"Configuration error for stock BackTest: {ve}")
     except Exception as e:
         print(f"An error occurred during the stock BackTest example: {e}")
-        import traceback        traceback.print_exc()
+        import traceback        
+        traceback.print_exc()
 
 
 def run_crypto_backtest_example():
@@ -82,7 +83,8 @@ def run_crypto_backtest_example():
             
     except Exception as e:
         print(f"An error occurred during the crypto BackTest example: {e}")
-        import traceback        traceback.print_exc()
+        import traceback        
+        traceback.print_exc()
 
 if __name__ == "__main__":
     print("Running BackTest examples...")
@@ -92,4 +94,5 @@ if __name__ == "__main__":
     run_stock_backtest_example()
     run_crypto_backtest_example()
 
-    print("\nBackTest examples completed.")    print("Check the 'backtest_outputs' directory for CSV and JSON files.")
+    print("\nBackTest examples completed.")    
+    print("Check the 'backtest_outputs' directory for CSV and JSON files.")
