@@ -67,10 +67,11 @@ my-pricer/
 2.  **Install dependencies:**
     It's recommended to use a virtual environment. This project likely has dependencies such as `pandas`, `pandas-ta`, `requests`, `numpy`. If a `requirements.txt` file is present or created, use:
 
+
     ```bash
     pip install -r requirements.txt
     ```
-    The <<FILE:requirements.txt:requirements.txt:>> file lists the necessary Python packages.
+    The [requirements.txt](requirements.txt) file lists the necessary Python packages.
 
 3.  **Environment Variables:**
     The application requires API keys for data fetchers. These are typically loaded from environment variables via a `config.py` (not provided in context, but inferred). You would need to set:
@@ -119,20 +120,19 @@ To run the tests:
 2.  Navigate to the project root directory (`my-pricer/`).
 3.  Run pytest:
     ```bash
+
     pytest
-    ```
-
-
-The `pytest.ini` file (<<FILE:pytest.ini:pytest.ini:>>) contains configurations for `pytest`, such as marker definitions (e.g., `integration` tests) and warning filters. Refer to this file for more details on test execution options.
+    ```The `pytest.ini` file ([pytest.ini](pytest.ini)) contains configurations for `pytest`, such as marker definitions (e.g., `integration` tests) and warning filters. Refer to this file for more details on test execution options.
 
 ## Examples
 
+
 The `examples/` directory contains scripts to demonstrate the core functionalities of this application:
 
-*   **<<FILE:examples/run_fetcher_example.py:run_fetcher_example.py:>>**: Shows how to use the `PolygonFetcher` and `CoinGeckoFetcher` to retrieve market data.
-*   **<<FILE:examples/run_indicators_example.py:run_indicators_example.py:>>**: Demonstrates applying various technical indicators (RSI, MACD, Bollinger Bands, etc.) to a DataFrame.
-*   **<<FILE:examples/run_strategy_example.py:run_strategy_example.py:>>**: Illustrates how to configure `BaseStrategy` with a set of indicators and generate trading signals.
-*   **<<FILE:examples/run_backtest_example.py:run_backtest_example.py:>>**: Provides a full example of running the `BackTest` engine for both a stock and a cryptocurrency, including data fetching, (placeholder) optimization, strategy execution, performance evaluation, and saving results.
+*   **[run_fetcher_example.py](examples/run_fetcher_example.py)**: Shows how to use the `PolygonFetcher` and `CoinGeckoFetcher` to retrieve market data.
+*   **[run_indicators_example.py](examples/run_indicators_example.py)**: Demonstrates applying various technical indicators (RSI, MACD, Bollinger Bands, etc.) to a DataFrame.
+*   **[run_strategy_example.py](examples/run_strategy_example.py)**: Illustrates how to configure `BaseStrategy` with a set of indicators and generate trading signals.
+*   **[run_backtest_example.py](examples/run_backtest_example.py)**: Provides a full example of running the `BackTest` engine for both a stock and a cryptocurrency, including data fetching, (placeholder) optimization, strategy execution, performance evaluation, and saving results.
 
 **To run the examples:**
 
@@ -147,8 +147,9 @@ The `examples/` directory contains scripts to demonstrate the core functionaliti
     python -m examples.run_backtest_example
     ```
 
+
 **Note:** The example scripts might require API keys (especially `POLYGON_API_KEY` for stock data) to be set in your environment or a `.env` file for full functionality. They are designed to fall back to placeholder data or skip parts if keys are missing, but live data fetching will provide a more complete demonstration. The backtesting example, in particular, can take a few moments to run as it involves fetching data and multiple processing steps.
 
 ## License
 
-This project is licensed under the MIT License. See the <<FILE:LICENSE:LICENSE:>> file for details.
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
