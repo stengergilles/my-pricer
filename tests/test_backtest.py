@@ -1,0 +1,521 @@
+import pytest
+import pandas as pd
+from unittest.mock import patch, MagicMock, call, ANY
+from typing import List, Dict, Any, Optional, Type
+import numpy as np
+import importlib
+import inspect
+
+# Assuming 'tests' directory is at the same level as 'stock_monitoring_app'
+# or the project root containing 'stock_monitoring_app' is in PYTHONPATH.
+from stock_monitoring_app.backtest.backtest import BackTest
+from stock_monitoring_app.fetchers.base_fetcher import Fetcher
+from stock_monitoring_app.fetchers import CoinGeckoFetcher, PolygonFetcher
+from stock_monitoring_app.strategies.base_strategy import BaseStrategy, SIGNAL_BUY, SIGNAL_SELL, SIGNAL_HOLD
+from stock_monitoring_app.indicators.base_indicator import Indicator
+from stock_monitoring_app.indicators.rsi_indicator import RSIIndicator
+from stock_monitoring_app.indicators.bollinger_bands_indicator import BollingerBandsIndicator
+from stock_monitoring_app.indicators.breakout_indicator import BreakoutIndicator
+
+# --- Mock Indicator classes for testing discovery ---
+class MockIndicatorAlpha(Indicator):
+
+
+    def __init__(self, params: Optional[Dict] = None):
+        super().__init__(df=pd.DataFrame(), **(params or {}))
+        self.name = "MockIndicatorAlpha"
+
+    def calculate(self) -> pd.DataFrame:        # The 'data' parameter was removed to match the base Indicator class.
+        # Calculations now use self.df, assuming it's populated appropriately.
+        self.df[f'{self.name}_Signal'] = SIGNAL_HOLD # Example signal
+        return self.df
+        return data
+    def get_signals(self, data: pd.DataFrame) -> pd.Series:
+        return data[f'{self.name}_Signal']
+
+class MockIndicatorBeta(Indicator):
+
+
+
+    def __init__(self, params: Optional[Dict] = None):
+        super().__init__(df=pd.DataFrame(), **(params or {}))
+        self.name = "MockIndicatorBeta"
+
+    def calculate(self) -> pd.DataFrame:
+        # The 'data' parameter was removed to match the base Indicator class.
+        # Calculations now use self.df, assuming it's populated appropriately.
+        self.df[f'{self.name}_Signal'] = SIGNAL_BUY # Example signal
+        return self.df
+    def get_signals(self, data: pd.DataFrame) -> pd.Series:
+        return data[f'{self.name}_Signal']# --- Pytest Fixtures ---
+
+
+@pytest.fixture
+def sample_ohlcv_data_fixture():
+    data = {
+        'Timestamp': pd.to_datetime(['2023-01-01', '2023-01-02', '2023-01-03', '2023-01-04', '2023-01-05', '2023-01-06', '2023-01-07']),
+        'Open': [100, 102, 101, 105, 103, 98, 100],
+        'High': [103, 104, 106, 107, 105, 100, 102],
+        'Low': [99, 101, 100, 103, 102, 97, 99],
+        'Close': [102, 103, 105, 104, 103, 99, 101],
+        'Volume': [1000, 1100, 1200, 1050, 1300, 900, 1050]
+    }
+    df = pd.DataFrame(data)
+    df.set_index('Timestamp', inplace=True)
+    return df
+
+@pytest.fixture
+def backtest_stock_instance_fixture():
+    with patch('stock_monitoring_app.backtest.backtest.PolygonFetcher') as MockPolygonFetcher, \
+         patch('stock_monitoring_app.backtest.backtest.CoinGeckoFetcher') as MockCoinGeckoFetcher:
+        mock_polygon_fetcher_instance = MockPolygonFetcher.return_value
+        mock_polygon_fetcher_instance.get_service_name.return_value = "PolygonMock"
+        
+        mock_coingecko_fetcher_instance = MockCoinGeckoFetcher.return_value # Not used by stock
+        
+        bt = BackTest(ticker="AAPL", period="1mo", interval="1d")
+        bt.fetcher = mock_polygon_fetcher_instance # Ensure it's set for tests
+        return bt
+
+
+@pytest.fixture
+def backtest_crypto_instance_fixture():
+    with patch('stock_monitoring_app.backtest.backtest.PolygonFetcher') as MockPolygonFetcher, \
+         patch('stock_monitoring_app.backtest.backtest.CoinGeckoFetcher') as MockCoinGeckoFetcher:
+        mock_coingecko_fetcher_instance = MockCoinGeckoFetcher.return_value
+        mock_coingecko_fetcher_instance.get_service_name.return_value = "CoinGeckoMock"
+
+        mock_polygon_fetcher_instance = MockPolygonFetcher.return_value # Not used by crypto
+        
+        bt = BackTest(ticker="bitcoin", period="1mo", interval="1d")        
+        bt.fetcher = mock_coingecko_fetcher_instance # Ensure it's set for tests
+        return bt
+
+# --- Test Class for BackTest ---
+
+class TestBackTest:
+
+    def test_init_and_get_fetcher_stock(self):
+        with patch('stock_monitoring_app.backtest.backtest.PolygonFetcher') as MockPolygonFetcher:
+            mock_fetcher_instance = MockPolygonFetcher.return_value
+            bt = BackTest(ticker="MSFT", period="1y", interval="1d")
+            assert bt.ticker == "MSFT"
+            assert bt.fetcher is mock_fetcher_instance
+            MockPolygonFetcher.assert_called_once()
+
+    def test_init_and_get_fetcher_crypto(self):
+        with patch('stock_monitoring_app.backtest.backtest.CoinGeckoFetcher') as MockCoinGeckoFetcher:
+            mock_fetcher_instance = MockCoinGeckoFetcher.return_value
+            bt = BackTest(ticker="ethereum", period="1y", interval="1d")
+            assert bt.ticker == "ethereum"
+            assert bt.fetcher is mock_fetcher_instance
+            MockCoinGeckoFetcher.assert_called_once()
+
+    def test_fetch_historical_data_success(self, backtest_stock_instance_fixture: BackTest, sample_ohlcv_data_fixture: pd.DataFrame):
+        bt = backtest_stock_instance_fixture
+
+        # Replace bt.fetcher.fetch_data with a new MagicMock to control its behavior
+        bt.fetcher.fetch_data = MagicMock(return_value=sample_ohlcv_data_fixture)
+        
+        data = bt.fetch_historical_data()
+        
+        bt.fetcher.fetch_data.assert_called_once_with("AAPL", "1mo", "1d")
+        assert data is not None        
+        pd.testing.assert_frame_equal(data, sample_ohlcv_data_fixture)
+        assert bt.historical_data is data
+
+    def test_fetch_historical_data_failure_exception(self, backtest_stock_instance_fixture: BackTest):
+
+        bt = backtest_stock_instance_fixture        
+        # Replace bt.fetcher.fetch_data with a new MagicMock to control its behavior
+        bt.fetcher.fetch_data = MagicMock(side_effect=Exception("API Error"))
+        
+        data = bt.fetch_historical_data()
+        
+        bt.fetcher.fetch_data.assert_called_once_with("AAPL", "1mo", "1d")
+        assert data is not None        
+
+
+
+
+
+
+        assert data.empty
+        assert bt.historical_data is None # Actual: In case of exception, SUT sets self.historical_data to None
+
+
+    def test_fetch_historical_data_no_data_returned(self, backtest_stock_instance_fixture: BackTest):
+        bt = backtest_stock_instance_fixture
+        # Replace bt.fetcher.fetch_data with a new MagicMock to control its behavior
+        bt.fetcher.fetch_data = MagicMock(return_value=pd.DataFrame())
+        
+
+        data = bt.fetch_historical_data()
+        assert data is not None
+
+
+
+
+        assert data.empty
+        assert bt.historical_data is None # Actual: When fetcher returns empty, SUT sets self.historical_data to None
+
+    @patch('importlib.import_module')
+    @patch('inspect.getmembers')
+    def test_determine_relevant_indicators_success(self, mock_getmembers, mock_import_module, backtest_stock_instance_fixture: BackTest, sample_ohlcv_data_fixture: pd.DataFrame):
+        bt = backtest_stock_instance_fixture
+        mock_module = MagicMock()
+        mock_import_module.return_value = mock_module
+        
+        mock_getmembers.return_value = [
+            ('MockIndicatorAlpha', MockIndicatorAlpha),
+            ('MockIndicatorBeta', MockIndicatorBeta),
+            ('BaseIndicator', Indicator), 
+            ('some_other_function', lambda x: x)
+        ]
+        
+        configs = bt.determine_relevant_indicators(sample_ohlcv_data_fixture)
+        
+        mock_import_module.assert_called_once_with("stock_monitoring_app.indicators")
+        mock_getmembers.assert_called_once_with(mock_module)
+        assert len(configs) == 2        
+        assert {'type': MockIndicatorAlpha, 'params': {}} in configs
+        assert {'type': MockIndicatorBeta, 'params': {}} in configs
+        assert bt.current_indicator_configs == configs
+
+    @patch('importlib.import_module')
+    def test_determine_relevant_indicators_import_error(self, mock_import_module, backtest_stock_instance_fixture: BackTest, sample_ohlcv_data_fixture: pd.DataFrame):
+        bt = backtest_stock_instance_fixture
+        mock_import_module.side_effect = ImportError("Module not found")
+        
+        configs = bt.determine_relevant_indicators(sample_ohlcv_data_fixture)
+        assert len(configs) == 0
+        assert bt.current_indicator_configs == []
+
+    @patch('importlib.import_module')
+    @patch('inspect.getmembers')
+    def test_determine_relevant_indicators_no_indicators_found(self, mock_getmembers, mock_import_module, backtest_stock_instance_fixture: BackTest, sample_ohlcv_data_fixture: pd.DataFrame):
+        bt = backtest_stock_instance_fixture
+        mock_module = MagicMock()
+        mock_import_module.return_value = mock_module
+        mock_getmembers.return_value = [('BaseIndicator', Indicator), ('some_function', lambda x:x)]
+        
+        configs = bt.determine_relevant_indicators(sample_ohlcv_data_fixture)
+        assert len(configs) == 0
+
+    def test_calculate_placeholder_pnl(self, backtest_stock_instance_fixture: BackTest):
+        bt = backtest_stock_instance_fixture
+        data = {
+            'Close': [100, 102, 101, 105, 103, 108],
+            'Strategy_Signal': [SIGNAL_HOLD, SIGNAL_BUY, SIGNAL_HOLD, SIGNAL_SELL, SIGNAL_BUY, SIGNAL_SELL]
+        } # Buy 102, Sell 105 (PNL=3); Buy 103, Sell 108 (PNL=5). Total PNL = 8
+        results_df = pd.DataFrame(data)
+        pnl = bt._calculate_placeholder_pnl(results_df)
+        assert pnl == pytest.approx(8.0)
+
+        pnl_empty = bt._calculate_placeholder_pnl(pd.DataFrame())
+        assert pnl_empty == -float('inf')
+
+        pnl_no_trades = bt._calculate_placeholder_pnl(pd.DataFrame({'Close': [1,2], 'Strategy_Signal': [SIGNAL_HOLD, SIGNAL_HOLD]}))
+        assert pnl_no_trades == 0.0
+        
+        pnl_open_trade = bt._calculate_placeholder_pnl(pd.DataFrame({'Close': [1,2], 'Strategy_Signal': [SIGNAL_BUY, SIGNAL_HOLD]}))
+        assert pnl_open_trade == 0.0 # Only closed trades contribute
+
+    @patch('stock_monitoring_app.backtest.backtest.BaseStrategy')
+    def test_optimize_thresholds_flow(self, MockBaseStrategy, backtest_stock_instance_fixture: BackTest, sample_ohlcv_data_fixture: pd.DataFrame):
+        bt = backtest_stock_instance_fixture
+        
+        mock_strategy_instance = MockBaseStrategy.return_value
+        # Simulate strategy run results
+        mock_strategy_instance.run.return_value = pd.DataFrame({'Close': [1,2], 'Strategy_Signal': [SIGNAL_BUY, SIGNAL_SELL]}) 
+        
+        pnl_call_count = 0
+        def mock_pnl_calculator(df): # Simulate PNL increasing with trials
+            nonlocal pnl_call_count
+            pnl_call_count += 1
+            return float(pnl_call_count) 
+
+        # Patch the internal _calculate_placeholder_pnl
+        with patch.object(bt, '_calculate_placeholder_pnl', side_effect=mock_pnl_calculator) as mock_calc_pnl:
+            initial_configs = [
+                {'type': RSIIndicator, 'params': {}}, 
+                {'type': BollingerBandsIndicator, 'params': {}},
+                {'type': BreakoutIndicator, 'params': {}},
+                {'type': MockIndicatorAlpha, 'params': {}} # No specific opt. logic
+            ]
+            
+            optimized_configs = bt.optimize_thresholds(sample_ohlcv_data_fixture, initial_configs)
+            
+            assert len(optimized_configs) == 4
+            assert MockBaseStrategy.call_count > len(initial_configs) # Base + trials
+            assert mock_calc_pnl.call_count > len(initial_configs)
+
+            # RSI: 1 baseline + 3*3*3 trials = 28 calls
+            # BB: 1 baseline + 3*3 trials = 10 calls
+            # Breakout: 1 baseline + 3 trials = 4 calls
+            # MockIndicatorAlpha: 1 baseline call            # Total expected PNL calls = 28 + 10 + 4 + 1 = 43
+            assert mock_calc_pnl.call_count == 43 
+            
+            rsi_opt_config = next(c for c in optimized_configs if c['type'] == RSIIndicator)
+            assert rsi_opt_config['params'] != {} # Should have "optimized" params
+            assert 'period' in rsi_opt_config['params']
+
+            bb_opt_config = next(c for c in optimized_configs if c['type'] == BollingerBandsIndicator)
+            assert 'window' in bb_opt_config['params']
+            
+            bo_opt_config = next(c for c in optimized_configs if c['type'] == BreakoutIndicator)
+            assert 'window' in bo_opt_config['params']
+
+            mock_alpha_opt_config = next(c for c in optimized_configs if c['type'] == MockIndicatorAlpha)
+            assert mock_alpha_opt_config['params'] == {} # Default params as no opt logic
+
+    def test_optimize_thresholds_empty_data_or_configs(self, backtest_stock_instance_fixture: BackTest, sample_ohlcv_data_fixture: pd.DataFrame):
+        bt = backtest_stock_instance_fixture
+        initial_configs = [{'type': RSIIndicator, 'params': {}}]        
+        optimized_empty_data = bt.optimize_thresholds(pd.DataFrame(), initial_configs)
+        assert optimized_empty_data == initial_configs
+
+        optimized_empty_configs = bt.optimize_thresholds(sample_ohlcv_data_fixture, [])
+        assert optimized_empty_configs == []
+
+    @patch('stock_monitoring_app.backtest.backtest.BackTest.fetch_historical_data')
+    @patch('stock_monitoring_app.backtest.backtest.BackTest.determine_relevant_indicators')
+    @patch('stock_monitoring_app.backtest.backtest.BackTest.optimize_thresholds')
+    @patch('stock_monitoring_app.backtest.backtest.BaseStrategy')
+    @patch('stock_monitoring_app.backtest.backtest.BackTest.evaluate_performance')
+    def test_run_backtest_success_flow(self, mock_eval_perf, MockBaseStrategy, mock_opt_thresh, mock_det_ind, mock_fetch_data, backtest_stock_instance_fixture: BackTest, sample_ohlcv_data_fixture: pd.DataFrame):
+        bt = backtest_stock_instance_fixture
+        
+        # Setup mocks
+        mock_fetch_data.return_value = sample_ohlcv_data_fixture
+        bt.historical_data = sample_ohlcv_data_fixture # Pre-set for this test path
+        
+        discovered_configs = [{'type': MockIndicatorAlpha, 'params': {}}]
+        mock_det_ind.return_value = discovered_configs
+        
+
+        optimized_configs = [{'type': MockIndicatorAlpha, 'params': {'optimized': True}}]
+        mock_opt_thresh.return_value = optimized_configs
+        mock_strategy_instance = MockBaseStrategy.return_value
+        mock_results_df = sample_ohlcv_data_fixture.copy() # Strategy adds columns
+        mock_results_df['Strategy_Signal'] = SIGNAL_HOLD 
+        mock_strategy_instance.run.return_value = mock_results_df
+        
+        mock_eval_perf.return_value = {"net_profit": 100} # Simulate eval result
+
+        # Run
+        results = bt.run_backtest()
+        
+        # Assertions
+        mock_fetch_data.assert_not_called() # Data was pre-set
+        mock_det_ind.assert_called_once_with(sample_ohlcv_data_fixture)
+        mock_opt_thresh.assert_called_once_with(sample_ohlcv_data_fixture, discovered_configs)
+        MockBaseStrategy.assert_called_once_with(indicator_configs=optimized_configs)
+        mock_strategy_instance.run.assert_called_once() 
+        # Check that the argument to strategy.run is a copy
+        pd.testing.assert_frame_equal(mock_strategy_instance.run.call_args[0][0], sample_ohlcv_data_fixture)
+        assert id(mock_strategy_instance.run.call_args[0][0]) != id(sample_ohlcv_data_fixture)
+
+        mock_eval_perf.assert_called_once()
+        
+        assert results is not None
+        pd.testing.assert_frame_equal(results, mock_results_df)
+
+        assert bt.results is results
+        # Manually set performance_metrics as evaluate_performance is mocked
+        bt.performance_metrics = mock_eval_perf.return_value 
+        assert bt.get_performance_metrics() == {"net_profit": 100}
+
+
+    def test_run_backtest_fetch_data_path(self, backtest_stock_instance_fixture: BackTest, sample_ohlcv_data_fixture: pd.DataFrame):
+        bt = backtest_stock_instance_fixture
+        # Ensure historical_data is None initially to trigger fetch
+        bt.historical_data = None 
+        
+        with patch.object(bt, 'fetch_historical_data', return_value=sample_ohlcv_data_fixture) as mock_fetch, \
+             patch.object(bt, 'determine_relevant_indicators', return_value=[{'type': MockIndicatorAlpha, 'params': {}}]) as mock_det, \
+             patch.object(bt, 'optimize_thresholds', side_effect=lambda d, c: c) as mock_opt, \
+             patch('stock_monitoring_app.backtest.backtest.BaseStrategy') as MockStrategy, \
+             patch.object(bt, 'evaluate_performance') as mock_eval:
+            
+            mock_strategy_instance = MockStrategy.return_value
+            mock_strategy_instance.run.return_value = sample_ohlcv_data_fixture # Dummy results
+
+            bt.run_backtest()
+            mock_fetch.assert_called_once()    
+    def test_run_backtest_no_data_after_fetch(self, backtest_stock_instance_fixture: BackTest):
+        bt = backtest_stock_instance_fixture
+        bt.historical_data = None
+        with patch.object(bt, 'fetch_historical_data', return_value=pd.DataFrame()) as mock_fetch:
+            results = bt.run_backtest()
+            mock_fetch.assert_called_once()
+
+            assert results is None
+            assert bt.results is None
+
+    @patch('stock_monitoring_app.backtest.backtest.BackTest.evaluate_performance')
+    @patch('stock_monitoring_app.backtest.backtest.BaseStrategy')
+    @patch('stock_monitoring_app.backtest.backtest.BackTest.optimize_thresholds')
+    @patch('stock_monitoring_app.backtest.backtest.BackTest.determine_relevant_indicators')
+    @patch('stock_monitoring_app.backtest.backtest.BackTest.fetch_historical_data')
+    def test_run_backtest_when_historical_data_is_already_empty(self,
+                                                               mock_fetch_data,
+                                                               mock_det_ind,
+                                                               mock_opt_thresh,
+                                                               MockBaseStrategy,
+                                                               mock_eval_perf,
+                                                               backtest_stock_instance_fixture: BackTest):
+        """
+        Tests that run_backtest handles pre-existing empty historical_data correctly.
+        It should not attempt to fetch data again and should skip all processing.
+        """
+        bt = backtest_stock_instance_fixture
+        bt.historical_data = pd.DataFrame() # Set historical_data to an empty DataFrame
+
+        results = bt.run_backtest()
+
+        assert results is None, "Results should be None when historical_data is initially empty"
+
+        assert bt.results is None, "bt.results attribute should be None"
+        
+        # Configure mock_fetch_data to return empty, simulating fetch yielding no new data
+        mock_fetch_data.return_value = pd.DataFrame()
+        
+        # mock_fetch_data should be called if historical_data is initially empty
+        mock_fetch_data.assert_called_once() 
+        mock_det_ind.assert_not_called()       
+        mock_opt_thresh.assert_not_called()
+        MockBaseStrategy.assert_not_called()
+        mock_eval_perf.assert_not_called()
+
+    @patch('stock_monitoring_app.backtest.backtest.BackTest.evaluate_performance')
+    @patch('stock_monitoring_app.backtest.backtest.BaseStrategy')
+    @patch('stock_monitoring_app.backtest.backtest.BackTest.optimize_thresholds')
+    @patch('stock_monitoring_app.backtest.backtest.BackTest.determine_relevant_indicators')
+    @patch.object(BackTest, 'fetch_historical_data') # Patching on the class to mock the instance method
+    def test_run_backtest_no_data_after_fetch_explicitly_skips_processing(self,
+                                                                        mock_fetch_data_method,
+                                                                        mock_det_ind,
+                                                                        mock_opt_thresh,
+                                                                        MockBaseStrategy,
+                                                                        mock_eval_perf,
+                                                                        backtest_stock_instance_fixture: BackTest):
+        """
+        Tests that run_backtest skips processing steps if fetch_historical_data returns no data.
+        This is an enhancement of the existing test_run_backtest_no_data_after_fetch
+        by explicitly checking that downstream methods are not called.
+        """
+        bt = backtest_stock_instance_fixture
+        bt.historical_data = None # Ensure fetch_historical_data is called        # Configure the mock for the instance method fetch_historical_data
+        mock_fetch_data_method.return_value = pd.DataFrame()
+
+        results = bt.run_backtest()
+
+        assert results is None, "Results should be None when fetched data is empty"
+        assert bt.results is None, "bt.results attribute should be None"
+
+        mock_fetch_data_method.assert_called_once()
+        mock_det_ind.assert_not_called()
+        mock_opt_thresh.assert_not_called()
+        MockBaseStrategy.assert_not_called()
+        mock_eval_perf.assert_not_called()
+
+    @patch('stock_monitoring_app.backtest.backtest.BackTest.fetch_historical_data')
+    def test_run_backtest_no_indicators_discovered(self, mock_fetch_data, backtest_stock_instance_fixture: BackTest, sample_ohlcv_data_fixture: pd.DataFrame):
+        bt = backtest_stock_instance_fixture
+        bt.historical_data = sample_ohlcv_data_fixture # Simulate data is present
+        mock_fetch_data.return_value = sample_ohlcv_data_fixture        
+        with patch.object(bt, 'determine_relevant_indicators', return_value=[]) as mock_det_ind:
+            results = bt.run_backtest()
+            mock_det_ind.assert_called_once()
+            assert results is None
+
+    def test_evaluate_performance_no_results(self, backtest_stock_instance_fixture: BackTest):
+        bt = backtest_stock_instance_fixture
+        bt.results = None
+        metrics = bt.evaluate_performance()
+        assert metrics == {}
+
+        bt.results = pd.DataFrame()
+        metrics_empty_df = bt.evaluate_performance()
+        assert metrics_empty_df == {}
+        
+    def test_evaluate_performance_missing_columns(self, backtest_stock_instance_fixture: BackTest):
+
+        bt = backtest_stock_instance_fixture
+        bt.historical_data = pd.DataFrame({'SomeData': [1,2,3]}) # For total_data_points
+        bt.results = pd.DataFrame({'Price': [10,11,12]}) # Missing 'Close' or 'Strategy_Signal'
+        
+        # Test that evaluate_performance raises KeyError when 'Strategy_Signal' is missing
+        with pytest.raises(KeyError, match="'Strategy_Signal'"):
+            bt.evaluate_performance()
+
+    def test_evaluate_performance_detailed_metrics(self, backtest_stock_instance_fixture: BackTest, sample_ohlcv_data_fixture: pd.DataFrame):
+        bt = backtest_stock_instance_fixture # Ticker AAPL        # Use a slice of sample_ohlcv_data_fixture for historical_data
+        bt.historical_data = sample_ohlcv_data_fixture.iloc[:6].copy()
+        
+        # One winning trade, one losing trade
+        # Trade 1: Buy at 100, Sell at 110 (PNL +10)
+        # Trade 2: Buy at 105, Sell at 100 (PNL -5)
+        results_data = {
+            'Timestamp': pd.to_datetime(['2023-01-01', '2023-01-02', '2023-01-03', '2023-01-04', '2023-01-05', '2023-01-06']),
+            'Close':         [90,  100,  110,  108,  105,  100], # Prices corresponding to signals
+            'Strategy_Signal': [SIGNAL_HOLD, SIGNAL_BUY, SIGNAL_SELL, SIGNAL_HOLD, SIGNAL_BUY, SIGNAL_SELL]
+        }        
+        bt.results = pd.DataFrame(results_data).set_index('Timestamp')
+        
+        metrics = bt.evaluate_performance()
+        
+        assert metrics["ticker"] == "AAPL"
+        assert metrics["period_tested"] == "1mo"
+        assert metrics["interval_tested"] == "1d"
+        assert metrics["total_data_points"] == 6 # Based on bt.historical_data
+        assert metrics["total_signals_non_hold"] == 4 # BUY, SELL, BUY, SELL
+        assert metrics["num_buy_signals"] == 2
+        assert metrics["num_sell_signals"] == 2
+        assert metrics["total_trades"] == 2
+        assert metrics["winning_trades"] == 1
+        assert metrics["losing_trades"] == 1
+        assert metrics["win_rate_pct"] == pytest.approx(50.0)
+        assert metrics["net_profit"] == pytest.approx(5.0) # 10 - 5
+        assert metrics["gross_profit"] == pytest.approx(10.0)
+        assert metrics["gross_loss"] == pytest.approx(5.0)
+        assert metrics["avg_profit_per_winning_trade"] == pytest.approx(10.0)
+        assert metrics["avg_loss_per_losing_trade"] == pytest.approx(5.0) # Absolute loss
+        assert metrics["profit_factor"] == pytest.approx(2.0) # 10 / 5
+        assert metrics["avg_pnl_per_trade"] == pytest.approx(2.5) # 5 / 2
+                # Max Drawdown: Initial 10000. Trade 1 (+10) -> 10010. Trade 2 (-5) -> 10005.
+        # Equity curve: [10000, 10010, 10005]
+        # Peak: 10010. Drawdown from peak: 10010-10005 = 5.
+        assert metrics["max_drawdown_value"] == pytest.approx(5.0)
+        assert metrics["max_drawdown_percentage"] == pytest.approx((5.0 / 10010.0) * 100, 2)
+
+        # Simplified Sharpe: Returns: +10/100 = 10%, -5/105 = -4.76%
+        # Mean: (10 - 4.7619) / 2 = 2.61905 %
+        # Std Dev: np.std([10, -4.76190476]) approx 7.38095
+        # Sharpe: 2.61905 / 7.38095 approx 0.355
+        trade_returns_pct = [(10/100)*100, (-5/105)*100]
+        mean_ret = np.mean(trade_returns_pct)
+        std_ret = np.std(trade_returns_pct)
+        expected_sharpe = "N/A"
+        if std_ret > 0 :
+            expected_sharpe = round(mean_ret / std_ret, 3)
+        assert metrics["sharpe_ratio_simplified_per_trade"] == expected_sharpe
+        
+
+    def test_get_results(self, backtest_stock_instance_fixture: BackTest, sample_ohlcv_data_fixture: pd.DataFrame):
+        bt = backtest_stock_instance_fixture
+        bt.results = sample_ohlcv_data_fixture # Dummy results
+        
+        results_df = bt.get_results()
+        assert results_df is not None, "get_results() should return a DataFrame in this test setup"
+        pd.testing.assert_frame_equal(results_df, sample_ohlcv_data_fixture)
+        assert results_df is sample_ohlcv_data_fixture
+
+    def test_get_performance_metrics(self, backtest_stock_instance_fixture: BackTest):
+        bt = backtest_stock_instance_fixture
+        dummy_metrics = {"profit": 100, "trades": 5}
+        bt.performance_metrics = dummy_metrics
+        assert bt.get_performance_metrics() == dummy_metrics
+        assert bt.get_performance_metrics() is dummy_metrics
+

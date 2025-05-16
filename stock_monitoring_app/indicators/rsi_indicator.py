@@ -1,0 +1,61 @@
+import pandas as pd
+import pandas_ta as ta
+from .base_indicator import Indicator
+
+class RSIIndicator(Indicator):
+    """
+    Calculates the Relative Strength Index (RSI) and signals.
+    """
+    def __init__(self, 
+                 df: pd.DataFrame, 
+                 period: int = 14, 
+                 column: str = 'Close',
+                 rsi_oversold: float = 30,
+                 rsi_overbought: float = 70):
+        """
+        Args:
+            df: OHLCV DataFrame.
+            period: The time period for RSI calculation.
+            column: The DataFrame column to use for RSI calculation (typically 'Close').
+            rsi_oversold: The RSI level below which an asset is considered oversold.
+            rsi_overbought: The RSI level above which an asset is considered overbought.
+        """
+
+        super().__init__(df)
+        self.period = period
+
+        self.column = column
+        self.rsi_oversold = rsi_oversold
+        self.rsi_overbought = rsi_overbought
+        
+        if self.column not in self.df.columns:
+            raise ValueError(f"Column '{self.column}' not found in DataFrame for RSI calculation.")
+
+        # Define and register signal column names and their orientations
+        self.oversold_signal_col = f'RSI_Oversold_Signal_{self.period}'
+        self.overbought_signal_col = f'RSI_Overbought_Signal_{self.period}'
+        self.signal_orientations[self.oversold_signal_col] = 'buy'  # Buying when oversold
+        self.signal_orientations[self.overbought_signal_col] = 'sell' # Selling when overbought
+
+    def calculate(self) -> pd.DataFrame:
+        """
+        Calculates RSI and adds 'RSI_<period>', 'RSI_Oversold_Signal', 
+        and 'RSI_Overbought_Signal' columns to the DataFrame.
+        """
+        rsi_series = self.df.ta.rsi(close=self.df[self.column], length=self.period, append=False)
+
+        rsi_col_name = f'RSI_{self.period}'
+        self.df[rsi_col_name] = rsi_series
+
+        # Generate signals
+        oversold_signal_col_name = f'RSI_Oversold_Signal_{self.period}'
+        overbought_signal_col_name = f'RSI_Overbought_Signal_{self.period}'
+        
+        self.df[oversold_signal_col_name] = (self.df[rsi_col_name] < self.rsi_oversold)
+        self.df[overbought_signal_col_name] = (self.df[rsi_col_name] > self.rsi_overbought)
+
+        # Populate signal orientations
+        self.signal_orientations[oversold_signal_col_name] = 'buy'
+        self.signal_orientations[overbought_signal_col_name] = 'sell'
+        
+        return self.df
