@@ -24,24 +24,32 @@ This project provides a framework for fetching financial market data, applying t
     *   Saves backtest results (data with signals) and performance metrics to CSV and JSON files respectively in the `backtest_outputs` directory.
 
 
-## Project StructureA brief overview of the main directories:
 
-```
+## Project Structure
+
+A brief overview of the main directories:```
 my-pricer/
-├── stock_monitoring_app/
-│   ├── backtest/         # Backtesting engine and logic
+├── stock_monitoring_app/ # Core application logic
+│   ├── backtest/         # Backtesting engine
 │   ├── fetchers/         # Data fetching modules (Polygon, CoinGecko)
 │   ├── indicators/       # Technical indicator implementations
-│   ├── strategies/       # Trading strategy logic (BaseStrategy)
-│   ├── config.py         # Configuration management (e.g., API keys)
-│   └── ...
-├── tests/
+│   ├── strategies/       # Trading strategy logic
+│   ├── config.py         # Application configuration (API keys, etc.)
+│   └── __init__.py
+├── examples/             # Example scripts demonstrating usage
+│   ├── run_fetcher_example.py
+│   ├── run_indicators_example.py
+│   ├── run_strategy_example.py
+│   ├── run_backtest_example.py
+│   └── __init__.py
+├── tests/                # Automated tests
 │   ├── indicators/       # Tests for technical indicators
 │   ├── fetchers/         # Tests for data fetchers
-│   └── test_backtest.py  # Tests for the backtesting engine
-├── backtest_outputs/     # (Generated) Directory for storing backtest results and metrics
-├── LICENSE               # MIT License file
-├── pytest.ini            # Pytest configuration file
+│   ├── test_backtest.py  # Tests for the backtesting engine
+│   └── conftest.py       # Pytest fixtures and hooks (if created)
+├── backtest_outputs/     # (Generated) Directory for storing backtest results├── LICENSE               # Project license
+├── pytest.ini            # Pytest configuration
+├── requirements.txt      # Python package dependencies
 └── README.md             # This file
 ```
 
@@ -55,9 +63,11 @@ my-pricer/
 
 2.  **Install dependencies:**
     It's recommended to use a virtual environment. This project likely has dependencies such as `pandas`, `pandas-ta`, `requests`, `numpy`. If a `requirements.txt` file is present or created, use:
+
     ```bash
     pip install -r requirements.txt
     ```
+    The <<FILE:requirements.txt:requirements.txt:>> file lists the necessary Python packages.
 
 3.  **Environment Variables:**
     The application requires API keys for data fetchers. These are typically loaded from environment variables via a `config.py` (not provided in context, but inferred). You would need to set:
@@ -109,10 +119,33 @@ To run the tests:
     pytest
     ```
 
+
 The `pytest.ini` file (<<FILE:pytest.ini:pytest.ini:>>) contains configurations for `pytest`, such as marker definitions (e.g., `integration` tests) and warning filters. Refer to this file for more details on test execution options.
 
-## License
+## Examples
+
+The `examples/` directory contains scripts to demonstrate the core functionalities of this application:
+
+*   **<<FILE:examples/run_fetcher_example.py:run_fetcher_example.py:>>**: Shows how to use the `PolygonFetcher` and `CoinGeckoFetcher` to retrieve market data.
+*   **<<FILE:examples/run_indicators_example.py:run_indicators_example.py:>>**: Demonstrates applying various technical indicators (RSI, MACD, Bollinger Bands, etc.) to a DataFrame.
+*   **<<FILE:examples/run_strategy_example.py:run_strategy_example.py:>>**: Illustrates how to configure `BaseStrategy` with a set of indicators and generate trading signals.
+*   **<<FILE:examples/run_backtest_example.py:run_backtest_example.py:>>**: Provides a full example of running the `BackTest` engine for both a stock and a cryptocurrency, including data fetching, (placeholder) optimization, strategy execution, performance evaluation, and saving results.
+
+**To run the examples:**
+
+1.  Ensure you have followed the "Setup" instructions above, especially installing dependencies and configuring API keys.
+2.  Navigate to the project root directory (`my-pricer/`).
+3.  Execute the desired example script using Python. For example:
+    ```bash
+    python examples/run_backtest_example.py
+    ```
+    Or, if your `PYTHONPATH` is set up correctly to include the project root:
+    ```bash
+    python -m examples.run_backtest_example
+    ```
+
+**Note:** The example scripts might require API keys (especially `POLYGON_API_KEY` for stock data) to be set in your environment or a `.env` file for full functionality. They are designed to fall back to placeholder data or skip parts if keys are missing, but live data fetching will provide a more complete demonstration. The backtesting example, in particular, can take a few moments to run as it involves fetching data and multiple processing steps.
 
 ## License
 
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License. See the <<FILE:LICENSE:LICENSE:>> file for details.
