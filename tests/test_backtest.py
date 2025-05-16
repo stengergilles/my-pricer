@@ -3,8 +3,10 @@ import pandas as pd
 from unittest.mock import patch, MagicMock, call, ANY
 from typing import List, Dict, Any, Optional, Type
 import numpy as np
+
 import importlib
 import inspect
+import math
 
 # Assuming 'tests' directory is at the same level as 'stock_monitoring_app'
 # or the project root containing 'stock_monitoring_app' is in PYTHONPATH.
@@ -13,9 +15,14 @@ from stock_monitoring_app.fetchers.base_fetcher import Fetcher
 from stock_monitoring_app.fetchers import CoinGeckoFetcher, PolygonFetcher
 from stock_monitoring_app.strategies.base_strategy import BaseStrategy, SIGNAL_BUY, SIGNAL_SELL, SIGNAL_HOLD
 from stock_monitoring_app.indicators.base_indicator import Indicator
+
 from stock_monitoring_app.indicators.rsi_indicator import RSIIndicator
 from stock_monitoring_app.indicators.bollinger_bands_indicator import BollingerBandsIndicator
 from stock_monitoring_app.indicators.breakout_indicator import BreakoutIndicator
+
+from pathlib import Path # Added for save_results tests
+import json            # Added for save_results tests
+from datetime import datetime as dt # Added for save_results tests, aliased as dt
 
 # --- Mock Indicator classes for testing discovery ---
 class MockIndicatorAlpha(Indicator):
@@ -516,10 +523,341 @@ class TestBackTest:
         pd.testing.assert_frame_equal(results_df, sample_ohlcv_data_fixture)
         assert results_df is sample_ohlcv_data_fixture
 
+
+
     def test_get_performance_metrics(self, backtest_stock_instance_fixture: BackTest):
-        bt = backtest_stock_instance_fixture
+        bt = backtest_stock_instance_fixture # Ensure 'bt' is assigned from the fixture
         dummy_metrics = {"profit": 100, "trades": 5}
         bt.performance_metrics = dummy_metrics
-        assert bt.get_performance_metrics() == dummy_metrics
+        assert bt.get_performance_metrics() == dummy_metrics        
         assert bt.get_performance_metrics() is dummy_metrics
+
+    # --- Fixture for save_results tests ---
+    @pytest.fixture
+    def backtest_instance_for_saving(self, tmp_path: Path):
+        # Patch _get_project_root to return tmp_path for this test's scope
+        # Patch fetchers to avoid real calls / dependency on API keys during init
+        with patch('stock_monitoring_app.backtest.backtest.BackTest._get_project_root', return_value=tmp_path), \
+             patch('stock_monitoring_app.backtest.backtest.PolygonFetcher') as MockPolygonFetcher, \
+             patch('stock_monitoring_app.backtest.backtest.CoinGeckoFetcher') as MockCoinGeckoFetcher:
+
+            mock_polygon_fetcher_instance = MockPolygonFetcher.return_value
+            mock_polygon_fetcher_instance.get_service_name.return_value = "PolygonMockForSaving"
+            
+            mock_coingecko_fetcher_instance = MockCoinGeckoFetcher.return_value
+            mock_coingecko_fetcher_instance.get_service_name.return_value = "CoinGeckoMockForSaving"
+
+            bt_save = BackTest(ticker="TESTSAVE", period="1d", interval="1h")
+
+            # Ensure the correct mock fetcher is assigned
+            assert isinstance(bt_save.fetcher, MagicMock) 
+            yield bt_save
+
+    # --- Tests for save_results method ---
+
+    @patch('stock_monitoring_app.backtest.backtest.datetime') 
+    def test_save_results_success(self, mock_datetime_module, backtest_instance_for_saving: BackTest, sample_ohlcv_data_fixture: pd.DataFrame, tmp_path: Path):
+        bt = backtest_instance_for_saving
+        bt.results = sample_ohlcv_data_fixture.head(3).copy()
+        bt.performance_metrics = {
+            "profit": 123.45, 
+            "trades": np.int64(10),
+            "sharpe": np.float64(1.5),
+            "is_valid": np.bool_(True),
+            "tags": ["test", "important"],
+            "details": {"alpha": 0.05, "beta": np.float32(1.2)},
+            "nan_value": np.nan,
+            "inf_value": float('inf'),
+            "neg_inf_value": float('-inf'),
+
+            "pd_na_value": pd.NA
+        }
+
+
+
+        # Use datetime.timezone.utc for robust compatibility
+        from datetime import timezone as py_timezone # Import timezone
+        utc_tz = py_timezone.utc
+
+        # Use datetime.timezone.utc for robust compatibility
+
+        from datetime import timezone as py_timezone # Import timezone
+        utc_tz = py_timezone.utc
+        
+        # Create a fixed UTC timestamp. This is what mock_datetime_module.now() will return.
+        fixed_timestamp_obj = dt(2023, 10, 26, 12, 30, 0, tzinfo=utc_tz)
+        mock_datetime_module.now.return_value = fixed_timestamp_obj
+
+
+
+        # The timestamp_str for expected filenames should be derived directly from this UTC fixed_timestamp_obj.
+        timestamp_str = fixed_timestamp_obj.strftime("%Y%m%d_%H%M%S_UTC")
+
+
+        expected_output_dir = tmp_path / "backtest_outputs"
+        expected_results_filename = f"{bt.ticker}_{bt.period}_{bt.interval}_{timestamp_str}_results.csv"
+        expected_metrics_filename = f"{bt.ticker}_{bt.period}_{bt.interval}_{timestamp_str}_metrics.json"
+        expected_results_filepath = expected_output_dir / expected_results_filename
+        expected_metrics_filepath = expected_output_dir / expected_metrics_filename
+
+        bt.save_results()
+
+        assert expected_output_dir.exists()
+        assert expected_results_filepath.exists()
+        assert expected_metrics_filepath.exists()
+
+        saved_df = pd.read_csv(expected_results_filepath, index_col="Timestamp", parse_dates=True)
+        pd.testing.assert_frame_equal(saved_df, bt.results, check_dtype=False)
+
+        with open(expected_metrics_filepath, 'r') as f:
+            saved_metrics = json.load(f)
+        
+
+
+        expected_serialized_metrics = {
+            "profit": 123.45, "trades": 10, "sharpe": 1.5, "is_valid": True,
+            "tags": ["test", "important"], "details": {"alpha": 0.05, "beta": 1.2000000476837158}, # np.float32 becomes float
+
+
+            "nan_value": float('nan'),       # np.nan serializes to "NaN", loads as float('nan')
+
+            "inf_value": float('inf'),       # float('inf') serializes to "Infinity", loads as float('inf')
+            "neg_inf_value": float('-inf'),  # float('-inf') serializes to "-Infinity", loads as float('-inf')
+            "pd_na_value": None,             # pd.NA serializes to null, loads as None
+
+
+        }
+
+        # Handle nested 'details' dictionary separately for pytest.approx
+        # as pytest.approx does not support nested dictionaries directly when nan_ok=True is on the parent.
+        expected_details_content = expected_serialized_metrics.pop("details")
+        saved_details_content = saved_metrics.pop("details")
+
+        assert saved_details_content == pytest.approx(expected_details_content), \
+            "Comparison of 'details' dictionary failed"
+        
+
+
+        # Now compare the rest of the metrics, which may include NaN, inf, -inf values
+        assert len(saved_metrics) == len(expected_serialized_metrics), \
+            (f"Dictionaries have different lengths: "
+             f"saved {len(saved_metrics)} (keys: {sorted(saved_metrics.keys())}), "
+             f"expected {len(expected_serialized_metrics)} (keys: {sorted(expected_serialized_metrics.keys())})")
+        
+        for key in expected_serialized_metrics:
+            assert key in saved_metrics, f"Key '{key}' missing in saved_metrics"
+            
+            expected_val = expected_serialized_metrics[key]
+            saved_val = saved_metrics[key]
+
+            if isinstance(expected_val, float) and math.isnan(expected_val):
+                assert isinstance(saved_val, float) and math.isnan(saved_val), \
+                    f"Mismatch for key '{key}': expected NaN, got {saved_val!r}"
+            elif expected_val == float('inf'):
+                assert saved_val == float('inf'), \
+                    f"Mismatch for key '{key}': expected float('inf'), got {saved_val!r}"
+            elif expected_val == float('-inf'):
+                assert saved_val == float('-inf'), \
+                    f"Mismatch for key '{key}': expected float('-inf'), got {saved_val!r}"
+            elif isinstance(expected_val, (int, float)):
+                 assert saved_val == pytest.approx(expected_val), \
+                    f"Mismatch for key '{key}': expected approx {expected_val!r}, got {saved_val!r}"
+            else: # For other types like bool, list, str, None
+                assert saved_val == expected_val, \
+                    f"Mismatch for key '{key}': expected {expected_val!r}, got {saved_val!r}"
+        
+        # Ensure all keys in saved_metrics were also in expected_metrics (covered by length check if all expected keys are present)
+        # but an explicit check for extra keys in saved_metrics can be useful for debugging:
+        extra_keys = set(saved_metrics.keys()) - set(expected_serialized_metrics.keys())
+        assert not extra_keys, f"Extra keys found in saved_metrics: {extra_keys}"
+
+        mock_datetime_module.now.assert_called_once()
+
+    @patch('stock_monitoring_app.backtest.backtest.datetime')
+    def test_save_results_no_df_still_saves_metrics(self, mock_datetime_module, backtest_instance_for_saving: BackTest, tmp_path: Path):
+        bt = backtest_instance_for_saving
+        bt.results = None
+
+        bt.performance_metrics = {"note": "DataFrame was None, but metrics exist"}
+
+
+
+
+        # Use datetime.timezone.utc for robust compatibility
+        from datetime import timezone as py_timezone # Import timezone
+        utc_tz = py_timezone.utc
+        
+        fixed_timestamp_obj = dt(2023, 10, 26, 13, 0, 0, tzinfo=utc_tz) # Corrected time
+        mock_datetime_module.now.return_value = fixed_timestamp_obj        # timestamp_str is derived directly from the UTC fixed_timestamp_obj
+        timestamp_str = fixed_timestamp_obj.strftime("%Y%m%d_%H%M%S_UTC")
+
+
+        expected_output_dir = tmp_path / "backtest_outputs"
+        expected_results_filename = f"{bt.ticker}_{bt.period}_{bt.interval}_{timestamp_str}_results.csv"
+        expected_metrics_filename = f"{bt.ticker}_{bt.period}_{bt.interval}_{timestamp_str}_metrics.json"
+        expected_results_filepath = expected_output_dir / expected_results_filename
+        expected_metrics_filepath = expected_output_dir / expected_metrics_filename
+
+        bt.save_results()
+
+        assert expected_output_dir.exists()
+        assert not expected_results_filepath.exists()
+        assert expected_metrics_filepath.exists()
+
+        with open(expected_metrics_filepath, 'r') as f:
+            saved_metrics = json.load(f)
+        assert saved_metrics == {"note": "DataFrame was None, but metrics exist"}
+        mock_datetime_module.now.assert_called_once()
+
+    @patch('stock_monitoring_app.backtest.backtest.datetime')
+    def test_save_results_no_metrics_still_saves_df(self, mock_datetime_module, backtest_instance_for_saving: BackTest, sample_ohlcv_data_fixture: pd.DataFrame, tmp_path: Path):
+        bt = backtest_instance_for_saving
+        bt.results = sample_ohlcv_data_fixture.head(2).copy()
+
+
+        bt.performance_metrics = {}
+
+        # Directly use datetime.timezone.utc for robust compatibility
+        from datetime import timezone as py_timezone # Import timezone
+        utc_tz = py_timezone.utc        
+        fixed_timestamp_obj = dt(2023, 10, 26, 13, 30, 0, tzinfo=utc_tz)
+        mock_datetime_module.now.return_value = fixed_timestamp_obj
+
+        # timestamp_str is derived directly from the UTC fixed_timestamp_obj
+        timestamp_str = fixed_timestamp_obj.strftime("%Y%m%d_%H%M%S_UTC")
+
+        expected_output_dir = tmp_path / "backtest_outputs"
+        expected_results_filename = f"{bt.ticker}_{bt.period}_{bt.interval}_{timestamp_str}_results.csv"
+        expected_metrics_filename = f"{bt.ticker}_{bt.period}_{bt.interval}_{timestamp_str}_metrics.json"
+        expected_results_filepath = expected_output_dir / expected_results_filename
+        expected_metrics_filepath = expected_output_dir / expected_metrics_filename
+
+        bt.save_results()
+
+        assert expected_output_dir.exists()
+        assert expected_results_filepath.exists()        
+        assert not expected_metrics_filepath.exists()
+
+        saved_df = pd.read_csv(expected_results_filepath, index_col="Timestamp", parse_dates=True)
+        pd.testing.assert_frame_equal(saved_df, bt.results, check_dtype=False)
+        mock_datetime_module.now.assert_called_once()
+
+    def test_save_results_nothing_to_save(self, backtest_instance_for_saving: BackTest, tmp_path: Path):
+        bt = backtest_instance_for_saving
+        bt.results = None
+        bt.performance_metrics = {}
+
+        bt.save_results()
+
+        expected_output_dir = tmp_path / "backtest_outputs"
+        assert not expected_output_dir.exists()
+        
+        items_in_tmp = list(tmp_path.iterdir())
+        assert not any(item.name.startswith(f"{bt.ticker}_{bt.period}_{bt.interval}_") and item.name.endswith("_results.csv") for item in items_in_tmp)
+
+        assert not any(item.name.startswith(f"{bt.ticker}_{bt.period}_{bt.interval}_") and item.name.endswith("_metrics.json") for item in items_in_tmp)
+
+    @patch('stock_monitoring_app.backtest.backtest.datetime')
+    def test_save_results_results_empty_df_saves_metrics(self, mock_datetime_module, backtest_instance_for_saving: BackTest, tmp_path: Path):
+        bt = backtest_instance_for_saving
+        bt.results = pd.DataFrame()
+        bt.performance_metrics = {"note": "DataFrame was empty, but metrics exist"}
+
+
+        bt.performance_metrics = {"note": "DataFrame was empty, but metrics exist"}
+
+
+        # Use datetime.timezone.utc for robust compatibility
+        from datetime import timezone as py_timezone # Import timezone
+        utc_tz = py_timezone.utc
+        
+        fixed_timestamp_obj = dt(2023, 10, 26, 14, 0, 0, tzinfo=utc_tz)
+        mock_datetime_module.now.return_value = fixed_timestamp_obj
+
+        # timestamp_str is derived directly from the UTC fixed_timestamp_obj
+        timestamp_str = fixed_timestamp_obj.strftime("%Y%m%d_%H%M%S_UTC")
+
+        expected_output_dir = tmp_path / "backtest_outputs"
+        expected_results_filename = f"{bt.ticker}_{bt.period}_{bt.interval}_{timestamp_str}_results.csv"
+        expected_metrics_filename = f"{bt.ticker}_{bt.period}_{bt.interval}_{timestamp_str}_metrics.json"
+        expected_results_filepath = expected_output_dir / expected_results_filename
+        expected_metrics_filepath = expected_output_dir / expected_metrics_filename
+
+        bt.save_results()
+
+        assert expected_output_dir.exists()
+        assert not expected_results_filepath.exists()
+        assert expected_metrics_filepath.exists()
+
+        with open(expected_metrics_filepath, 'r') as f:
+            saved_metrics = json.load(f)
+        assert saved_metrics == {"note": "DataFrame was empty, but metrics exist"}
+        mock_datetime_module.now.assert_called_once()
+
+    @patch('stock_monitoring_app.backtest.backtest.BackTest.fetch_historical_data')
+    @patch('stock_monitoring_app.backtest.backtest.BackTest.determine_relevant_indicators')
+    @patch('stock_monitoring_app.backtest.backtest.BackTest.optimize_thresholds')
+    @patch('stock_monitoring_app.backtest.backtest.BaseStrategy')
+    @patch('stock_monitoring_app.backtest.backtest.BackTest.evaluate_performance')
+    @patch('stock_monitoring_app.backtest.backtest.BackTest.save_results') 
+    def test_run_backtest_calls_save_results_on_success(
+        self, mock_save_results, mock_eval_perf, MockBaseStrategy, mock_opt_thresh, 
+        mock_det_ind, mock_fetch_data, backtest_stock_instance_fixture: BackTest, 
+        sample_ohlcv_data_fixture: pd.DataFrame    ):
+        bt = backtest_stock_instance_fixture
+        bt.historical_data = sample_ohlcv_data_fixture
+        mock_det_ind.return_value = [{'type': MockIndicatorAlpha, 'params': {}}]
+        mock_opt_thresh.side_effect = lambda d, c: c
+        mock_strategy_instance = MockBaseStrategy.return_value
+        mock_results_df = sample_ohlcv_data_fixture.copy()
+        mock_results_df['Strategy_Signal'] = SIGNAL_HOLD
+        mock_strategy_instance.run.return_value = mock_results_df
+        mock_eval_perf.return_value = {"net_profit": 100}
+
+        bt.run_backtest()
+        mock_save_results.assert_called_once()
+
+    @patch('stock_monitoring_app.backtest.backtest.BackTest.fetch_historical_data')
+    @patch('stock_monitoring_app.backtest.backtest.BackTest.determine_relevant_indicators')
+    @patch('stock_monitoring_app.backtest.backtest.BackTest.optimize_thresholds')
+    @patch('stock_monitoring_app.backtest.backtest.BaseStrategy')
+    @patch('stock_monitoring_app.backtest.backtest.BackTest.evaluate_performance')
+    @patch('stock_monitoring_app.backtest.backtest.BackTest.save_results')
+    def test_run_backtest_does_not_call_save_results_if_no_results_df(
+        self, mock_save_results, mock_eval_perf, MockBaseStrategy, mock_opt_thresh, 
+        mock_det_ind, mock_fetch_data, backtest_stock_instance_fixture: BackTest, 
+        sample_ohlcv_data_fixture: pd.DataFrame
+    ):
+        bt = backtest_stock_instance_fixture
+        bt.historical_data = sample_ohlcv_data_fixture
+        mock_det_ind.return_value = [{'type': MockIndicatorAlpha, 'params': {}}]
+        mock_opt_thresh.side_effect = lambda d, c: c
+        mock_strategy_instance = MockBaseStrategy.return_value
+        mock_strategy_instance.run.return_value = pd.DataFrame() 
+        mock_eval_perf.return_value = {"note": "empty df"}
+
+        bt.run_backtest()
+        mock_save_results.assert_not_called()
+
+    @patch('stock_monitoring_app.backtest.backtest.BackTest.fetch_historical_data')
+    @patch('stock_monitoring_app.backtest.backtest.BackTest.determine_relevant_indicators')
+    @patch('stock_monitoring_app.backtest.backtest.BackTest.optimize_thresholds')
+    @patch('stock_monitoring_app.backtest.backtest.BaseStrategy')
+    @patch('stock_monitoring_app.backtest.backtest.BackTest.evaluate_performance')
+    @patch('stock_monitoring_app.backtest.backtest.BackTest.save_results')
+    def test_run_backtest_does_not_call_save_results_if_strategy_run_is_none(
+        self, mock_save_results, mock_eval_perf, MockBaseStrategy, mock_opt_thresh, 
+        mock_det_ind, mock_fetch_data, backtest_stock_instance_fixture: BackTest, 
+        sample_ohlcv_data_fixture: pd.DataFrame
+    ):
+        bt = backtest_stock_instance_fixture
+        bt.historical_data = sample_ohlcv_data_fixture
+        mock_det_ind.return_value = [{'type': MockIndicatorAlpha, 'params': {}}]
+        mock_opt_thresh.side_effect = lambda d, c: c
+        mock_strategy_instance = MockBaseStrategy.return_value
+        mock_strategy_instance.run.return_value = None 
+        
+        bt.run_backtest()
+        mock_eval_perf.assert_not_called() 
+        mock_save_results.assert_not_called()
 

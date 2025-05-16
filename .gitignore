@@ -56,3 +56,6 @@ dmypy.json
 dist/
 build/
 
+# Project Specific 
+
+backtest_outputs/

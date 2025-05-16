@@ -6,10 +6,15 @@
 import pandas as pd
 from typing import List, Dict, Type, Any, Optional
 import importlib # For dynamic import
-import inspect   # For inspecting module members
-import numpy as np # For calculations like mean, std
 
-# Assuming fetchers and BaseStrategy are accessible via these relative imports
+import inspect   # For inspecting module members
+
+import numpy as np # For calculations like mean, std
+from pathlib import Path
+import json
+from datetime import datetime, timezone # Added timezone
+
+# Assuming fetchers and BaseStrategy are accessible via these relative
 # Adjust if your project structure dictates otherwise.
 
 from ..fetchers.base_fetcher import Fetcher
@@ -22,8 +27,29 @@ from ..indicators.base_indicator import Indicator # For type hints, and for issu
 from ..indicators.rsi_indicator import RSIIndicator
 from ..indicators.bollinger_bands_indicator import BollingerBandsIndicator
 from ..indicators.breakout_indicator import BreakoutIndicator
+
 # from ..indicators.volume_spike_indicator import VolumeSpikeIndicator # Example if adding more
 # from ..indicators.atr_indicator import ATRIndicator # Example if adding more
+
+
+class NumpyJSONEncoder(json.JSONEncoder):
+    """ Custom encoder for numpy data types , pandas.NA, and infinity. """
+
+    def default(self, o: Any): # Changed 'obj' to 'o' and added type hint for clarity
+        if isinstance(o, np.integer): # Covers all NumPy integer types
+            return int(o)
+        elif isinstance(o, np.floating): # Covers all NumPy float types
+            if np.isnan(o):
+                return None  # Serialize np.nan as null in JSON
+            elif np.isinf(o):
+                return str(o) # Serialize np.inf and -np.inf as "inf" and "-inf"
+            return float(o)
+        elif isinstance(o, np.ndarray):
+            return o.tolist() # Convert ndarrays to lists
+        elif isinstance(o, np.bool_):
+            return bool(o)
+        elif pd.isna(o): # Handle pandas.NA specifically
+            return None # Serialize pd.NA as null        return super(NumpyJSONEncoder, self).default(o)
 
 class BackTest:
     """
@@ -366,11 +392,14 @@ class BackTest:
         if self.results is None or self.results.empty:
             print(f"Backtest for {self.ticker} did not produce results. Check strategy and indicator logic.")
         else:
+
             print(f"Backtest completed for {self.ticker}. Results DataFrame generated.")
             # Step 3: Evaluate performance
             self.evaluate_performance()
+            # Step 4: Save results if they were generated
+            self.save_results()
             
-        return self.results    
+        return self.results
     
     def evaluate_performance(self) -> Dict[str, Any]:
         """
@@ -528,7 +557,63 @@ class BackTest:
         """Returns the DataFrame containing the backtest results (data + signals)."""
         return self.results
 
+
     def get_performance_metrics(self) -> Dict[str, Any]:
         """Returns the dictionary of calculated performance metrics."""
         return self.performance_metrics
+
+    def _get_project_root(self) -> Path:
+        """
+        Determines the project root directory.
+        Assumes this script (backtest.py) is located at a path like:        .../project_root/stock_monitoring_app/backtest/backtest.py
+        The project root is then three levels up from this file's directory.
+        """
+        # Path to the current file (backtest.py)
+        current_file_path = Path(__file__).resolve()
+        # .../stock_monitoring_app/backtest/ -> .../stock_monitoring_app/ -> .../project_root/
+        project_root = current_file_path.parent.parent.parent
+        return project_root
+
+    def save_results(self):
+        """
+        Saves the backtest results DataFrame to a CSV file and performance_metrics        dictionary to a JSON file in a 'backtest_outputs' directory at the project root.
+        Filenames are timestamped.
+        """
+        if (self.results is None or self.results.empty) and \
+           (not self.performance_metrics): # Check if metrics dict is empty
+            print("INFO: No results DataFrame or performance metrics to save.")
+            return
+
+        project_root = self._get_project_root()
+        output_dir = project_root / "backtest_outputs"
+        
+
+        try:
+            output_dir.mkdir(parents=True, exist_ok=True)
+            # Use timezone-aware UTC datetime
+            timestamp_str = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S_UTC")
+            base_filename = f"{self.ticker}_{self.period}_{self.interval}_{timestamp_str}"
+
+            # Save results DataFrame if it exists and is not empty
+            if self.results is not None and not self.results.empty:
+                results_filepath = output_dir / f"{base_filename}_results.csv"
+                self.results.to_csv(results_filepath)
+                print(f"Backtest results DataFrame saved to: {results_filepath}")
+            else:
+                if self.results is None:
+                    print("INFO: Results DataFrame is None. Not saving CSV.")
+                else: # self.results is an empty DataFrame
+                    print("INFO: Results DataFrame is empty. Not saving CSV.")
+            
+            # Save performance metrics if the dictionary is not empty
+            if self.performance_metrics:
+                metrics_filepath = output_dir / f"{base_filename}_metrics.json"
+                with open(metrics_filepath, 'w') as f:
+                    json.dump(self.performance_metrics, f, cls=NumpyJSONEncoder, indent=4)
+                print(f"Performance metrics saved to: {metrics_filepath}")
+            else:
+                print("INFO: Performance metrics dictionary is empty. Not saving JSON.")
+
+        except Exception as e:
+            print(f"Error saving backtest results: {e}")
 
