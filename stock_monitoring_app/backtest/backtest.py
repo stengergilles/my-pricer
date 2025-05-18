@@ -584,8 +584,21 @@ class BackTest:
                 else: # self.results is an empty DataFrame
                     print("INFO: Results DataFrame is empty. Not saving CSV.")
             
+
             # Save performance metrics if the dictionary is not empty
             if self.performance_metrics:
+                # Serialize indicator configurations
+                serializable_indicator_configs = []
+                if self.current_indicator_configs: # Ensure it's not None or empty                    for config in self.current_indicator_configs:
+                        indicator_class = config['type']
+                        # Ensure params are serializable; NumpyJSONEncoder helps with numpy types
+                        serializable_indicator_configs.append({
+                            "module": indicator_class.__module__,
+                            "class_name": indicator_class.__name__,
+                            "params": config.get('params', {}) 
+                        })
+                self.performance_metrics["indicator_configurations"] = serializable_indicator_configs
+
                 metrics_filepath = output_dir / f"{base_filename}_metrics.json"
                 with open(metrics_filepath, 'w') as f:
                     json.dump(self.performance_metrics, f, cls=NumpyJSONEncoder, indent=4)
