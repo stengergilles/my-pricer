@@ -232,6 +232,16 @@ class TestBackTest:
         pnl_open_trade = bt._calculate_placeholder_pnl(pd.DataFrame({'Close': [1,2], 'Strategy_Signal': [SIGNAL_BUY, SIGNAL_HOLD]}))
         assert pnl_open_trade == 0.0 # Only closed trades contribute
 
+    def test_calculate_placeholder_pnl_with_short_positions(self, backtest_stock_instance_fixture: BackTest):
+        bt = backtest_stock_instance_fixture
+        data = {
+            'Close': [100, 102, 101, 105, 103, 98],
+            'Strategy_Signal': [SIGNAL_HOLD, SIGNAL_SELL, SIGNAL_HOLD, SIGNAL_BUY, SIGNAL_SELL, SIGNAL_BUY]
+        } # Short 102, Buy 105 (PNL=-3); Short 103, Buy 98 (PNL=5). Total PNL = 2
+        results_df = pd.DataFrame(data)
+        pnl = bt._calculate_placeholder_pnl(results_df)
+        assert pnl == pytest.approx(2.0)
+
     @patch('stock_monitoring_app.backtest.backtest.BaseStrategy')
     def test_optimize_thresholds_flow(self, MockBaseStrategy, backtest_stock_instance_fixture: BackTest, sample_ohlcv_data_fixture: pd.DataFrame):
         bt = backtest_stock_instance_fixture
@@ -451,11 +461,13 @@ class TestBackTest:
         metrics_empty_df = bt.evaluate_performance()
         assert metrics_empty_df == {}
         
+
     def test_evaluate_performance_missing_columns(self, backtest_stock_instance_fixture: BackTest):
 
         bt = backtest_stock_instance_fixture
         bt.historical_data = pd.DataFrame({'SomeData': [1,2,3]}) # For total_data_points
-        bt.results = pd.DataFrame({'Price': [10,11,12]}) # Missing 'Close' or 'Strategy_Signal'
+        # Ensure 'Close' is present, but 'Strategy_Signal' is missing
+        bt.results = pd.DataFrame({'Close': [10,11,12]}) 
         
         # Test that evaluate_performance raises KeyError when 'Strategy_Signal' is missing
         with pytest.raises(KeyError, match="'Strategy_Signal'"):
@@ -513,6 +525,30 @@ class TestBackTest:
             expected_sharpe = round(mean_ret / std_ret, 3)
         assert metrics["sharpe_ratio_simplified_per_trade"] == expected_sharpe
         
+
+    def test_evaluate_performance_with_short_positions(self, backtest_stock_instance_fixture: BackTest):
+        bt = backtest_stock_instance_fixture
+        bt.historical_data = pd.DataFrame({
+            'Close': [100, 102, 101, 105, 103, 98]
+        })
+
+        # Short 102, Buy 105 (PNL=-3); Short 103, Buy 98 (PNL=5). Total PNL = 2
+        results_data = {
+            'Close': [100, 102, 101, 105, 103, 98],
+            'Strategy_Signal': [SIGNAL_HOLD, SIGNAL_SELL, SIGNAL_HOLD, SIGNAL_BUY, SIGNAL_SELL, SIGNAL_BUY]
+        }
+        bt.results = pd.DataFrame(results_data)
+
+        metrics = bt.evaluate_performance()
+
+        assert metrics["net_profit"] == pytest.approx(2.0)
+        assert metrics["total_trades"] == 2
+        assert metrics["winning_trades"] == 1
+        assert metrics["losing_trades"] == 1
+        assert metrics["gross_profit"] == pytest.approx(5.0)
+        assert metrics["gross_loss"] == pytest.approx(3.0)
+        assert metrics["avg_profit_per_winning_trade"] == pytest.approx(5.0)
+        assert metrics["avg_loss_per_losing_trade"] == pytest.approx(3.0)
 
     def test_get_results(self, backtest_stock_instance_fixture: BackTest, sample_ohlcv_data_fixture: pd.DataFrame):
         bt = backtest_stock_instance_fixture

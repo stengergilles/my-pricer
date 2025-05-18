@@ -1,8 +1,3 @@
-
-
- 
-
-
 import pandas as pd
 from typing import List, Dict, Type, Any, Optional
 import importlib # For dynamic import
@@ -185,27 +180,40 @@ class BackTest:
 
     def _calculate_placeholder_pnl(self, results_df: Optional[pd.DataFrame]) -> float:
         """Helper to calculate placeholder P&L for optimization runs."""
-        if results_df is None or results_df.empty:            return -float('inf') # Or 0.0, depending on how failures should be treated
+        if results_df is None or results_df.empty:
+            return -float('inf')
 
         profit_loss = 0.0
-        position = 0
+        position = 0  # 0 = no position, 1 = long, -1 = short
         entry_price = 0.0
-        if 'Close' in results_df.columns and 'Strategy_Signal' in results_df.columns:
-            for _, row in results_df.iterrows():
-                if row['Strategy_Signal'] == SIGNAL_BUY and position == 0:
+
+
+        for _, row in results_df.iterrows():
+            current_price = row['Close']
+            signal = row['Strategy_Signal']
+
+            if position == 0:  # Currently flat
+                if signal == SIGNAL_BUY:
                     position = 1
-                    entry_price = row['Close']
-                elif row['Strategy_Signal'] == SIGNAL_SELL and position == 1:
-                    if entry_price > 0: # Ensure entry price was set
-                        profit_loss += (row['Close'] - entry_price)
-                    position = 0
-                    entry_price = 0.0
-            # Optional: Mark to market if still in position at the end
-            # if position == 1 and not results_df.empty and entry_price > 0 and 'Close' in results_df.columns:
-            #     profit_loss += (results_df['Close'].iloc[-1] - entry_price)
+                    entry_price = current_price
+                elif signal == SIGNAL_SELL:
+                    position = -1
+                    entry_price = current_price
+            elif position == 1:  # Currently long
+                if signal == SIGNAL_SELL:  # Closing long
+                    profit_loss += (current_price - entry_price)
+                    position = 0  # Go flat
+                    entry_price = 0 # Reset entry price
+                # If signal is BUY or HOLD while long, no PNL action for this simple calculator
+            elif position == -1:  # Currently short
+                if signal == SIGNAL_BUY:  # Closing short
+                    profit_loss += (entry_price - current_price)
+                    position = 0  # Go flat
+                    entry_price = 0 # Reset entry price
+                # If signal is SELL or HOLD while short, no PNL action for this simple calculator
+        
         return round(profit_loss, 2)
 
-    # Removed duplicate method definition of optimize_thresholds that was here.
     def optimize_thresholds(self, data: pd.DataFrame, initial_discovered_configs: List[Dict]) -> List[Dict]:
         """
         Placeholder implementation for optimizing thresholds (parameters) for discovered indicators.
@@ -402,156 +410,127 @@ class BackTest:
         return self.results
     
     def evaluate_performance(self) -> Dict[str, Any]:
-        """
-        Placeholder for calculating and returning performance metrics from backtest results.
-        Actual financial metrics (Sharpe Ratio, P&L, Max Drawdown, etc.) would be implemented here.
-        """
+        """Calculates and returns performance metrics from backtest results."""
         if self.results is None or self.results.empty:
             print(f"No backtest results available for {self.ticker} to evaluate.")
             return {}
 
-        print(f"INFO: Evaluating performance for {self.ticker} (placeholder metrics)...")
-        
+        required_columns = ['Close', 'Strategy_Signal']
+        for col in required_columns:
+            if col not in self.results.columns:
+                raise KeyError(f"'{col}' column is missing in the results DataFrame.")
 
 
-        
-        total_data_points = len(self.historical_data) if self.historical_data is not None else 0
-        # 'Strategy_Signal' is the key for signals from BaseStrategy
-        total_signals_non_hold_df = self.results[self.results['Strategy_Signal'] != SIGNAL_HOLD]
-        num_total_signals_non_hold = len(total_signals_non_hold_df)
-        num_buy_signals = len(self.results[self.results['Strategy_Signal'] == SIGNAL_BUY])
-        num_sell_signals = len(self.results[self.results['Strategy_Signal'] == SIGNAL_SELL])
 
-        trade_pnl_list = [] # Stores P&L for each closed trade
-        trade_percentage_returns = [] # Stores % P&L for each closed trade
+        trades_details = [] # Store dicts: {'pnl': float, 'entry_price': float, 'type': str}
+        position = 0  # 0 = no position, 1 = long, -1 = short
+        entry_price = 0.0  # Initialize entry_price
 
-        position = 0 # 0 = no position, 1 = long
-        entry_price = 0.0
-
-        if 'Close' not in self.results.columns or 'Strategy_Signal' not in self.results.columns:
-            print("Warning: 'Close' or 'Strategy_Signal' column not found in results. Cannot calculate detailed performance.")
-            self.performance_metrics = {
-                "ticker": self.ticker, "period_tested": self.period, "interval_tested": self.interval,
-                "total_data_points": total_data_points, "num_signals_generated_non_hold": num_total_signals_non_hold,
-                "num_buy_signals": num_buy_signals, "num_sell_signals": num_sell_signals,
-                "notes": "Results missing 'Close' or 'Strategy_Signal'. Limited metrics."
-            }
-            return self.performance_metrics
-            
-        for index, row in self.results.iterrows():
-            current_price = row['Close']            
+        for _, row in self.results.iterrows():
+            current_price = row['Close']
             signal = row['Strategy_Signal']
 
-            if signal == SIGNAL_BUY and position == 0:
-                position = 1
-                entry_price = current_price
-                # print(f"Trade Log: BUY at {current_price} on {index}")
-            elif signal == SIGNAL_SELL and position == 1:
-                if entry_price > 0: # Ensure there was a valid entry
+            if position == 0: # Currently flat
+                if signal == SIGNAL_BUY:
+                    position = 1
+                    entry_price = current_price
+                elif signal == SIGNAL_SELL:
+                    position = -1
+                    entry_price = current_price
+            elif position == 1: # Currently long
+                if signal == SIGNAL_SELL: # Signal to sell while long
                     pnl = current_price - entry_price
-                    trade_pnl_list.append(pnl)
-                    
-                    percentage_return = (pnl / entry_price) * 100 if entry_price != 0 else 0
-                    trade_percentage_returns.append(percentage_return)
-                    
-                    # print(f"Trade Log: SELL at {current_price} on {index}. Entry: {entry_price}, P&L: {pnl:.2f} ({percentage_return:.2f}%)")
-                position = 0
-                entry_price = 0.0 # Reset for next trade
-        
-        # If still in position at the end of the backtest period, we generally don't count it as a closed trade
-        # for these typical backtest summary statistics, unless specified by a particular methodology (e.g., mark-to-market).
-        # The _calculate_placeholder_pnl in optimize_thresholds also only counts closed trades.
+                    trades_details.append({'pnl': pnl, 'entry_price': entry_price, 'type': 'long'})
+                    position = 0 # Go flat
+                    entry_price = 0 # Reset entry price
+            elif position == -1: # Currently short
+                if signal == SIGNAL_BUY: # Signal to buy while short
+                    pnl = entry_price - current_price
+                    trades_details.append({'pnl': pnl, 'entry_price': entry_price, 'type': 'short'})
+                    position = 0 # Go flat
+                    entry_price = 0 # Reset entry price
 
-        # Calculate more detailed metrics
+        trade_pnl_list = [td['pnl'] for td in trades_details]
         num_trades = len(trade_pnl_list)
+        
+        net_profit = sum(trade_pnl_list)
         num_winning_trades = len([pnl for pnl in trade_pnl_list if pnl > 0])
         num_losing_trades = len([pnl for pnl in trade_pnl_list if pnl < 0])
 
-        win_rate = (num_winning_trades / num_trades) * 100 if num_trades > 0 else 0
+        gross_profit = sum([pnl for pnl in trade_pnl_list if pnl > 0])
+        gross_loss = abs(sum([pnl for pnl in trade_pnl_list if pnl < 0]))
 
-        gross_profit = sum(pnl for pnl in trade_pnl_list if pnl > 0)
-        gross_loss = abs(sum(pnl for pnl in trade_pnl_list if pnl < 0)) # abs to make it positive
-
-
-        net_profit = gross_profit - gross_loss
-        avg_profit_per_winning_trade = gross_profit / num_winning_trades if num_winning_trades > 0 else 0
-        avg_loss_per_losing_trade = gross_loss / num_losing_trades if num_losing_trades > 0 else 0 # gross_loss is already positive
+        win_rate_pct = (num_winning_trades / num_trades) * 100 if num_trades > 0 else 0.0
+        avg_profit_per_winning_trade = gross_profit / num_winning_trades if num_winning_trades > 0 else 0.0
+        avg_loss_per_losing_trade = gross_loss / num_losing_trades if num_losing_trades > 0 else 0.0
         
-        profit_factor = gross_profit / gross_loss if gross_loss > 0 else float('inf') # If gross_loss is 0
+        if gross_loss > 0:
+            profit_factor = gross_profit / gross_loss
+        elif gross_profit > 0: # gross_loss is 0 but gross_profit > 0
+            profit_factor = float('inf') 
+        else: # both gross_profit and gross_loss are 0
+            profit_factor = 0.0 
+            
+        avg_pnl_per_trade = net_profit / num_trades if num_trades > 0 else 0.0
 
-        avg_pnl_per_trade = net_profit / num_trades if num_trades > 0 else 0
+        # Max Drawdown Calculation
+        initial_capital = 10000.0         
+        equity = initial_capital
+        current_peak_equity = initial_capital
+        max_drawdown_value = 0.0
+        peak_at_max_drawdown = initial_capital
 
-        # Max Drawdown Calculation (from equity curve based on trade P&Ls)
-        initial_capital = 10000 # Arbitrary starting capital for simulation
-        equity_curve = [initial_capital]
-        current_equity = initial_capital
-        for pnl in trade_pnl_list: # Using P&L per trade to update equity
-            current_equity += pnl
-            equity_curve.append(current_equity)
+        for pnl_val in trade_pnl_list:
+            equity += pnl_val
+            if equity > current_peak_equity:
+                current_peak_equity = equity
+            
+            drawdown = current_peak_equity - equity
+            if drawdown > max_drawdown_value:
+                max_drawdown_value = drawdown
+                peak_at_max_drawdown = current_peak_equity
         
-        peak_equity = equity_curve[0] if equity_curve else 0 # handle empty equity_curve
-        max_drawdown_value = 0
-        max_drawdown_percentage = 0.0
+        max_drawdown_percentage = (max_drawdown_value / peak_at_max_drawdown) * 100 if peak_at_max_drawdown > 0 and max_drawdown_value > 0 else 0.0
 
-        for equity_point in equity_curve:
-            if equity_point > peak_equity:
-                peak_equity = equity_point
-            drawdown_val = peak_equity - equity_point
-            if drawdown_val > max_drawdown_value:
-                max_drawdown_value = drawdown_val
-            if peak_equity > 0 : # Avoid division by zero if peak is zero (e.g. all losses from start)
-                drawdown_pct = (peak_equity - equity_point) / peak_equity
-                if drawdown_pct > max_drawdown_percentage:
-                    max_drawdown_percentage = drawdown_pct
+        # Simplified Sharpe Ratio per trade
+        trade_returns_pct_list = []
+        if num_trades > 0:
+            for td in trades_details:
+                if td['entry_price'] != 0: 
+                    trade_return_pct = (td['pnl'] / td['entry_price']) * 100
+                    trade_returns_pct_list.append(trade_return_pct)
         
-
-        # Simplified Sharpe Ratio (based on % returns of trades)
-        # This is a very rough estimate. Proper Sharpe uses periodic returns (e.g., daily).
-        sharpe_ratio_simplified = "N/A"
-        if num_trades > 0 and len(trade_percentage_returns) > 1: # Need at least 2 trades for std dev
-            mean_pct_return_per_trade = np.mean(trade_percentage_returns)
-            std_dev_pct_return_per_trade = np.std(trade_percentage_returns)
-
-
-            if std_dev_pct_return_per_trade > 0:
-                # Assuming 0 risk-free rate. Annualizing factor (e.g. sqrt(252) for daily) isn't applicable here directly.
-                sharpe_ratio_simplified = round(mean_pct_return_per_trade / std_dev_pct_return_per_trade, 3)
-            # else: # All trades had same % return, or only one distinct return
-                # sharpe_ratio_simplified = float('inf') if mean_pct_return_per_trade > 0 else 0.0 if mean_pct_return_per_trade == 0 else float('-inf')
-            # If std_dev is 0, Sharpe is ill-defined or infinite. Let's leave as N/A or specific handling.
-            # For simplicity, if std_dev is 0 and mean > 0, it's like "infinite" risk-adjusted return (no volatility).
-
-            # If mean is also 0 or <0, it's 0 or negative infinite. We'll just use N/A for std_dev == 0.
-
+        sharpe_ratio_simplified_per_trade: Any = "N/A"
+        if len(trade_returns_pct_list) >= 2: # Needs at least 2 data points for standard deviation
+            mean_trade_return_pct = np.mean(trade_returns_pct_list)
+            std_dev_trade_return_pct = np.std(trade_returns_pct_list)
+            if std_dev_trade_return_pct > 0:
+                sharpe_ratio_simplified_per_trade = round(mean_trade_return_pct / std_dev_trade_return_pct, 3)        
         self.performance_metrics = {
             "ticker": self.ticker,
             "period_tested": self.period,
             "interval_tested": self.interval,
-            "total_data_points": total_data_points,            "total_signals_non_hold": num_total_signals_non_hold,
-            "num_buy_signals": num_buy_signals,
-            "num_sell_signals": num_sell_signals,
+            "total_data_points": len(self.historical_data) if self.historical_data is not None else 0,            "total_signals_non_hold": len(self.results[self.results['Strategy_Signal'] != SIGNAL_HOLD]),
+            "num_buy_signals": len(self.results[self.results['Strategy_Signal'] == SIGNAL_BUY]),
+            "num_sell_signals": len(self.results[self.results['Strategy_Signal'] == SIGNAL_SELL]),
             "total_trades": num_trades,
             "winning_trades": num_winning_trades,
             "losing_trades": num_losing_trades,
-            "win_rate_pct": round(win_rate, 2),
             "net_profit": round(net_profit, 2),
             "gross_profit": round(gross_profit, 2),
             "gross_loss": round(gross_loss, 2),
+            "win_rate_pct": round(win_rate_pct, 2),
             "avg_profit_per_winning_trade": round(avg_profit_per_winning_trade, 2),
             "avg_loss_per_losing_trade": round(avg_loss_per_losing_trade, 2),
-            "profit_factor": round(profit_factor, 2) if profit_factor not in [float('inf'), float('-inf')] else str(profit_factor),
+            "profit_factor": round(profit_factor, 2) if isinstance(profit_factor, (int, float)) and profit_factor not in [float('inf'), float('-inf')] else profit_factor,
             "avg_pnl_per_trade": round(avg_pnl_per_trade, 2),
             "max_drawdown_value": round(max_drawdown_value, 2),
-            "max_drawdown_percentage": round(max_drawdown_percentage * 100, 2), # As percentage
-            "sharpe_ratio_simplified_per_trade": str(sharpe_ratio_simplified) if sharpe_ratio_simplified in [float('inf'), float('-inf')] else sharpe_ratio_simplified,
-            "notes": "Sharpe Ratio is simplified (per trade % returns, RFR=0). Max Drawdown based on trade P&L equity curve."
+
+            "max_drawdown_percentage": round(max_drawdown_percentage, 2),
+            "sharpe_ratio_simplified_per_trade": sharpe_ratio_simplified_per_trade
         }
 
-        print(f"Performance metrics for {self.ticker}:")
-        for k, v in self.performance_metrics.items():            
-            print(f"  {k}: {v}")
         return self.performance_metrics
-
 
     def get_results(self) -> Optional[pd.DataFrame]:
         """Returns the DataFrame containing the backtest results (data + signals)."""
@@ -616,4 +595,5 @@ class BackTest:
 
         except Exception as e:
             print(f"Error saving backtest results: {e}")
+
 
