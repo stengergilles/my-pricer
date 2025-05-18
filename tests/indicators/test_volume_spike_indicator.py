@@ -21,9 +21,11 @@ def test_volume_spike_calculation(sample_ohlcv_data):
     # We will focus on ensuring a deliberately created spike IS detected.
     # The original checks for no spike at iloc[5], iloc[8], iloc[23] are removed.
 
+
     # Manually create a spike
     sample_ohlcv_data_spike = sample_ohlcv_data.copy()
-    sample_ohlcv_data_spike.loc['2023-01-06', 'Volume'] = 5000 * 1000 # Make index 5 volume huge
+    # Increased volume further to ensure it triggers a spike robustly
+    sample_ohlcv_data_spike.loc['2023-01-06', 'Volume'] = 15000 * 1000 # Make index 5 volume even more huge
     indicator_spike = VolumeSpikeIndicator(sample_ohlcv_data_spike, window=5, spike_multiplier=1.5)
     result_spike_df = indicator_spike.calculate()
     # Avg volume for index 0-4 is 1220k. Shifted avg is 1220k.

@@ -273,12 +273,14 @@ class BackTest:
                             
                             # This block is now correctly indented and cleaned
                             trial_run_configs = []
+
                             for i_conf, conf_item in enumerate(initial_discovered_configs): # Renamed loop variables for clarity
                                 if i_conf == idx_tuned:
                                     trial_run_configs.append({'type': indicator_class, 'params': current_trial_params})
-                                else:                                    
-                                    trial_run_configs.append(conf_item) # Use renamed loop variable
+                                else:
+                                    trial_run_configs.append(conf_item)
                             
+                            # Initialize trial_strategy after trial_run_configs is populated
                             trial_strategy = BaseStrategy(indicator_configs=trial_run_configs)
                             trial_results = trial_strategy.run(data.copy())
                             current_pnl = self._calculate_placeholder_pnl(trial_results)
@@ -305,8 +307,9 @@ class BackTest:
                         for i_conf, conf_item in enumerate(initial_discovered_configs): # Renamed loop variables
                             if i_conf == idx_tuned:
                                 trial_run_configs.append({'type': indicator_class, 'params': current_trial_params})
+
                             else:
-                                trial_run_configs.append(conf_item) # Use renamed loop variable
+                                trial_run_configs.append(conf_item)
                         
                         trial_strategy = BaseStrategy(indicator_configs=trial_run_configs)
                         trial_results = trial_strategy.run(data.copy())
@@ -335,8 +338,9 @@ class BackTest:
                     for i_conf, conf_item in enumerate(initial_discovered_configs): # Renamed loop variables
                         if i_conf == idx_tuned:
                             trial_run_configs.append({'type': indicator_class, 'params': current_trial_params})
+
                         else:
-                            trial_run_configs.append(conf_item) # Use renamed loop variable
+                            trial_run_configs.append(conf_item)
 
                     trial_strategy = BaseStrategy(indicator_configs=trial_run_configs)
                     trial_results = trial_strategy.run(data.copy())
@@ -589,15 +593,18 @@ class BackTest:
             if self.performance_metrics:
                 # Serialize indicator configurations
                 serializable_indicator_configs = []
-                if self.current_indicator_configs: # Ensure it's not None or empty                    for config in self.current_indicator_configs:
+                if self.current_indicator_configs: # Ensure it's not None or empty                    
+                    for config in self.current_indicator_configs:
                         indicator_class = config['type']
                         # Ensure params are serializable; NumpyJSONEncoder helps with numpy types
                         serializable_indicator_configs.append({
                             "module": indicator_class.__module__,
+
                             "class_name": indicator_class.__name__,
                             "params": config.get('params', {}) 
                         })
-                self.performance_metrics["indicator_configurations"] = serializable_indicator_configs
+                if serializable_indicator_configs: # Only add if not empty
+                    self.performance_metrics["indicator_configurations"] = serializable_indicator_configs
 
                 metrics_filepath = output_dir / f"{base_filename}_metrics.json"
                 with open(metrics_filepath, 'w') as f:
