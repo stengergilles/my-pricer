@@ -71,6 +71,7 @@ def sample_ohlcv_data_fixture():
     df.set_index('Timestamp', inplace=True)
     return df
 
+
 @pytest.fixture
 def backtest_stock_instance_fixture():
     with patch('stock_monitoring_app.backtest.backtest.PolygonFetcher') as MockPolygonFetcher, \
@@ -80,7 +81,8 @@ def backtest_stock_instance_fixture():
         
         mock_coingecko_fetcher_instance = MockCoinGeckoFetcher.return_value # Not used by stock
         
-        bt = BackTest(ticker="AAPL", period="1mo", interval="1d")
+        # Test with a default leverage for stock that is not 1.0
+        bt = BackTest(ticker="AAPL", period="1mo", interval="1d", leverage=2.0)
         bt.fetcher = mock_polygon_fetcher_instance # Ensure it's set for tests
         return bt
 
@@ -94,7 +96,8 @@ def backtest_crypto_instance_fixture():
 
         mock_polygon_fetcher_instance = MockPolygonFetcher.return_value # Not used by crypto
         
-        bt = BackTest(ticker="bitcoin", period="1mo", interval="1d")        
+        # Test with a leverage that should be overridden for crypto
+        bt = BackTest(ticker="bitcoin", period="1mo", interval="1d", leverage=5.0)        
         bt.fetcher = mock_coingecko_fetcher_instance # Ensure it's set for tests
         return bt
 
@@ -105,18 +108,42 @@ class TestBackTest:
     def test_init_and_get_fetcher_stock(self):
         with patch('stock_monitoring_app.backtest.backtest.PolygonFetcher') as MockPolygonFetcher:
             mock_fetcher_instance = MockPolygonFetcher.return_value
-            bt = BackTest(ticker="MSFT", period="1y", interval="1d")
+            bt = BackTest(ticker="MSFT", period="1y", interval="1d", leverage=10.0)
             assert bt.ticker == "MSFT"
+            assert bt.leverage == 10.0
+            assert not bt._is_crypto
             assert bt.fetcher is mock_fetcher_instance
             MockPolygonFetcher.assert_called_once()
 
     def test_init_and_get_fetcher_crypto(self):
         with patch('stock_monitoring_app.backtest.backtest.CoinGeckoFetcher') as MockCoinGeckoFetcher:
             mock_fetcher_instance = MockCoinGeckoFetcher.return_value
-            bt = BackTest(ticker="ethereum", period="1y", interval="1d")
+            bt = BackTest(ticker="ethereum", period="1y", interval="1d", leverage=10.0) # Leverage should be overridden
             assert bt.ticker == "ethereum"
+            assert bt.leverage == 1.0 # Crypto leverage is always 1.0            assert bt._is_crypto
             assert bt.fetcher is mock_fetcher_instance
             MockCoinGeckoFetcher.assert_called_once()
+
+    def test_init_leverage_clamping_too_high(self, capsys):
+        with patch('stock_monitoring_app.backtest.backtest.PolygonFetcher'):
+            bt = BackTest(ticker="STOCK", period="1d", interval="1h", leverage=25.0)
+            assert bt.leverage == 20.0
+            captured = capsys.readouterr()
+            assert "WARNING: Leverage 25.0 for 'STOCK' exceeds maximum 20.0. Clamping to 20.0." in captured.out
+
+    def test_init_leverage_clamping_too_low(self, capsys):
+        with patch('stock_monitoring_app.backtest.backtest.PolygonFetcher'):
+            bt = BackTest(ticker="STOCK", period="1d", interval="1h", leverage=0.5)
+            assert bt.leverage == 1.0
+            captured = capsys.readouterr()
+            assert "WARNING: Leverage 0.5 for 'STOCK' is below minimum 1.0. Clamping to 1.0." in captured.out            
+
+    def test_init_leverage_crypto_override(self, capsys):
+        with patch('stock_monitoring_app.backtest.backtest.CoinGeckoFetcher'):
+            bt = BackTest(ticker="bitcoin", period="1d", interval="1h", leverage=10.0)
+            assert bt.leverage == 1.0
+            captured = capsys.readouterr()
+            assert "INFO: Leverage for crypto asset 'bitcoin' is always 1.0. Overriding provided leverage 10.0." in captured.out
 
     def test_fetch_historical_data_success(self, backtest_stock_instance_fixture: BackTest, sample_ohlcv_data_fixture: pd.DataFrame):
         bt = backtest_stock_instance_fixture
@@ -213,15 +240,27 @@ class TestBackTest:
         configs = bt.determine_relevant_indicators(sample_ohlcv_data_fixture)
         assert len(configs) == 0
 
+
     def test_calculate_placeholder_pnl(self, backtest_stock_instance_fixture: BackTest):
         bt = backtest_stock_instance_fixture
+        # Default leverage for backtest_stock_instance_fixture is 2.0
+        # Original PNL = (105-102) + (108-103) = 3 + 5 = 8
+        # Leveraged PNL = 8 * 2.0 = 16.0
         data = {
             'Close': [100, 102, 101, 105, 103, 108],
             'Strategy_Signal': [SIGNAL_HOLD, SIGNAL_BUY, SIGNAL_HOLD, SIGNAL_SELL, SIGNAL_BUY, SIGNAL_SELL]
-        } # Buy 102, Sell 105 (PNL=3); Buy 103, Sell 108 (PNL=5). Total PNL = 8
+        }
         results_df = pd.DataFrame(data)
         pnl = bt._calculate_placeholder_pnl(results_df)
-        assert pnl == pytest.approx(8.0)
+        assert pnl == pytest.approx(16.0) # Expected: 8.0 * 2.0 (leverage from fixture)
+
+        bt.leverage = 1.0 # Test with leverage 1
+        pnl_no_leverage = bt._calculate_placeholder_pnl(results_df)
+        assert pnl_no_leverage == pytest.approx(8.0)
+        
+        bt.leverage = 3.0 # Test with different leverage
+        pnl_other_leverage = bt._calculate_placeholder_pnl(results_df)        
+        assert pnl_other_leverage == pytest.approx(24.0) # Expected: 8.0 * 3.0
 
         pnl_empty = bt._calculate_placeholder_pnl(pd.DataFrame())
         assert pnl_empty == -float('inf')
@@ -232,17 +271,32 @@ class TestBackTest:
         pnl_open_trade = bt._calculate_placeholder_pnl(pd.DataFrame({'Close': [1,2], 'Strategy_Signal': [SIGNAL_BUY, SIGNAL_HOLD]}))
         assert pnl_open_trade == 0.0 # Only closed trades contribute
 
+
     def test_calculate_placeholder_pnl_with_short_positions(self, backtest_stock_instance_fixture: BackTest):
         bt = backtest_stock_instance_fixture
+        # Default leverage for backtest_stock_instance_fixture is 2.0
+        # Original PNL = (102-105) + (103-98) = -3 + 5 = 2
+        # Leveraged PNL = 2 * 2.0 = 4.0
         data = {
             'Close': [100, 102, 101, 105, 103, 98],
             'Strategy_Signal': [SIGNAL_HOLD, SIGNAL_SELL, SIGNAL_HOLD, SIGNAL_BUY, SIGNAL_SELL, SIGNAL_BUY]
-        } # Short 102, Buy 105 (PNL=-3); Short 103, Buy 98 (PNL=5). Total PNL = 2
+        }
         results_df = pd.DataFrame(data)
         pnl = bt._calculate_placeholder_pnl(results_df)
-        assert pnl == pytest.approx(2.0)
+        assert pnl == pytest.approx(4.0) # Expected 2.0 * 2.0 (leverage from fixture)
 
-    @patch('stock_monitoring_app.backtest.backtest.BaseStrategy')
+        bt.leverage = 1.0 # Test with leverage 1
+        pnl_no_leverage = bt._calculate_placeholder_pnl(results_df)
+        assert pnl_no_leverage == pytest.approx(2.0)
+
+        bt.leverage = 0.5 # Test if clamping works during PNL calc if leverage somehow got below 1 after init (though init should prevent this)
+                          # For this test, assume leverage can be set post-init. The PNL calc itself doesn't re-clamp.
+                          # To truly test clamping's effect on PNL, we'd need to re-init.
+                          # Here, we just test if _calculate_placeholder_pnl uses the current self.leverage.
+        pnl_other_leverage = bt._calculate_placeholder_pnl(results_df)
+        assert pnl_other_leverage == pytest.approx(1.0) # Expected 2.0 * 0.5
+
+    @patch('stock_monitoring_app.backtest.backtest.BaseStrategy')    
     def test_optimize_thresholds_flow(self, MockBaseStrategy, backtest_stock_instance_fixture: BackTest, sample_ohlcv_data_fixture: pd.DataFrame):
         bt = backtest_stock_instance_fixture
         
@@ -303,6 +357,7 @@ class TestBackTest:
     @patch('stock_monitoring_app.backtest.backtest.BackTest.determine_relevant_indicators')
     @patch('stock_monitoring_app.backtest.backtest.BackTest.optimize_thresholds')
     @patch('stock_monitoring_app.backtest.backtest.BaseStrategy')
+
     @patch('stock_monitoring_app.backtest.backtest.BackTest.evaluate_performance')
     def test_run_backtest_success_flow(self, mock_eval_perf, MockBaseStrategy, mock_opt_thresh, mock_det_ind, mock_fetch_data, backtest_stock_instance_fixture: BackTest, sample_ohlcv_data_fixture: pd.DataFrame):
         bt = backtest_stock_instance_fixture
@@ -318,34 +373,53 @@ class TestBackTest:
         optimized_configs = [{'type': MockIndicatorAlpha, 'params': {'optimized': True}}]
         mock_opt_thresh.return_value = optimized_configs
         mock_strategy_instance = MockBaseStrategy.return_value
-        mock_results_df = sample_ohlcv_data_fixture.copy() # Strategy adds columns
-        mock_results_df['Strategy_Signal'] = SIGNAL_HOLD 
-        mock_strategy_instance.run.return_value = mock_results_df
+
+        # This is what the strategy.run() mock should return (before portfolio columns are added)
+        mock_df_from_strategy_run = sample_ohlcv_data_fixture.copy()
+        mock_df_from_strategy_run['Strategy_Signal'] = SIGNAL_HOLD 
+        mock_strategy_instance.run.return_value = mock_df_from_strategy_run        
+        # This is the expected final DataFrame after run_backtest adds portfolio columns
+        expected_final_results_df = mock_df_from_strategy_run.copy()
+        expected_final_results_df['Shares_Held'] = 0.0
+        expected_final_results_df['Cash_Balance'] = bt.initial_capital # Default is 10000.0
+        expected_final_results_df['Portfolio_Value'] = bt.initial_capital
+        expected_final_results_df['Trade_Action'] = ""
         
         mock_eval_perf.return_value = {"net_profit": 100} # Simulate eval result
 
         # Run
-        results = bt.run_backtest()
-        
+        results = bt.run_backtest()        
         # Assertions
         mock_fetch_data.assert_not_called() # Data was pre-set
         mock_det_ind.assert_called_once_with(sample_ohlcv_data_fixture)
         mock_opt_thresh.assert_called_once_with(sample_ohlcv_data_fixture, discovered_configs)
         MockBaseStrategy.assert_called_once_with(indicator_configs=optimized_configs)
         mock_strategy_instance.run.assert_called_once() 
-        # Check that the argument to strategy.run is a copy
+        # Check that the argument to strategy.run is a copy of historical_data
         pd.testing.assert_frame_equal(mock_strategy_instance.run.call_args[0][0], sample_ohlcv_data_fixture)
         assert id(mock_strategy_instance.run.call_args[0][0]) != id(sample_ohlcv_data_fixture)
 
         mock_eval_perf.assert_called_once()
         
         assert results is not None
-        pd.testing.assert_frame_equal(results, mock_results_df)
+        # Compare the final 'results' DataFrame with the 'expected_final_results_df'
+        pd.testing.assert_frame_equal(results, expected_final_results_df)
 
         assert bt.results is results
+
         # Manually set performance_metrics as evaluate_performance is mocked
         bt.performance_metrics = mock_eval_perf.return_value 
-        assert bt.get_performance_metrics() == {"net_profit": 100}
+        # The mock_eval_perf.return_value should ideally include "leverage_applied": bt.leverage
+        # For this test, if mock_eval_perf is very simple, we just check what it returned.
+        # If mock_eval_perf was more sophisticated or we were testing the actual evaluate_performance,
+        # we'd expect "leverage_applied" to be in the dict.
+        # Let's update the mock_eval_perf.return_value for this test to be more complete.
+        expected_perf_metrics = {"net_profit": 100, "leverage_applied": bt.leverage}
+        mock_eval_perf.return_value = expected_perf_metrics        # Re-run to capture the updated mock_eval_perf return value
+        results = bt.run_backtest() # This will call the mocked evaluate_performance
+        bt.performance_metrics = mock_eval_perf.return_value # Ensure bt state reflects the mock
+        
+        assert bt.get_performance_metrics() == expected_perf_metrics
 
 
     def test_run_backtest_fetch_data_path(self, backtest_stock_instance_fixture: BackTest, sample_ohlcv_data_fixture: pd.DataFrame):
@@ -473,82 +547,137 @@ class TestBackTest:
         with pytest.raises(KeyError, match="'Strategy_Signal'"):
             bt.evaluate_performance()
 
+
     def test_evaluate_performance_detailed_metrics(self, backtest_stock_instance_fixture: BackTest, sample_ohlcv_data_fixture: pd.DataFrame):
-        bt = backtest_stock_instance_fixture # Ticker AAPL        # Use a slice of sample_ohlcv_data_fixture for historical_data
+        bt = backtest_stock_instance_fixture # Ticker AAPL, leverage = 2.0 from fixture
         bt.historical_data = sample_ohlcv_data_fixture.iloc[:6].copy()
         
-        # One winning trade, one losing trade
-        # Trade 1: Buy at 100, Sell at 110 (PNL +10)
-        # Trade 2: Buy at 105, Sell at 100 (PNL -5)
+        # Original PNLs:
+        # Trade 1 (long): Buy at 100, Sell at 110 -> PNL_per_share = +10
+        # Trade 2 (long): Buy at 105, Sell at 100 -> PNL_per_share = -5
+        # Unleveraged Net PNL = 10 - 5 = 5
+        # Leveraged Net PNL = 5 * 2.0 = 10.0
         results_data = {
             'Timestamp': pd.to_datetime(['2023-01-01', '2023-01-02', '2023-01-03', '2023-01-04', '2023-01-05', '2023-01-06']),
-            'Close':         [90,  100,  110,  108,  105,  100], # Prices corresponding to signals
+            'Close':         [90,  100,  110,  108,  105,  100], 
             'Strategy_Signal': [SIGNAL_HOLD, SIGNAL_BUY, SIGNAL_SELL, SIGNAL_HOLD, SIGNAL_BUY, SIGNAL_SELL]
         }        
         bt.results = pd.DataFrame(results_data).set_index('Timestamp')
         
         metrics = bt.evaluate_performance()
         
+        current_leverage = bt.leverage # Should be 2.0 from fixture
+
         assert metrics["ticker"] == "AAPL"
         assert metrics["period_tested"] == "1mo"
         assert metrics["interval_tested"] == "1d"
-        assert metrics["total_data_points"] == 6 # Based on bt.historical_data
-        assert metrics["total_signals_non_hold"] == 4 # BUY, SELL, BUY, SELL
+        assert metrics["leverage_applied"] == current_leverage        
+        assert metrics["total_data_points"] == 6
+        assert metrics["total_signals_non_hold"] == 4
         assert metrics["num_buy_signals"] == 2
         assert metrics["num_sell_signals"] == 2
         assert metrics["total_trades"] == 2
         assert metrics["winning_trades"] == 1
         assert metrics["losing_trades"] == 1
         assert metrics["win_rate_pct"] == pytest.approx(50.0)
-        assert metrics["net_profit"] == pytest.approx(5.0) # 10 - 5
-        assert metrics["gross_profit"] == pytest.approx(10.0)
-        assert metrics["gross_loss"] == pytest.approx(5.0)
-        assert metrics["avg_profit_per_winning_trade"] == pytest.approx(10.0)
-        assert metrics["avg_loss_per_losing_trade"] == pytest.approx(5.0) # Absolute loss
-        assert metrics["profit_factor"] == pytest.approx(2.0) # 10 / 5
-        assert metrics["avg_pnl_per_trade"] == pytest.approx(2.5) # 5 / 2
-                # Max Drawdown: Initial 10000. Trade 1 (+10) -> 10010. Trade 2 (-5) -> 10005.
-        # Equity curve: [10000, 10010, 10005]
-        # Peak: 10010. Drawdown from peak: 10010-10005 = 5.
-        assert metrics["max_drawdown_value"] == pytest.approx(5.0)
-        assert metrics["max_drawdown_percentage"] == pytest.approx((5.0 / 10010.0) * 100, 2)
+        
+        assert metrics["net_profit"] == pytest.approx(5.0 * current_leverage) 
+        assert metrics["gross_profit"] == pytest.approx(10.0 * current_leverage)
+        assert metrics["gross_loss"] == pytest.approx(5.0 * current_leverage)
+        assert metrics["avg_profit_per_winning_trade"] == pytest.approx(10.0 * current_leverage)
+        assert metrics["avg_loss_per_losing_trade"] == pytest.approx(5.0 * current_leverage) 
+        assert metrics["profit_factor"] == pytest.approx(2.0) # (10*L) / (5*L) = 10/5 = 2.0
+        assert metrics["avg_pnl_per_trade"] == pytest.approx(2.5 * current_leverage)
 
-        # Simplified Sharpe: Returns: +10/100 = 10%, -5/105 = -4.76%
-        # Mean: (10 - 4.7619) / 2 = 2.61905 %
-        # Std Dev: np.std([10, -4.76190476]) approx 7.38095
-        # Sharpe: 2.61905 / 7.38095 approx 0.355
-        trade_returns_pct = [(10/100)*100, (-5/105)*100]
-        mean_ret = np.mean(trade_returns_pct)
-        std_ret = np.std(trade_returns_pct)
+        # Max Drawdown with leverage:
+        # Initial equity: 10000
+        # Trade 1 PNL (leveraged): +10 * 2.0 = +20. Equity: 10000 + 20 = 10020. Peak: 10020.
+        # Trade 2 PNL (leveraged): -5 * 2.0 = -10. Equity: 10020 - 10 = 10010. Peak: 10020.
+        # Drawdown from peak: 10020 - 10010 = 10.
+        expected_max_drawdown_value = 5.0 * current_leverage # Max single loss trade * leverage
+        # Peak equity for drawdown calc: 10000 + (10 * current_leverage)
+        peak_equity_for_dd = 10000.0 + (10.0 * current_leverage)
+        expected_max_drawdown_percentage = (expected_max_drawdown_value / peak_equity_for_dd) * 100 if peak_equity_for_dd > 0 else 0.0
+        
+        assert metrics["max_drawdown_value"] == pytest.approx(expected_max_drawdown_value)
+        assert metrics["max_drawdown_percentage"] == pytest.approx(expected_max_drawdown_percentage, 2)
+
+        # Simplified Sharpe Ratio: Unleveraged returns: +10/100 = 10%, -5/105 = -4.7619%
+        # Leveraged returns: (+10*L)/100 = 10%*L, (-5*L)/105 = -4.7619%*L
+        # Both mean and std dev of returns scale by L, so Sharpe ratio should be unchanged by leverage (for zero risk-free rate).
+        unleveraged_trade_returns_pct = [(10/100)*100, (-5/105)*100] # Original returns per trade
+        mean_ret_unleveraged = np.mean(unleveraged_trade_returns_pct)
+        std_ret_unleveraged = np.std(unleveraged_trade_returns_pct)
         expected_sharpe = "N/A"
-        if std_ret > 0 :
-            expected_sharpe = round(mean_ret / std_ret, 3)
-        assert metrics["sharpe_ratio_simplified_per_trade"] == expected_sharpe
+        if std_ret_unleveraged > 0 :
+            expected_sharpe = round(mean_ret_unleveraged / std_ret_unleveraged, 3)        
+            assert metrics["sharpe_ratio_simplified_per_trade"] == expected_sharpe
         
 
+
     def test_evaluate_performance_with_short_positions(self, backtest_stock_instance_fixture: BackTest):
-        bt = backtest_stock_instance_fixture
+        bt = backtest_stock_instance_fixture # leverage = 2.0 from fixture        
         bt.historical_data = pd.DataFrame({
-            'Close': [100, 102, 101, 105, 103, 98]
+            'Close': [100, 102, 101, 105, 103, 98]  # Corrected indentation
         })
 
-        # Short 102, Buy 105 (PNL=-3); Short 103, Buy 98 (PNL=5). Total PNL = 2
+
+        # Original PNLs:
+        # Short 102, Buy 105 (PNL_per_share = -3)
+        # Short 103, Buy 98 (PNL_per_share = +5)
+        # Unleveraged Net PNL = -3 + 5 = 2
+        # Leveraged Net PNL = 2 * 2.0 (fixture leverage) = 4.0
         results_data = {
             'Close': [100, 102, 101, 105, 103, 98],
             'Strategy_Signal': [SIGNAL_HOLD, SIGNAL_SELL, SIGNAL_HOLD, SIGNAL_BUY, SIGNAL_SELL, SIGNAL_BUY]
-        }
+        }        
         bt.results = pd.DataFrame(results_data)
+        current_leverage = bt.leverage # Should be 2.0 from fixture
 
         metrics = bt.evaluate_performance()
 
-        assert metrics["net_profit"] == pytest.approx(2.0)
+        assert metrics["leverage_applied"] == current_leverage
+        assert metrics["net_profit"] == pytest.approx(2.0 * current_leverage)
         assert metrics["total_trades"] == 2
         assert metrics["winning_trades"] == 1
         assert metrics["losing_trades"] == 1
-        assert metrics["gross_profit"] == pytest.approx(5.0)
-        assert metrics["gross_loss"] == pytest.approx(3.0)
-        assert metrics["avg_profit_per_winning_trade"] == pytest.approx(5.0)
-        assert metrics["avg_loss_per_losing_trade"] == pytest.approx(3.0)
+        assert metrics["gross_profit"] == pytest.approx(5.0 * current_leverage)
+        assert metrics["gross_loss"] == pytest.approx(3.0 * current_leverage)
+        assert metrics["avg_profit_per_winning_trade"] == pytest.approx(5.0 * current_leverage)
+        assert metrics["avg_loss_per_losing_trade"] == pytest.approx(3.0 * current_leverage)
+        assert metrics["profit_factor"] == pytest.approx((5.0 * current_leverage) / (3.0 * current_leverage) if (3.0 * current_leverage) > 0 else float('inf'))
+
+        # Max Drawdown with leverage:
+        # Initial equity: 10000
+        # Trade 1 PNL (leveraged): -3 * 2.0 = -6. Equity: 10000 - 6 = 9994. Peak: 10000. Drawdown: 6.
+        # Trade 2 PNL (leveraged): +5 * 2.0 = +10. Equity: 9994 + 10 = 10004. Peak: 10004 (or 10000 if we consider peak before this trade for prior DD)
+        # Let's trace equity and peak:
+
+        # Start: equity=10000, peak=10000, max_dd=0
+        # Trade 1 (PNL -3 * L): equity = 10000 - 3*L. peak = 10000. drawdown = 3*L. max_dd=3*L.
+        # Trade 2 (PNL +5 * L): equity = 10000 - 3*L + 5*L = 10000 + 2*L. peak becomes 10000 + 2*L (if 2*L > 0) or 10000.
+        # If L=2, PNLs are -6 and +10.
+        # Equity: 10000 -> 9994 (DD=6 from 10000) -> 10004 (DD=0 from new peak 10004)
+        # Max DD Value is 6.
+        expected_max_drawdown_value = abs(-3.0 * current_leverage) # Max single loss trade * leverage
+        # Peak for this DD calc is initial capital if first trade is loss.
+        peak_equity_for_dd = 10000.0 
+        expected_max_drawdown_percentage = (expected_max_drawdown_value / peak_equity_for_dd) * 100 if peak_equity_for_dd > 0 and expected_max_drawdown_value > 0 else 0.0
+        
+        assert metrics["max_drawdown_value"] == pytest.approx(expected_max_drawdown_value)
+        assert metrics["max_drawdown_percentage"] == pytest.approx(expected_max_drawdown_percentage, 2)
+
+        # Sharpe ratio for short positions
+        # Unleveraged PNLs: -3, +5. Entry prices: 102, 103
+        # Returns: (-3/102)*100 = -2.941%, (+5/103)*100 = 4.854%
+        unleveraged_trade_returns_pct_short = [(-3/102)*100, (5/103)*100]
+        mean_ret_unleveraged_short = np.mean(unleveraged_trade_returns_pct_short)
+        std_ret_unleveraged_short = np.std(unleveraged_trade_returns_pct_short)
+        expected_sharpe_short = "N/A"
+        if std_ret_unleveraged_short > 0:
+            expected_sharpe_short = round(mean_ret_unleveraged_short / std_ret_unleveraged_short, 3)
+        assert metrics["sharpe_ratio_simplified_per_trade"] == expected_sharpe_short
+
 
     def test_get_results(self, backtest_stock_instance_fixture: BackTest, sample_ohlcv_data_fixture: pd.DataFrame):
         bt = backtest_stock_instance_fixture
@@ -561,14 +690,16 @@ class TestBackTest:
 
 
 
+
     def test_get_performance_metrics(self, backtest_stock_instance_fixture: BackTest):
-        bt = backtest_stock_instance_fixture # Ensure 'bt' is assigned from the fixture
-        dummy_metrics = {"profit": 100, "trades": 5}
+        bt = backtest_stock_instance_fixture # leverage = 2.0
+        dummy_metrics = {"profit": 100, "trades": 5, "leverage_applied": bt.leverage}
         bt.performance_metrics = dummy_metrics
         assert bt.get_performance_metrics() == dummy_metrics        
         assert bt.get_performance_metrics() is dummy_metrics
 
     # --- Fixture for save_results tests ---
+
     @pytest.fixture
     def backtest_instance_for_saving(self, tmp_path: Path):
         # Patch _get_project_root to return tmp_path for this test's scope
@@ -583,7 +714,9 @@ class TestBackTest:
             mock_coingecko_fetcher_instance = MockCoinGeckoFetcher.return_value
             mock_coingecko_fetcher_instance.get_service_name.return_value = "CoinGeckoMockForSaving"
 
-            bt_save = BackTest(ticker="TESTSAVE", period="1d", interval="1h")
+            # Use a specific leverage for saving tests, e.g., 3.0 for non-crypto
+            bt_save = BackTest(ticker="TESTSAVE", period="1d", interval="1h", leverage=3.0)
+            # If ticker was crypto, leverage would be 1.0. For "TESTSAVE" (non-crypto), it's 3.0.
 
             # Ensure the correct mock fetcher is assigned
             assert isinstance(bt_save.fetcher, MagicMock) 
@@ -593,21 +726,25 @@ class TestBackTest:
 
     @patch('stock_monitoring_app.backtest.backtest.datetime') 
     def test_save_results_success(self, mock_datetime_module, backtest_instance_for_saving: BackTest, sample_ohlcv_data_fixture: pd.DataFrame, tmp_path: Path):
-        bt = backtest_instance_for_saving
+        bt = backtest_instance_for_saving # leverage should be 3.0 from fixture
         bt.results = sample_ohlcv_data_fixture.head(3).copy()
+        
+        original_profit = 123.45
+        # performance_metrics should reflect the applied leverage
         bt.performance_metrics = {
-            "profit": 123.45, 
+            "profit": original_profit * bt.leverage, # Profit is now leveraged
+            "leverage_applied": bt.leverage,
             "trades": np.int64(10),
-            "sharpe": np.float64(1.5),
+            "sharpe": np.float64(1.5), # Sharpe ratio ideally leverage-neutral
             "is_valid": np.bool_(True),
             "tags": ["test", "important"],
             "details": {"alpha": 0.05, "beta": np.float32(1.2)},
             "nan_value": np.nan,
+
             "inf_value": float('inf'),
             "neg_inf_value": float('-inf'),
-
             "pd_na_value": pd.NA
-        }
+        } # Correctly closes the performance_metrics dictionary assignment
 
 
 
@@ -650,11 +787,18 @@ class TestBackTest:
         
 
 
+
+        
+
+
         expected_serialized_metrics = {
-            "profit": 123.45, "trades": 10, "sharpe": 1.5, "is_valid": True,
-            "tags": ["test", "important"], "details": {"alpha": 0.05, "beta": 1.2000000476837158}, # np.float32 becomes float
-
-
+            "profit": original_profit * bt.leverage, # Expected profit is leveraged
+            "leverage_applied": bt.leverage,
+            "trades": 10, 
+            "sharpe": 1.5, 
+            "is_valid": True,
+            "tags": ["test", "important"], 
+            "details": {"alpha": 0.05, "beta": 1.2000000476837158}, # np.float32 becomes float
             "nan_value": float('nan'),       # np.nan serializes to "NaN", loads as float('nan')
 
             "inf_value": float('inf'),       # float('inf') serializes to "Infinity", loads as float('inf')
@@ -710,13 +854,15 @@ class TestBackTest:
         mock_datetime_module.now.assert_called_once()
 
     @patch('stock_monitoring_app.backtest.backtest.datetime')
+
     def test_save_results_no_df_still_saves_metrics(self, mock_datetime_module, backtest_instance_for_saving: BackTest, tmp_path: Path):
-        bt = backtest_instance_for_saving
+        bt = backtest_instance_for_saving # leverage=3.0
         bt.results = None
 
-        bt.performance_metrics = {"note": "DataFrame was None, but metrics exist"}
-
-
+        bt.performance_metrics = {
+            "note": "DataFrame was None, but metrics exist",
+            "leverage_applied": bt.leverage 
+        }
 
 
         # Use datetime.timezone.utc for robust compatibility
@@ -742,7 +888,11 @@ class TestBackTest:
 
         with open(expected_metrics_filepath, 'r') as f:
             saved_metrics = json.load(f)
-        assert saved_metrics == {"note": "DataFrame was None, but metrics exist"}
+
+        assert saved_metrics == {
+            "note": "DataFrame was None, but metrics exist",
+            "leverage_applied": bt.leverage # bt.leverage is 3.0
+        }
         mock_datetime_module.now.assert_called_once()
 
     @patch('stock_monitoring_app.backtest.backtest.datetime')
@@ -794,13 +944,14 @@ class TestBackTest:
         assert not any(item.name.startswith(f"{bt.ticker}_{bt.period}_{bt.interval}_") and item.name.endswith("_metrics.json") for item in items_in_tmp)
 
     @patch('stock_monitoring_app.backtest.backtest.datetime')
+
     def test_save_results_results_empty_df_saves_metrics(self, mock_datetime_module, backtest_instance_for_saving: BackTest, tmp_path: Path):
-        bt = backtest_instance_for_saving
+        bt = backtest_instance_for_saving # leverage=3.0
         bt.results = pd.DataFrame()
-        bt.performance_metrics = {"note": "DataFrame was empty, but metrics exist"}
-
-
-        bt.performance_metrics = {"note": "DataFrame was empty, but metrics exist"}
+        bt.performance_metrics = {
+            "note": "DataFrame was empty, but metrics exist",
+            "leverage_applied": bt.leverage
+        }
 
 
         # Use datetime.timezone.utc for robust compatibility
@@ -816,7 +967,7 @@ class TestBackTest:
         expected_output_dir = tmp_path / "backtest_outputs"
         expected_results_filename = f"{bt.ticker}_{bt.period}_{bt.interval}_{timestamp_str}_results.csv"
         expected_metrics_filename = f"{bt.ticker}_{bt.period}_{bt.interval}_{timestamp_str}_metrics.json"
-        expected_results_filepath = expected_output_dir / expected_results_filename
+        expected_results_filepath = expected_output_dir / expected_results_filename        
         expected_metrics_filepath = expected_output_dir / expected_metrics_filename
 
         bt.save_results()
@@ -827,33 +978,51 @@ class TestBackTest:
 
         with open(expected_metrics_filepath, 'r') as f:
             saved_metrics = json.load(f)
-        assert saved_metrics == {"note": "DataFrame was empty, but metrics exist"}
+        assert saved_metrics == {
+            "note": "DataFrame was empty, but metrics exist",
+            "leverage_applied": bt.leverage # bt.leverage is 3.0
+        }
         mock_datetime_module.now.assert_called_once()
 
-    @patch('stock_monitoring_app.backtest.backtest.BackTest.fetch_historical_data')
-    @patch('stock_monitoring_app.backtest.backtest.BackTest.determine_relevant_indicators')
-    @patch('stock_monitoring_app.backtest.backtest.BackTest.optimize_thresholds')
-    @patch('stock_monitoring_app.backtest.backtest.BaseStrategy')
-    @patch('stock_monitoring_app.backtest.backtest.BackTest.evaluate_performance')
-    @patch('stock_monitoring_app.backtest.backtest.BackTest.save_results') 
+
+    @patch('stock_monitoring_app.backtest.backtest.BackTest.save_results')                 # Innermost patch, first mock argument after self
+    @patch('stock_monitoring_app.backtest.backtest.BackTest.evaluate_performance')         # Next patch
+    @patch('stock_monitoring_app.backtest.backtest.BaseStrategy')                           # Next patch
+    @patch('stock_monitoring_app.backtest.backtest.BackTest.optimize_thresholds')            # Next patch
+    @patch('stock_monitoring_app.backtest.backtest.BackTest.determine_relevant_indicators') # Next patch (removed duplicate)
+    @patch('stock_monitoring_app.backtest.backtest.BackTest.fetch_historical_data')         # Outermost patch, last mock argument
     def test_run_backtest_calls_save_results_on_success(
-        self, mock_save_results, mock_eval_perf, MockBaseStrategy, mock_opt_thresh, 
-        mock_det_ind, mock_fetch_data, backtest_stock_instance_fixture: BackTest, 
-        sample_ohlcv_data_fixture: pd.DataFrame    ):
-        bt = backtest_stock_instance_fixture
+        self, 
+        mock_fetch_historical_data,       # Corresponds to @patch('...fetch_historical_data')
+        mock_determine_relevant_indicators, # Corresponds to @patch('...determine_relevant_indicators')        
+        mock_optimize_thresholds,         # Corresponds to @patch('...optimize_thresholds')
+        MockBaseStrategy,                 # Corresponds to @patch('...BaseStrategy')
+        mock_evaluate_performance,        # Corresponds to @patch('...evaluate_performance')
+
+        mock_save_results,                # Corresponds to @patch('...save_results')
+        backtest_stock_instance_fixture: BackTest, # Fixture argument
+        sample_ohlcv_data_fixture: pd.DataFrame    # Fixture argument
+    ):
+        bt = backtest_stock_instance_fixture # Use the actual fixture instance
         bt.historical_data = sample_ohlcv_data_fixture
-        mock_det_ind.return_value = [{'type': MockIndicatorAlpha, 'params': {}}]
-        mock_opt_thresh.side_effect = lambda d, c: c
+
+        # Use the correctly named mock arguments
+        mock_determine_relevant_indicators.return_value = [{'type': MockIndicatorAlpha, 'params': {}}]
+        mock_optimize_thresholds.side_effect = lambda d, c: c # Optimize returns configs as is
+        
         mock_strategy_instance = MockBaseStrategy.return_value
         mock_results_df = sample_ohlcv_data_fixture.copy()
         mock_results_df['Strategy_Signal'] = SIGNAL_HOLD
         mock_strategy_instance.run.return_value = mock_results_df
-        mock_eval_perf.return_value = {"net_profit": 100}
-
+        
+        # mock_evaluate_performance should return a dict that includes leverage
+        mock_evaluate_performance.return_value = {"net_profit": 100 * bt.leverage, "leverage_applied": bt.leverage}
+    
         bt.run_backtest()
         mock_save_results.assert_called_once()
 
     @patch('stock_monitoring_app.backtest.backtest.BackTest.fetch_historical_data')
+    @patch('stock_monitoring_app.backtest.backtest.BackTest.determine_relevant_indicators')
     @patch('stock_monitoring_app.backtest.backtest.BackTest.determine_relevant_indicators')
     @patch('stock_monitoring_app.backtest.backtest.BackTest.optimize_thresholds')
     @patch('stock_monitoring_app.backtest.backtest.BaseStrategy')

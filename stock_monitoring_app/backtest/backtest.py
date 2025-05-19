@@ -55,65 +55,82 @@ class BackTest:
     """
 
 
+
+
     def __init__(self,
                  ticker: str,
                  period: str,
-                 interval: str): # Removed fetcher_type
+                 interval: str,
+                 initial_capital: float = 10000.0,
+                 leverage: float = 1.0): # Added leverage
         """
         Initializes the BackTest instance.
         Fetcher type is now inferred from the ticker.
+        Leverage is applied to P&L calculations for non-crypto assets.
 
         Args:
             ticker: The stock/crypto ticker symbol (e.g., "AAPL", "bitcoin").
             period: The historical data period (e.g., "1y", "6mo").
             interval: The data interval (e.g., "1d", "1h").
+            initial_capital: The starting capital for the backtest.
+            leverage: The leverage to apply (1.0 to 20.0 for non-crypto, 1.0 for crypto).
         """
 
 
         self.ticker = ticker        
         self.period = period
-
-        self.interval = interval
+        self.interval = interval        
+        self.initial_capital = initial_capital
+        self.leverage = float(leverage) # Ensure it's a float
+        self._is_crypto = False # Will be set by _get_fetcher
+        
         self.fetcher = self._get_fetcher(self.ticker) # Fetcher type inferred from ticker
+
+        if self._is_crypto:
+            if self.leverage != 1.0:
+                print(f"INFO: Leverage for crypto asset '{self.ticker}' is always 1.0. Overriding provided leverage {self.leverage}.")
+            self.leverage = 1.0
+        else:
+            if self.leverage < 1.0:
+                print(f"WARNING: Leverage {self.leverage} for '{self.ticker}' is below minimum 1.0. Clamping to 1.0.")
+                self.leverage = 1.0
+            elif self.leverage > 20.0:
+                print(f"WARNING: Leverage {self.leverage} for '{self.ticker}' exceeds maximum 20.0. Clamping to 20.0.")
+                self.leverage = 20.0
+        
         self.historical_data: Optional[pd.DataFrame] = None
         # Indicator configurations will be populated by determine_relevant_indicators
         self.current_indicator_configs: List[Dict] = [] 
         
         self.strategy: Optional[BaseStrategy] = None        
-        self.results: Optional[pd.DataFrame] = None
+        self.results: Optional[pd.DataFrame] = None # Will be populated with portfolio data
         self.performance_metrics: Dict[str, Any] = {}
+        
+        # Portfolio tracking attributes
+        self.current_balance = self.initial_capital
+        self.shares_held = 0
+        self.trade_log: List[Dict] = []
 
     def _get_fetcher(self, ticker: str) -> Fetcher:
         """
-        Initializes and returns the appropriate data fetcher based on the ticker.        Uses CoinGecko for known crypto tickers, Polygon for others.
+        Initializes and returns the appropriate data fetcher based on the ticker.
+        Uses CoinGecko for known crypto tickers, Polygon for others.
+        Sets self._is_crypto attribute.
         """
         # Simple heuristic: list of known crypto identifiers (lowercase)
-        # This list can be expanded or managed externally in a more complex system.
         known_crypto_tickers = [
             "bitcoin", "ethereum", "binancecoin", "cardano", "solana", 
             "ripple", "xrp", "polkadot", "dogecoin", "shiba-inu", "litecoin", 
+
             "tron", "avalanche-2", "btc", "eth", "sol", "ada", "dot", "ltc", "trx"
-            # Add more common crypto IDs as needed
         ]
-        # Common crypto pair suffixes (often not needed for CoinGecko ID but good for pattern)
-        # crypto_suffixes = ["-usd", "-usdt", "-btc", "-eur"]
-
         ticker_lower = ticker.lower()
-
-        is_crypto = False
         if ticker_lower in known_crypto_tickers:
-            is_crypto = True
-        # Optionally, check for suffixes if the above list isn't comprehensive enough,
-        # though CoinGecko usually prefers the base coin ID.
-        # for suffix in crypto_suffixes:
-        #     if ticker_lower.endswith(suffix):
-        #         is_crypto = True
-        #         break
-        
-        if is_crypto:
+            self._is_crypto = True
             print(f"INFO: Detected '{ticker}' as a cryptocurrency. Using CoinGeckoFetcher.")
-            return CoinGeckoFetcher()
+            return CoinGeckoFetcher()        
         else:
+            self._is_crypto = False
             print(f"INFO: Assuming '{ticker}' is a stock ticker. Using PolygonFetcher.")
             return PolygonFetcher()
 
@@ -194,6 +211,7 @@ class BackTest:
 
             if position == 0:  # Currently flat
                 if signal == SIGNAL_BUY:
+
                     position = 1
                     entry_price = current_price
                 elif signal == SIGNAL_SELL:
@@ -201,16 +219,15 @@ class BackTest:
                     entry_price = current_price
             elif position == 1:  # Currently long
                 if signal == SIGNAL_SELL:  # Closing long
-                    profit_loss += (current_price - entry_price)
+                    profit_loss += (current_price - entry_price) * self.leverage
                     position = 0  # Go flat
                     entry_price = 0 # Reset entry price
                 # If signal is BUY or HOLD while long, no PNL action for this simple calculator
             elif position == -1:  # Currently short
                 if signal == SIGNAL_BUY:  # Closing short
-                    profit_loss += (entry_price - current_price)
+                    profit_loss += (entry_price - current_price) * self.leverage
                     position = 0  # Go flat
-                    entry_price = 0 # Reset entry price
-                # If signal is SELL or HOLD while short, no PNL action for this simple calculator
+                    entry_price = 0 # Reset entry price                # If signal is SELL or HOLD while short, no PNL action for this simple calculator
         
         return round(profit_loss, 2)
 
@@ -324,18 +341,110 @@ class BackTest:
         self.current_indicator_configs = self.optimize_thresholds(self.historical_data, self.current_indicator_configs)
 
         print(f"Running backtest for {self.ticker} with {len(self.current_indicator_configs)} configured indicator(s).")
+
         self.strategy = BaseStrategy(indicator_configs=self.current_indicator_configs)
         
-        # Run strategy on a copy of the historical data
-        self.results = self.strategy.run(self.historical_data.copy()) 
+        # Generate signals using the strategy
+        signal_generation_results = self.strategy.run(self.historical_data.copy()) 
 
-        if self.results is None or self.results.empty:
-            print(f"Backtest for {self.ticker} did not produce results. Check strategy and indicator logic.")
+        if signal_generation_results is None or signal_generation_results.empty:
+            print(f"Backtest for {self.ticker} did not produce signals. Check strategy and indicator logic.")
+            self.results = pd.DataFrame() # Ensure self.results is an empty DataFrame
+            return self.results
+
+        # --- Simulate Trades and Track Portfolio ---
+        self.results = signal_generation_results.copy()
+        
+        # Initialize portfolio tracking columns
+        # Default to initial capital, no shares, and portfolio value equals cash
+        self.results['Shares_Held'] = 0.0  # Use float for shares to handle potential fractional shares if ever needed
+        self.results['Cash_Balance'] = self.initial_capital
+        self.results['Portfolio_Value'] = self.initial_capital
+        self.results['Trade_Action'] = "" # Records BUY, SELL, or ""
+
+        # Reset instance state for this specific run
+        current_balance_iter = self.initial_capital
+        shares_held_iter = 0.0
+        self.trade_log = [] # Clear trade log for this run
+
+        print(f"Simulating trades for {self.ticker} with initial capital: {self.initial_capital:.2f}")        
+        for index, row in self.results.iterrows():
+            current_price = row['Close'] # Assume transactions occur at closing price
+            signal = row['Strategy_Signal']
+            trade_action_this_step = ""
+
+
+
+            if pd.isna(current_price): # Skip if price is NaN
+
+                self.results.at[index, 'Shares_Held'] = shares_held_iter
+                self.results.at[index, 'Cash_Balance'] = current_balance_iter
+                # Portfolio value remains cash balance + value of shares held (which is 0 if price is NaN for current calc)
+                # Or, more robustly, carry forward previous portfolio value if current price is unusable.
+
+                # For now, if current_price is NaN, asset value part is 0.
+                self.results.at[index, 'Portfolio_Value'] = current_balance_iter # Or previous row's portfolio value
+                self.results.at[index, 'Trade_Action'] = "SKIP_NAN_PRICE"
+                continue
+
+            # Buy Logic
+            if signal == SIGNAL_BUY:
+                if current_balance_iter > 0 and current_price > 0: # Can only buy if cash available and price is valid
+                    # Buy as many whole shares as possible with available cash
+                    # Consider a buffer or percentage of capital to invest later
+                    num_shares_to_buy = np.floor(current_balance_iter / current_price) 
+                    if num_shares_to_buy > 0:
+                        cost = num_shares_to_buy * current_price
+                        current_balance_iter -= cost
+                        shares_held_iter += num_shares_to_buy
+                        self.trade_log.append({
+                            'timestamp': index, 
+                            'type': 'BUY', 
+                            'price': current_price, 
+                            'quantity': num_shares_to_buy, 
+                            'cost': cost,
+                            'balance_after_trade': current_balance_iter
+                        })
+                        trade_action_this_step = "BUY"
+                # If already holding, typically a BUY signal might mean "hold" or "add more"
+                # Current simple logic: only buys if completely flat or to add to existing if logic expanded.
+                # For now, if shares_held_iter > 0, a BUY signal implies HOLD.
+            
+            # Sell Logic
+            elif signal == SIGNAL_SELL:
+                if shares_held_iter > 0 and current_price > 0: # Can only sell if shares are held and price is valid
+                    proceeds = shares_held_iter * current_price
+                    current_balance_iter += proceeds
+                    self.trade_log.append({
+                        'timestamp': index, 
+                        'type': 'SELL', 
+                        'price': current_price, 
+                        'quantity': shares_held_iter, 
+                        'proceeds': proceeds,
+                        'balance_after_trade': current_balance_iter
+                    })
+                    shares_held_iter = 0 # Sell all shares
+                    trade_action_this_step = "SELL"
+
+
+
+            # Update DataFrame for the current time step
+            self.results.at[index, 'Shares_Held'] = shares_held_iter
+            self.results.at[index, 'Cash_Balance'] = current_balance_iter
+            self.results.at[index, 'Portfolio_Value'] = current_balance_iter + (shares_held_iter * current_price)
+            self.results.at[index, 'Trade_Action'] = trade_action_this_step
+        
+        
+        # Update final state of the BackTest instance (optional, as results DF has the history)
+        self.current_balance = current_balance_iter 
+        self.shares_held = shares_held_iter
+
+        if self.results.empty: # Should have been caught earlier, but as a safeguard
+            print(f"Backtest for {self.ticker} did not produce results after trade simulation.")
         else:
-
-            print(f"Backtest completed for {self.ticker}. Results DataFrame generated.")
-            # Step 3: Evaluate performance
-            self.evaluate_performance()
+            print(f"Trade simulation completed for {self.ticker}. Results DataFrame augmented with portfolio data.")
+            # Step 3: Evaluate performance (will need significant update later)
+            self.evaluate_performance() 
             # Step 4: Save results if they were generated
             self.save_results()
             
@@ -365,27 +474,28 @@ class BackTest:
             if position == 0: # Currently flat
                 if signal == SIGNAL_BUY:
                     position = 1
-                    entry_price = current_price
-                elif signal == SIGNAL_SELL:
-                    position = -1
+
                     entry_price = current_price
             elif position == 1: # Currently long
                 if signal == SIGNAL_SELL: # Signal to sell while long
-                    pnl = current_price - entry_price
+                    pnl = (current_price - entry_price) * self.leverage
                     trades_details.append({'pnl': pnl, 'entry_price': entry_price, 'type': 'long'})
                     position = 0 # Go flat
                     entry_price = 0 # Reset entry price
+
+
             elif position == -1: # Currently short
                 if signal == SIGNAL_BUY: # Signal to buy while short
-                    pnl = entry_price - current_price
+                    # Reverted to standard short PNL calculation
+                    pnl = (entry_price - current_price) * self.leverage 
                     trades_details.append({'pnl': pnl, 'entry_price': entry_price, 'type': 'short'})
                     position = 0 # Go flat
                     entry_price = 0 # Reset entry price
 
-        trade_pnl_list = [td['pnl'] for td in trades_details]
+        trade_pnl_list = [td['pnl'] for td in trades_details] # PNLs are now leveraged
         num_trades = len(trade_pnl_list)
         
-        net_profit = sum(trade_pnl_list)
+        net_profit = sum(trade_pnl_list) # Net profit is now leveraged
         num_winning_trades = len([pnl for pnl in trade_pnl_list if pnl > 0])
         num_losing_trades = len([pnl for pnl in trade_pnl_list if pnl < 0])
 
@@ -438,11 +548,13 @@ class BackTest:
             std_dev_trade_return_pct = np.std(trade_returns_pct_list)
             if std_dev_trade_return_pct > 0:
                 sharpe_ratio_simplified_per_trade = round(mean_trade_return_pct / std_dev_trade_return_pct, 3)        
+
         self.performance_metrics = {
             "ticker": self.ticker,
-            "period_tested": self.period,
-            "interval_tested": self.interval,
-            "total_data_points": len(self.historical_data) if self.historical_data is not None else 0,            "total_signals_non_hold": len(self.results[self.results['Strategy_Signal'] != SIGNAL_HOLD]),
+            "period_tested": self.period,            "interval_tested": self.interval,
+            "leverage_applied": self.leverage, # Added leverage
+            "total_data_points": len(self.historical_data) if self.historical_data is not None else 0,
+            "total_signals_non_hold": len(self.results[self.results['Strategy_Signal'] != SIGNAL_HOLD]),
             "num_buy_signals": len(self.results[self.results['Strategy_Signal'] == SIGNAL_BUY]),
             "num_sell_signals": len(self.results[self.results['Strategy_Signal'] == SIGNAL_SELL]),
             "total_trades": num_trades,
@@ -451,13 +563,13 @@ class BackTest:
             "net_profit": round(net_profit, 2),
             "gross_profit": round(gross_profit, 2),
             "gross_loss": round(gross_loss, 2),
+
             "win_rate_pct": round(win_rate_pct, 2),
             "avg_profit_per_winning_trade": round(avg_profit_per_winning_trade, 2),
             "avg_loss_per_losing_trade": round(avg_loss_per_losing_trade, 2),
             "profit_factor": round(profit_factor, 2) if isinstance(profit_factor, (int, float)) and profit_factor not in [float('inf'), float('-inf')] else profit_factor,
             "avg_pnl_per_trade": round(avg_pnl_per_trade, 2),
             "max_drawdown_value": round(max_drawdown_value, 2),
-
             "max_drawdown_percentage": round(max_drawdown_percentage, 2),
             "sharpe_ratio_simplified_per_trade": sharpe_ratio_simplified_per_trade
         }
