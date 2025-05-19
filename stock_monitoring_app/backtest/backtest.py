@@ -60,9 +60,12 @@ class BackTest:
     def __init__(self,
                  ticker: str,
                  period: str,
+
                  interval: str,
                  initial_capital: float = 10000.0,
-                 leverage: float = 1.0): # Added leverage
+                 leverage: float = 1.0,
+                 take_profit_pct: Optional[float] = None,
+                 stop_loss_pct: Optional[float] = None): # Added leverage
         """
         Initializes the BackTest instance.
         Fetcher type is now inferred from the ticker.
@@ -95,8 +98,17 @@ class BackTest:
                 print(f"WARNING: Leverage {self.leverage} for '{self.ticker}' is below minimum 1.0. Clamping to 1.0.")
                 self.leverage = 1.0
             elif self.leverage > 20.0:
+
                 print(f"WARNING: Leverage {self.leverage} for '{self.ticker}' exceeds maximum 20.0. Clamping to 20.0.")
                 self.leverage = 20.0
+
+        self.take_profit_pct = take_profit_pct
+        self.stop_loss_pct = stop_loss_pct
+
+        if self.take_profit_pct is not None and self.take_profit_pct <= 0:
+            raise ValueError("Take profit percentage, if provided, must be positive and greater than 0.")
+        if self.stop_loss_pct is not None and self.stop_loss_pct <= 0:
+            raise ValueError("Stop loss percentage, if provided, must be positive and greater than 0.")
         
         self.historical_data: Optional[pd.DataFrame] = None
         # Indicator configurations will be populated by determine_relevant_indicators
@@ -467,35 +479,99 @@ class BackTest:
         position = 0  # 0 = no position, 1 = long, -1 = short
         entry_price = 0.0  # Initialize entry_price
 
+
+
         for _, row in self.results.iterrows():
-            current_price = row['Close']
-            signal = row['Strategy_Signal']
+            current_price = row['Close'] # This is the Close price of the bar
+            signal = row['Strategy_Signal'] # Strategy signal for this bar
+            exit_trade = False # Initialize exit_trade flag for each iteration
+
+            # 1. Check for SL/TP on existing positions or exit by signal
+            if position == 1: # Currently Long
+                exit_price_for_pnl = current_price # Default if closed by signal
+                reason_for_exit = "Signal" # Default reason
+
+                # Check Stop Loss
+                if self.stop_loss_pct is not None:
+                    sl_price = entry_price * (1 - self.stop_loss_pct / 100.0)
+                    if current_price <= sl_price: # SL Hit
+                        exit_price_for_pnl = sl_price # Exit at SL price
+                        reason_for_exit = "SL"
+                        exit_trade = True
+                
+                # Check Take Profit (only if SL not already hit)
+                if not exit_trade and self.take_profit_pct is not None:
+                    tp_price = entry_price * (1 + self.take_profit_pct / 100.0)
+                    if current_price >= tp_price: # TP Hit
+                        exit_price_for_pnl = tp_price # Exit at TP price
+                        reason_for_exit = "TP"
+                        exit_trade = True
+                
+                # Check Strategy Signal for exit (only if SL/TP not already hit)
+                if not exit_trade and signal == SIGNAL_SELL:
+                    # exit_price_for_pnl is already current_price (Close of the bar)
+                    reason_for_exit = "Signal"
+                    exit_trade = True
+                
+                if exit_trade:
+                    pnl = (exit_price_for_pnl - entry_price) * self.leverage
+                    trades_details.append({
+                        'pnl': pnl, 
+                        'entry_price': entry_price,                         'exit_price': exit_price_for_pnl, 
+                        'type': 'long', 
+                        'exit_reason': reason_for_exit
+                    })
+                    position = 0
+                    entry_price = 0.0
+
+            elif position == -1: # Currently Short
+                exit_price_for_pnl = current_price # Default if closed by signal
+                reason_for_exit = "Signal" # Default reason
 
 
-            if position == 0: # Currently flat
+                # Check Stop Loss
+                if self.stop_loss_pct is not None:
+                    sl_price = entry_price * (1 + self.stop_loss_pct / 100.0)
+                    if current_price >= sl_price: # SL Hit
+                        exit_price_for_pnl = sl_price # Exit at SL price
+                        reason_for_exit = "SL"
+                        exit_trade = True
+                
+                # Check Take Profit (only if SL not already hit)
+                if not exit_trade and self.take_profit_pct is not None:
+                    tp_price = entry_price * (1 - self.take_profit_pct / 100.0)
+                    if current_price <= tp_price: # TP Hit
+                        exit_price_for_pnl = tp_price # Exit at TP price
+                        reason_for_exit = "TP"
+                        exit_trade = True
+                                # Check Strategy Signal for exit (only if SL/TP not already hit)
+                if not exit_trade and signal == SIGNAL_BUY:
+                    # exit_price_for_pnl is already current_price (Close of the bar)
+                    reason_for_exit = "Signal"
+                    exit_trade = True                
+                if exit_trade:
+                    pnl = (entry_price - exit_price_for_pnl) * self.leverage 
+                    trades_details.append({
+                        'pnl': pnl, 
+                        'entry_price': entry_price, 
+                        'exit_price': exit_price_for_pnl, 
+                        'type': 'short', 
+                        'exit_reason': reason_for_exit
+                    })
+                    position = 0
+                    entry_price = 0.0
+            
+            # 2. Check for new entries if flat (and no exit happened in this step that made us flat)
+            if position == 0 and not exit_trade: # Only enter if we didn't just exit
                 if signal == SIGNAL_BUY:
                     position = 1
-                    entry_price = current_price
-                elif signal == SIGNAL_SELL: # Initiate short position
+                    entry_price = current_price # Entry at current bar's Close
+                elif signal == SIGNAL_SELL:
                     position = -1
-                    entry_price = current_price
-            elif position == 1: # Currently long
-                if signal == SIGNAL_SELL: # Signal to sell while long
-                    pnl = (current_price - entry_price) * self.leverage
-                    trades_details.append({'pnl': pnl, 'entry_price': entry_price, 'type': 'long'})
-                    position = 0 # Go flat
-                    entry_price = 0 # Reset entry price
+                    entry_price = current_price # Entry at current bar's Close
 
-
-
-
-            elif position == -1: # Currently short
-                if signal == SIGNAL_BUY: # Signal to buy while short
-                    calculated_pnl = (entry_price - current_price) * self.leverage
-                    pnl = calculated_pnl 
-                    trades_details.append({'pnl': pnl, 'entry_price': entry_price, 'type': 'short'})
-                    position = 0 # Go flat
-                    entry_price = 0 # Reset entry price
+        trade_pnl_list = [td['pnl'] for td in trades_details] # PNLs are now leveraged
+        num_trades = len(trade_pnl_list)
 
         trade_pnl_list = [td['pnl'] for td in trades_details] # PNLs are now leveraged
         num_trades = len(trade_pnl_list)
