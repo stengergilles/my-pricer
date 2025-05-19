@@ -471,10 +471,13 @@ class BackTest:
             current_price = row['Close']
             signal = row['Strategy_Signal']
 
+
             if position == 0: # Currently flat
                 if signal == SIGNAL_BUY:
                     position = 1
-
+                    entry_price = current_price
+                elif signal == SIGNAL_SELL: # Initiate short position
+                    position = -1
                     entry_price = current_price
             elif position == 1: # Currently long
                 if signal == SIGNAL_SELL: # Signal to sell while long
@@ -485,16 +488,11 @@ class BackTest:
 
 
 
+
             elif position == -1: # Currently short
                 if signal == SIGNAL_BUY: # Signal to buy while short
-                    # DEBUGGING PRINT STATEMENTS FOR FAILING TEST                    print(f"DEBUG: evaluate_performance - Closing Short Trade:")
-                    print(f"DEBUG:       entry_price: {entry_price}")
-                    print(f"DEBUG:       current_price: {current_price}")
-                    print(f"DEBUG:       self.leverage: {self.leverage}")                    
                     calculated_pnl = (entry_price - current_price) * self.leverage
-                    print(f"DEBUG:       calculated_pnl: {calculated_pnl}")
-                    # Reverted to standard short PNL calculation
-                    pnl = calculated_pnl # Use the debugged value
+                    pnl = calculated_pnl 
                     trades_details.append({'pnl': pnl, 'entry_price': entry_price, 'type': 'short'})
                     position = 0 # Go flat
                     entry_price = 0 # Reset entry price
@@ -572,9 +570,10 @@ class BackTest:
             "gross_loss": round(gross_loss, 2),
 
             "win_rate_pct": round(win_rate_pct, 2),
+
             "avg_profit_per_winning_trade": round(avg_profit_per_winning_trade, 2),
             "avg_loss_per_losing_trade": round(avg_loss_per_losing_trade, 2),
-            "profit_factor": round(profit_factor, 2) if isinstance(profit_factor, (int, float)) and profit_factor not in [float('inf'), float('-inf')] else profit_factor,
+            "profit_factor": profit_factor, # Store with full precision for pytest.approx
             "avg_pnl_per_trade": round(avg_pnl_per_trade, 2),
             "max_drawdown_value": round(max_drawdown_value, 2),
             "max_drawdown_percentage": round(max_drawdown_percentage, 2),
