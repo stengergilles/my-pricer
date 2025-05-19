@@ -14,8 +14,9 @@ import stock_monitoring_app.backtest.backtest
 print(f"Loaded backtest.py from: {stock_monitoring_app.backtest.backtest.__file__}")
 
 # Assuming 'tests' directory is at the same level as 'stock_monitoring_app'
+
 # or the project root containing 'stock_monitoring_app' is in PYTHONPATH.
-from stock_monitoring_app.backtest.backtest import BackTest
+from stock_monitoring_app.backtest.backtest import BackTest, TradeType, ExitReason
 from stock_monitoring_app.fetchers.base_fetcher import Fetcher
 from stock_monitoring_app.fetchers import CoinGeckoFetcher, PolygonFetcher
 from stock_monitoring_app.strategies.base_strategy import BaseStrategy, SIGNAL_BUY, SIGNAL_SELL, SIGNAL_HOLD
@@ -103,10 +104,25 @@ def backtest_crypto_instance_fixture():
         
         # Test with a leverage that should be overridden for crypto
         bt = BackTest(ticker="bitcoin", period="1mo", interval="1d", leverage=5.0)        
-        bt.fetcher = mock_coingecko_fetcher_instance # Ensure it's set for tests
-        return bt
 
-# --- Test Class for BackTest ---
+        bt.fetcher = mock_coingecko_fetcher_instance # Ensure it's set for tests        return bt
+
+
+@pytest.fixture
+def backtest_instance_with_sl_tp():
+    with patch('stock_monitoring_app.backtest.backtest.PolygonFetcher') as MockPolygonFetcher:
+        mock_fetcher_instance = MockPolygonFetcher.return_value
+        mock_fetcher_instance.get_service_name.return_value = "PolygonMockSLTP"
+        bt = BackTest(
+            ticker="SLTPSTOCK", 
+            period="5d", 
+            interval="1d", 
+            stop_loss_pct=5.0,    # 5% Stop Loss
+            take_profit_pct=10.0, # 10% Take Profit
+            initial_capital=10000.0,
+            leverage=1.0 # Keep leverage simple for these tests
+        )
+        bt.fetcher = mock_fetcher
 
 class TestBackTest:
 
