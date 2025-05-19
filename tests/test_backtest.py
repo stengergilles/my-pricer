@@ -15,8 +15,9 @@ print(f"Loaded backtest.py from: {stock_monitoring_app.backtest.backtest.__file_
 
 # Assuming 'tests' directory is at the same level as 'stock_monitoring_app'
 
+
 # or the project root containing 'stock_monitoring_app' is in PYTHONPATH.
-from stock_monitoring_app.backtest.backtest import BackTest, TradeType, ExitReason
+from stock_monitoring_app.backtest.backtest import BackTest
 from stock_monitoring_app.fetchers.base_fetcher import Fetcher
 from stock_monitoring_app.fetchers import CoinGeckoFetcher, PolygonFetcher
 from stock_monitoring_app.strategies.base_strategy import BaseStrategy, SIGNAL_BUY, SIGNAL_SELL, SIGNAL_HOLD
@@ -119,10 +120,11 @@ def backtest_instance_with_sl_tp():
             interval="1d", 
             stop_loss_pct=5.0,    # 5% Stop Loss
             take_profit_pct=10.0, # 10% Take Profit
+
             initial_capital=10000.0,
             leverage=1.0 # Keep leverage simple for these tests
         )
-        bt.fetcher = mock_fetcher
+        bt.fetcher = mock_fetcher_instance
 
 class TestBackTest:
 
