@@ -3,6 +3,7 @@ import pandas_ta as ta
 from .base_indicator import Indicator
 
 class MAIndicator(Indicator):    
+
     """
     Calculates Moving Averages (SMA or EMA).
     """
@@ -38,5 +39,14 @@ class MAIndicator(Indicator):
             self.df[ma_column_name] = self.df.ta.sma(close=self.df[self.column], length=self.window, append=False)
         elif self.ma_type == 'ema':
             self.df[ma_column_name] = self.df.ta.ema(close=self.df[self.column], length=self.window, append=False)
-            
+
         return self.df
+    
+    @staticmethod
+    def get_search_space():
+        return {
+            "window": [10, 20, 50],
+            "ma_type": ["sma", "ema"],
+            "column": ["Close"],
+        }
+

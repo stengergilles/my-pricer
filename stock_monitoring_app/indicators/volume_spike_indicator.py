@@ -7,6 +7,14 @@ class VolumeSpikeIndicator(Indicator):
     Identifies volume spikes compared to a moving average of volume.
     """
 
+    @staticmethod
+    def get_search_space():
+        return {
+            "window": [10, 20, 30],
+            "spike_multiplier": [1.5, 2.0, 2.5],
+            "volume_col": ["Volume"],
+        }
+
     def __init__(self,
                  df: pd.DataFrame, 
                  window: int = 20, 

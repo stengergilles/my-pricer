@@ -3,6 +3,15 @@ import pandas_ta as ta
 from .base_indicator import Indicator
 
 class BollingerBandsIndicator(Indicator):
+
+    @staticmethod
+    def get_search_space():
+        return {
+            "window": [15, 20, 25],
+            "num_std_dev": [1.5, 2.0, 2.5],
+            "column": ["Close"],
+        }
+
     """
     Calculates Bollinger Bands (BBands).
     """

@@ -216,24 +216,17 @@ class BackTest:
 
     def optimize_thresholds(self, data: pd.DataFrame, initial_discovered_configs: List[Dict]) -> List[Dict]:
         """
-        Placeholder implementation for optimizing thresholds (parameters) for discovered indicators.
-        It iterates through known indicator types and tries a few parameter combinations.
-        The 'placeholder_profit_loss' is used as the optimization target.
+        Generalized implementation for optimizing thresholds (parameters) for discovered indicators.
+        Each indicator must provide a 'get_search_space' static method that returns a dict of param_name: list_of_values.
+        """
+        print(f"INFO: Starting generalized threshold optimization for {self.ticker}...")
 
-        Args:
-            data: The historical OHLCV data.
-            initial_discovered_configs: The list of indicator configurations from discovery (default params).
-
-        Returns:
-            A list of indicator configurations with potentially "optimized" parameters.
-        """        
-        print(f"INFO: Starting placeholder threshold optimization for {self.ticker}...")
         if data is None or data.empty:
             print("      Warning: Historical data is empty. Cannot perform optimization.")
             self.current_indicator_configs = initial_discovered_configs
             return initial_discovered_configs
 
-        if not initial_discovered_configs:            
+        if not initial_discovered_configs:
             print("      No indicators discovered. Skipping optimization.")
             self.current_indicator_configs = []
             return []
@@ -242,124 +235,59 @@ class BackTest:
 
         for idx_tuned, config_to_optimize in enumerate(initial_discovered_configs):
             indicator_class = config_to_optimize['type']
-            best_params_for_current_type = config_to_optimize['params'].copy()            
-            # Baseline PNL for current indicator with its default params, others default
+            best_params_for_current_type = config_to_optimize['params'].copy()
             baseline_eval_configs = []
             for i, conf in enumerate(initial_discovered_configs):
                 if i == idx_tuned:
                     baseline_eval_configs.append({'type': indicator_class, 'params': best_params_for_current_type})
                 else:
                     baseline_eval_configs.append(conf)
-            
+
             strategy_baseline = BaseStrategy(indicator_configs=baseline_eval_configs)
             results_baseline = strategy_baseline.run(data.copy())
             best_pnl_for_current_type = self._calculate_placeholder_pnl(results_baseline)
 
             print(f"      Optimizing {indicator_class.__name__}: Initial PNL with default params = {best_pnl_for_current_type}")
 
+            # --- Generalized grid search ---
             param_search_space_defined = False
+            search_space = {}
 
-            if indicator_class is RSIIndicator:
+            # The indicator class must define a staticmethod get_search_space() returning {param: [values]}
+            if hasattr(indicator_class, 'get_search_space') and callable(getattr(indicator_class, 'get_search_space')):
+                search_space = indicator_class.get_search_space()
                 param_search_space_defined = True
-                # Default RSI params: period=14, oversold=30, overbought=70
-                rsi_periods = [10, 14, 20]
-                rsi_oversold_levels = [25, 30, 35]
-                rsi_overbought_levels = [65, 70, 75]
 
-                for p in rsi_periods:
-                    for os_level in rsi_oversold_levels:                        
-                        for ob_level in rsi_overbought_levels: # Innermost loop for RSI
-                            current_trial_params = {'period': p, 'column': 'Close', 'rsi_oversold': os_level, 'rsi_overbought': ob_level}
-                            
-                            # This block is now correctly indented and cleaned
-                            trial_run_configs = []
+            if param_search_space_defined and search_space:
+                import itertools
+                param_names = list(search_space.keys())
+                param_value_lists = [search_space[k] for k in param_names]
 
-                            for i_conf, conf_item in enumerate(initial_discovered_configs): # Renamed loop variables for clarity
-                                if i_conf == idx_tuned:
-                                    trial_run_configs.append({'type': indicator_class, 'params': current_trial_params})
-                                else:
-                                    trial_run_configs.append(conf_item)
-                            
-                            # Initialize trial_strategy after trial_run_configs is populated
-                            trial_strategy = BaseStrategy(indicator_configs=trial_run_configs)
-                            trial_results = trial_strategy.run(data.copy())
-                            current_pnl = self._calculate_placeholder_pnl(trial_results)
+                for combination in itertools.product(*param_value_lists):
+                    current_trial_params = dict(zip(param_names, combination))
+                    # Always add 'column': 'Close' if not set and 'Close' is expected
+                    if 'column' in param_names and 'column' not in current_trial_params:
+                        current_trial_params['column'] = 'Close'
 
-                            if current_pnl > best_pnl_for_current_type:
-                                best_pnl_for_current_type = current_pnl
-                                best_params_for_current_type = current_trial_params
-                # End of RSI parameter search
-            
-            elif indicator_class is BollingerBandsIndicator:
-                param_search_space_defined = True
-                # Default BBands params: window=20, num_std_dev=2.0
-
-
-                # Default BBands params: window=20, num_std_dev=2.0
-                bb_windows = [15, 20, 25]
-                bb_std_devs = [1.5, 2.0, 2.5]
-                for w_bb in bb_windows: 
-                    for std_bb in bb_std_devs: # Innermost loop for BollingerBands
-                        current_trial_params = {'window': w_bb, 'num_std_dev': std_bb, 'column': 'Close'}
-                        
-                        # This block is now correctly indented and cleaned
-                        trial_run_configs = []
-                        for i_conf, conf_item in enumerate(initial_discovered_configs): # Renamed loop variables
-                            if i_conf == idx_tuned:
-                                trial_run_configs.append({'type': indicator_class, 'params': current_trial_params})
-
-                            else:
-                                trial_run_configs.append(conf_item)
-                        
-                        trial_strategy = BaseStrategy(indicator_configs=trial_run_configs)
-                        trial_results = trial_strategy.run(data.copy())
-                        current_pnl = self._calculate_placeholder_pnl(trial_results)
-
-                        if current_pnl > best_pnl_for_current_type:
-                            best_pnl_for_current_type = current_pnl
-                            best_params_for_current_type = current_trial_params
-
-                # End of BollingerBands parameter search
-
-            # Removed duplicate elif for BreakoutIndicator
-            elif indicator_class is BreakoutIndicator:
-
-                param_search_space_defined = True
-                # Default Breakout params: window=20
-
-                breakout_windows = [10, 20, 30]
-                # Assuming default columns ('High', 'Low', 'Close') are used by BreakoutIndicator.
-                # Iterating through the breakout_windows to define parameters for each trial.
-                for w_bo in breakout_windows:
-                    current_trial_params = {'window': w_bo} # Define parameters for the current trial
-
-                    # This line was causing an indentation error due to the missing loop above.
                     trial_run_configs = []
-                    for i_conf, conf_item in enumerate(initial_discovered_configs): # Renamed loop variables
+                    for i_conf, conf_item in enumerate(initial_discovered_configs):
                         if i_conf == idx_tuned:
                             trial_run_configs.append({'type': indicator_class, 'params': current_trial_params})
-
                         else:
                             trial_run_configs.append(conf_item)
-
                     trial_strategy = BaseStrategy(indicator_configs=trial_run_configs)
                     trial_results = trial_strategy.run(data.copy())
                     current_pnl = self._calculate_placeholder_pnl(trial_results)
-
                     if current_pnl > best_pnl_for_current_type:
                         best_pnl_for_current_type = current_pnl
                         best_params_for_current_type = current_trial_params
-                # End of BreakoutIndicator parameter search
-            
-            # Add more 'elif indicator_class is YourOtherIndicator:' blocks here for other specific optimizations
+            else:
+                print(f"      No get_search_space() defined for {indicator_class.__name__}. Using default params.")
 
-            if not param_search_space_defined:
-                print(f"      No specific optimization defined for {indicator_class.__name__}. Using default params.")
-            
             print(f"      Selected best PNL for {indicator_class.__name__}: {best_pnl_for_current_type} with params: {best_params_for_current_type}")
             final_optimized_configs.append({'type': indicator_class, 'params': best_params_for_current_type})
 
-        print(f"INFO: Placeholder optimization finished for {self.ticker}.")
+        print(f"INFO: Generalized threshold optimization finished for {self.ticker}.")
         self.current_indicator_configs = final_optimized_configs
         return final_optimized_configs
 

@@ -2,6 +2,14 @@ import pandas as pd
 from .base_indicator import Indicator
 
 class BreakoutIndicator(Indicator):
+
+    @staticmethod
+    def get_search_space():
+        return {
+            "window": [10, 20, 30],
+            # Add more parameters here if your indicator supports/needs them
+        }
+
     """
     Identifies price breakouts above a recent high or below a recent low.
     """

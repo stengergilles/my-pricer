@@ -3,6 +3,16 @@ import pandas_ta as ta
 from .base_indicator import Indicator
 
 class MACDIndicator(Indicator):
+
+    @staticmethod
+    def get_search_space():
+        return {
+            "fast_period": [8, 12, 15],
+            "slow_period": [20, 26, 30],
+            "signal_period": [7, 9, 12],
+            "column": ["Close"],
+        }
+
     """
     Calculates Moving Average Convergence Divergence (MACD).
     """

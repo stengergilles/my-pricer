@@ -3,6 +3,16 @@ import pandas_ta as ta
 from .base_indicator import Indicator
 
 class RSIIndicator(Indicator):
+
+    @staticmethod
+    def get_search_space():
+        return {
+            "period": [10, 14, 20],
+            "rsi_oversold": [25, 30, 35],
+            "rsi_overbought": [65, 70, 75],
+            "column": ["Close"],
+        }
+
     """
     Calculates the Relative Strength Index (RSI) and signals.
     """

@@ -6,6 +6,13 @@ class ATRIndicator(Indicator):
     """
     Calculates Average True Range (ATR).
     """
+
+    @staticmethod
+    def get_search_space():
+        return {
+            "window": [10, 14, 20],
+        }
+
     def __init__(self, 
                  df: pd.DataFrame, 
                  window: int = 14):
