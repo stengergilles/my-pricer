@@ -8,6 +8,11 @@ import importlib
 import inspect
 import math
 
+import sys
+print(f"Pytest sys.path: {sys.path}")
+import stock_monitoring_app.backtest.backtest
+print(f"Loaded backtest.py from: {stock_monitoring_app.backtest.backtest.__file__}")
+
 # Assuming 'tests' directory is at the same level as 'stock_monitoring_app'
 # or the project root containing 'stock_monitoring_app' is in PYTHONPATH.
 from stock_monitoring_app.backtest.backtest import BackTest

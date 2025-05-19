@@ -484,10 +484,17 @@ class BackTest:
                     entry_price = 0 # Reset entry price
 
 
+
             elif position == -1: # Currently short
                 if signal == SIGNAL_BUY: # Signal to buy while short
+                    # DEBUGGING PRINT STATEMENTS FOR FAILING TEST                    print(f"DEBUG: evaluate_performance - Closing Short Trade:")
+                    print(f"DEBUG:       entry_price: {entry_price}")
+                    print(f"DEBUG:       current_price: {current_price}")
+                    print(f"DEBUG:       self.leverage: {self.leverage}")                    
+                    calculated_pnl = (entry_price - current_price) * self.leverage
+                    print(f"DEBUG:       calculated_pnl: {calculated_pnl}")
                     # Reverted to standard short PNL calculation
-                    pnl = (entry_price - current_price) * self.leverage 
+                    pnl = calculated_pnl # Use the debugged value
                     trades_details.append({'pnl': pnl, 'entry_price': entry_price, 'type': 'short'})
                     position = 0 # Go flat
                     entry_price = 0 # Reset entry price
