@@ -5,7 +5,8 @@ import pandas as pd
 # Add project root to Python path to allow absolute imports
 # This assumes the script is run from the 'examples' directory or project root
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-sys.path.append(PROJECT_ROOT)from stock_monitoring_app.fetchers import PolygonFetcher, CoinGeckoFetcher
+sys.path.append(PROJECT_ROOT)
+from stock_monitoring_app.fetchers import PolygonFetcher, CoinGeckoFetcher
 from stock_monitoring_app.config import settings # To ensure API keys are loaded
 
 def run_polygon_example():
