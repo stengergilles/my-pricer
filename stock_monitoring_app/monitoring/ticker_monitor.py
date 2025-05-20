@@ -63,7 +63,7 @@ class TickerMonitor:
                 print(f"INFO [{self.process_name}]: No optimized config files found for {self.ticker}.")
                 self._run_backtest()
                 # Wait up to 10 seconds for backtest output to appear (race condition fix)
-                max_wait = 120
+                max_wait = 10
                 waited = 0
                 while waited < max_wait:
                     files = glob.glob(pattern)

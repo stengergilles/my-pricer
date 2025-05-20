@@ -11,9 +11,11 @@ class AppSettings:
         # Polygon API Key (Required)
         self.POLYGON_API_KEY: str | None = os.getenv("POLYGON_API_KEY")
 
+
         # CoinGecko API Key (Optional)
         # Set your environment variable name if different (e.g., CG_PRO_KEY, CG_DEMO_KEY)
-        self.COINGECKO_API_KEY: str | None = os.getenv("COINGECKO_API_KEY")
+        raw_coingecko_key = os.getenv("COINGECKO_API_KEY")
+        self.COINGECKO_API_KEY: str | None = raw_coingecko_key if raw_coingecko_key else None # Ensures empty string becomes None
 
         # Example of other potential settings
         # self.DEFAULT_CURRENCY = os.getenv("DEFAULT_CURRENCY", "usd")

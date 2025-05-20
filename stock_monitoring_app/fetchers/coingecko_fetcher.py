@@ -1,5 +1,10 @@
 
 
+
+ 
+
+import random
+import time
 from .base_fetcher import Fetcher
 import pandas as pd
 import numpy as np
@@ -86,29 +91,75 @@ class CoinGeckoFetcher(Fetcher):
             # params['x_cg_pro_api_key'] = self.api_key # Example
             pass # No standard public way to pass key in query, usually header for Pro.
 
+
         headers = {}
         if self.api_key:
-            # Example for Pro API key passed as header:            # headers['X-CG-PRO-API-KEY'] = self.api_key
+            # Example for Pro API key passed as header:
+            # headers['X-CG-PRO-API-KEY'] = self.api_key
             # Example for Demo API Key:
             headers['X-CG-DEMO-API-KEY'] = self.api_key # More likely for free/demo keys
 
+        # 2. Make API request with retry logic
+        MAX_RETRIES = 3
+        INITIAL_BACKOFF_SECONDS = 1
 
-        # 2. Make API request
-        try:
-            response = requests.get(api_url, params=params, headers=headers)
-            response.raise_for_status() # Raises HTTPError for bad responses (4XX or 5XX)
+        BACKOFF_FACTOR = 2
+        
+        retries = 0
+        last_exception = None
+        response = None # Initialize response to ensure it's always bound
+
+        while retries < MAX_RETRIES:
+            try:
+                response = requests.get(api_url, params=params, headers=headers, timeout=10) # Added timeout
+                response.raise_for_status() # Raises HTTPError for bad responses (4XX or 5XX)
+                
+                # If successful, break the loop and proceed to process data
+                break 
+            except requests.exceptions.HTTPError as e:
+                last_exception = e
+                should_retry = False
+                # Retry on 429 (Too Many Requests)
+                if e.response.status_code == 429:
+                    should_retry = True                # Retry on 401 (Unauthorized) ONLY if no API key is set (public API usage)                elif e.response.status_code == 401 and not self.api_key:
+                    should_retry = True
+                
+                if should_retry and retries < MAX_RETRIES -1: # Don't sleep on the last attempt
+                    backoff_time = INITIAL_BACKOFF_SECONDS * (BACKOFF_FACTOR ** retries) + random.uniform(0, 1)
+                    print(f"WARN [{self.get_service_name()}]: Request for {coin_id} failed with {e.response.status_code}. Retrying in {backoff_time:.2f}s... (Attempt {retries + 1}/{MAX_RETRIES})")
+                    time.sleep(backoff_time)
+                elif not should_retry: # If not a retryable HTTP error, raise immediately
+                    raise e 
+            except RequestException as e: # Catches other network errors (ConnectionError, Timeout, etc.)
+                last_exception = e
+                if retries < MAX_RETRIES -1: # Don't sleep on the last attempt
+                    backoff_time = INITIAL_BACKOFF_SECONDS * (BACKOFF_FACTOR ** retries) + random.uniform(0, 1)
+                    print(f"WARN [{self.get_service_name()}]: Request for {coin_id} failed with network error: {e}. Retrying in {backoff_time:.2f}s... (Attempt {retries + 1}/{MAX_RETRIES})")
+                    time.sleep(backoff_time)
             
-            data = response.json()            
+
+            retries += 1
+                # After the loop, if response is still None, it means no request was successful.
+
+        if response is None:
+            final_exception_message = f"Failed to fetch data for {coin_id} from {self.get_service_name()} after {retries} attempts."
+            if last_exception: # If any exception occurred during attempts, it would be in last_exception
+                final_exception_message += f" Last error: {last_exception}"
+            # Raise an exception, chaining last_exception if it exists for better context.
+            raise Exception(final_exception_message) from last_exception
+
+        # If we reach here, 'response' must hold a valid requests.Response object from a successful attempt.
+        try:
+            data = response.json()
             if not data or 'prices' not in data or 'total_volumes' not in data:
-                raise Exception(f"CoinGecko API response for {coin_id} is malformed or missing data.")
+                raise Exception(f"CoinGecko API response for {coin_id} is malformed or missing data after successful HTTP request.")
 
             prices_data = data.get('prices', [])
             volumes_data = data.get('total_volumes', [])
 
             if not prices_data: # If prices are empty, likely no data for the period
-                 print(f"No price data returned from CoinGecko for {coin_id} ({period}, daily).")
-                 return pd.DataFrame()
-
+                print(f"No price data returned from CoinGecko for {coin_id} ({period}, daily).")
+                return pd.DataFrame()
 
             # 3. Process response into DataFrame
             df_prices = pd.DataFrame(prices_data, columns=['Timestamp', 'Close'])
@@ -119,44 +170,34 @@ class CoinGeckoFetcher(Fetcher):
                 df_volumes = pd.DataFrame(volumes_data, columns=['Timestamp', 'Volume'])
                 df_volumes['Timestamp'] = pd.to_datetime(df_volumes['Timestamp'], unit='ms')
                 df_volumes = df_volumes.set_index('Timestamp')
-                # Merge prices and volumes
-                df = df_prices.join(df_volumes, how='outer') # Use outer join to keep all timestamps
+                df = df_prices.join(df_volumes, how='outer')
             else:
                 df = df_prices
-                df['Volume'] = np.nan # Add Volume column with NaNs if no volume data
+                df['Volume'] = np.nan
 
-            # Approximate Open, High, Low as Close
             df['Open'] = df['Close']            
-            df['High'] = df['Close']
+            df['High'] = df['Close']            
             df['Low'] = df['Close']
-                        # Ensure all required columns are present and in order
+            
             required_columns = ['Open', 'High', 'Low', 'Close', 'Volume']
             for col in required_columns:
                 if col not in df.columns:
                     df[col] = np.nan
             
             df = df[required_columns]
-            
-            # Filter out rows where Close is NaN, which might happen if join alignment is off or data is sparse
             df = df.dropna(subset=['Close'])
 
             if df.empty:
                 print(f"Resulting DataFrame is empty after processing CoinGecko data for {coin_id} ({period}, daily).")
-
-
+            
             return df
 
-        except requests.exceptions.HTTPError as e: # Explicitly handle HTTPError to let it propagate as is
-            raise e
-        except RequestException as e:
-            # This will now catch other network errors (like connection issues)
-            # that are not HTTPError.
-            raise Exception(f"Network error (non-HTTP) fetching data from CoinGecko for {coin_id}: {e}")
-        except ValueError as e: # Includes JSONDecodeError if response.json() fails or other value errors
-            raise Exception(f"Failed to parse JSON response or invalid value from CoinGecko for {coin_id}: {e}")
-        # The most general Exception catch remains for truly unexpected issues.
+        except ValueError as e: # Includes JSONDecodeError if response.json() fails
+            raise Exception(f"Failed to parse JSON response from CoinGecko for {coin_id}: {e}")
         except Exception as e: 
-            raise Exception(f"An unexpected error occurred fetching data for {coin_id} from CoinGecko: {e}")
+
+            # Catch-all for unexpected errors during data processing AFTER successful fetch
+            raise Exception(f"An unexpected error occurred processing data for {coin_id} from CoinGecko: {e}")
 
     def get_service_name(self) -> str:
         return "CoinGecko"
