@@ -100,7 +100,7 @@ class CoinGeckoFetcher(Fetcher):
             headers['X-CG-DEMO-API-KEY'] = self.api_key # More likely for free/demo keys
 
         # 2. Make API request with retry logic
-        MAX_RETRIES = 3
+        MAX_RETRIES = 5 
         INITIAL_BACKOFF_SECONDS = 1
 
         BACKOFF_FACTOR = 2
@@ -121,7 +121,8 @@ class CoinGeckoFetcher(Fetcher):
                 should_retry = False
                 # Retry on 429 (Too Many Requests)
                 if e.response.status_code == 429:
-                    should_retry = True                # Retry on 401 (Unauthorized) ONLY if no API key is set (public API usage)                elif e.response.status_code == 401 and not self.api_key:
+                    should_retry = True 
+                elif e.response.status_code == 401 and not self.api_key:
                     should_retry = True
                 
                 if should_retry and retries < MAX_RETRIES -1: # Don't sleep on the last attempt
