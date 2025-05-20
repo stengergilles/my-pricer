@@ -83,27 +83,36 @@ class TickerMonitor:
 
     def _load_optimized_config_from_disk(self) -> Optional[List[Dict]]:
         """
-        Placeholder: Attempts to load optimized indicator configurations from a file.
+        Loads optimized indicator configurations for this ticker from the latest metrics file.
+        Returns a list of {'type': <class>, 'params': {...}} or None on failure.
         """
-        print(f"INFO [{self.process_name}]: Placeholder: Attempting to load optimized config from disk...")
-        # In a real implementation, this would involve:
-        # 1. Getting project_root (e.g., from BackTest._get_project_root() or similar)
-        # 2. Constructing path to 'backtest_outputs' directory.
-        # 3. Finding the latest *_metrics.json file for `self.ticker`.
-        # 4. Loading the JSON data.
-        # 5. Extracting the 'indicator_configurations' list.
-        # 6. Iterating through this list and using `_resolve_indicator_class` to convert
-        #    module and class name strings back into actual Python class objects.
-        # Example of resolving loaded config:
-        # loaded_raw_configs = metrics_data.get("indicator_configurations", [])
-        # resolved_configs = []
-        # for raw_conf in loaded_raw_configs:
-        #     cls = self._resolve_indicator_class(raw_conf["module"], raw_conf["class_name"])
-        #     if cls:
-        #         resolved_configs.append({"type": cls, "params": raw_conf.get("params", {})})
-        # return resolved_configs if resolved_configs else None
-        return None
-
+        try:
+            project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../.."))
+            outputs_dir = os.path.join(project_root, "backtest_outputs")
+            pattern = os.path.join(outputs_dir, f"{self.ticker}_*_metrics.json")
+            files = glob.glob(pattern)
+            if not files:
+                print(f"INFO [{self.process_name}]: No optimized config files found for {self.ticker}.")
+                return None
+            files.sort(key=os.path.getmtime, reverse=True)
+            latest_metrics_path = files[0]
+            with open(latest_metrics_path, "r") as f:
+                metrics_data = json.load(f)
+            loaded_raw_configs = metrics_data.get("indicator_configurations", [])
+            resolved_configs = []
+            for raw_conf in loaded_raw_configs:
+                module = raw_conf.get("module")
+                class_name = raw_conf.get("class_name")
+                params = raw_conf.get("params", {})
+                cls = self._resolve_indicator_class(module, class_name)
+                if cls:
+                    resolved_configs.append({"type": cls, "params": params})
+                else:
+                    print(f"WARNING [{self.process_name}]: Could not resolve indicator {module}.{class_name}.")
+            return resolved_configs if resolved_configs else None
+        except Exception as e:
+            print(f"ERROR [{self.process_name}]: Failed to load optimized config from disk: {e}")
+            return None
     def _initialize_strategy(self):
         """Initializes the strategy, either from override, loaded config, or new backtest."""
         print(f"INFO [{self.process_name}]: Initializing strategy...")
@@ -245,7 +254,7 @@ class TickerMonitor:
 
         self._running = True
         print(f"INFO [{self.process_name}]: Monitor loop started. Interval: {self.monitor_interval_seconds}s.")
-                while self._running:
+        while self._running:
             start_time = time.time()
             print(f"INFO [{self.process_name}]: Cycle started at {pd.Timestamp.now(tz='UTC')}.")
             
