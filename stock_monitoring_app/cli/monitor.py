@@ -1,7 +1,5 @@
 import argparse
 import multiprocessing
-import signal
-import sys
 import time
 from queue import Empty
 
@@ -18,60 +16,65 @@ def print_indicator_summary(indicator_configs):
         print(f"- {getattr(cls, '__name__', str(cls))} | Params: {params}")
 
 def monitor_worker(ticker, monitor_interval, entry_price, order_queue, status_queue):
-    monitor = TickerMonitor(
-        ticker=ticker,
-        monitor_interval_seconds=monitor_interval,
-        trade_order_queue=order_queue,
-        entry_price=entry_price,
-        process_name=f"CLI-Monitor-{ticker}",
-    )
-    indicator_configs = monitor._load_optimized_config_from_disk()
-    # Send indicators to parent through status_queue at start
-    status_queue.put({"type": "indicators", "data": indicator_configs})
-
-    last_fetch_status = "Never"
+    import traceback
     try:
+        monitor = TickerMonitor(
+            ticker=ticker,
+            monitor_interval_seconds=monitor_interval,
+            trade_order_queue=order_queue,
+            entry_price=entry_price,
+            process_name=f"CLI-Monitor-{ticker}",
+        )
+        indicator_configs = monitor._load_optimized_config_from_disk()
+        status_queue.put({"type": "indicators", "data": indicator_configs})
+
+        last_fetch_status = "Never"
         while True:
             start_time = time.time()
             try:
                 data = monitor._fetch_latest_data()
-                if data is None:
-                    fetch_status = "No data"
-                elif hasattr(data, "empty") and data.empty:
+                if data is None or (hasattr(data, "empty") and data.empty):
                     fetch_status = "No data"
                 else:
                     fetch_status = "OK"
                     last_fetch_status = f"Success at {time.strftime('%H:%M:%S')}"
             except Exception as e:
-                if "closed" in str(e).lower():
-                    fetch_status = f"Market Closed: {e}"
-                else:
-                    fetch_status = f"Error: {e}"
+                tb = traceback.format_exc().strip().splitlines()
+                error_line = ""
+                for line in reversed(tb):
+                    if line.strip().startswith('File '):
+                        error_line = line
+                        break
+                exception_type = type(e).__name__
+                msg = str(e) or f"[{exception_type}]"
+                fetch_status = f"Error: {msg} ({error_line.strip()})"
                 last_fetch_status = fetch_status
                 data = None
 
-            # Report fetch status
             status_queue.put({"type": "fetch_status", "data": fetch_status, "last_good": last_fetch_status})
 
-            # Decide and produce orders
-            signal = "HOLD"
-            if data is not None and hasattr(data, "empty") and not data.empty:
-                monitor._process_data_and_decide(data)  # This will put order in order_queue if needed
+            if data is not None and not (hasattr(data, "empty") and data.empty):
+                monitor._process_data_and_decide(data)
 
-            # Sleep until next cycle
             elapsed = time.time() - start_time
             sleep_time = monitor_interval - elapsed
             if sleep_time > 0:
-                for _ in range(int(sleep_time)):
-                    time.sleep(1)
-            # Check for stop request (monitor._running flag can be set externally)
+                time.sleep(sleep_time)
             if not getattr(monitor, "_running", True):
                 break
-    except KeyboardInterrupt:
-        pass
+    except Exception as e:
+        import traceback
+        tb = traceback.format_exc().strip().splitlines()
+        error_line = ""
+        for line in reversed(tb):
+            if line.strip().startswith('File '):
+                error_line = line
+                break
+        exception_type = type(e).__name__
+        msg = str(e) or f"[{exception_type}]"
+        status_queue.put({"type": "exception", "error": f"{msg} ({error_line.strip()})"})
     finally:
         status_queue.put({"type": "stopped"})
-        return
 
 def main():
     parser = argparse.ArgumentParser(description="Start a real-time ticker monitor.")
@@ -99,43 +102,59 @@ def main():
 
     try:
         while True:
-            try:
-                # Print indicators at start
-                if indicator_configs is None:
+            # Print indicators at start
+            if indicator_configs is None:
+                try:
                     msg = status_queue.get(timeout=5)
                     if msg["type"] == "indicators":
                         indicator_configs = msg["data"]
                         print_indicator_summary(indicator_configs)
                     continue
-
-                # Print fetch status and orders
-                try:
-                    msg = status_queue.get(timeout=monitor_interval)
-                    if msg["type"] == "fetch_status":
-                        print(f"[Fetch status] {msg['data']} | Last good: {msg['last_good']}")
-                    elif msg["type"] == "stopped":
-                        print("Monitor stopped.")
-                        break
                 except Empty:
-                    pass
-
-                # Print trade orders
-                while True:
-                    try:
-                        order = order_queue.get_nowait()
-                        print(f"[TRADE ORDER] {order}")
-                    except Empty:
+                    if not monitor_proc.is_alive():
+                        print("CLI Error: Monitor process exited unexpectedly (no status messages in queue).")
                         break
+                    continue
 
-            except KeyboardInterrupt:
-                print("\nReceived Ctrl+C. Stopping monitor...")
-                # Send stop signal to process
-                monitor_proc.terminate()
-                monitor_proc.join(timeout=10)
-                print("Monitor terminated.")
-                break
+            try:
+                msg = status_queue.get(timeout=monitor_interval)
+                if msg["type"] == "fetch_status":
+                    print(f"[Fetch status] {msg['data']} | Last good: {msg['last_good']}")
+                elif msg["type"] == "exception":
+                    print(f"\n>>> Monitor Exception: {msg['error']}")
+                elif msg["type"] == "stopped":
+                    print("Monitor stopped.")
+                    break
+            except Empty:
+                if not monitor_proc.is_alive():
+                    print("CLI Error: Monitor process exited unexpectedly (no status messages in queue).")
+                    break
+                # If process is alive, this is just a timeout—continue waiting.
+
+            # Print trade orders
+            while True:
+                try:
+                    order = order_queue.get_nowait()
+                    print(f"[TRADE ORDER] {order}")
+                except Empty:
+                    break
+
+    except KeyboardInterrupt:
+        print("\nReceived Ctrl+C. Stopping monitor...")
+        monitor_proc.terminate()
+        monitor_proc.join(timeout=10)
+        print("Monitor terminated.")
     except Exception as e:
-        print(f"CLI Error: {e}")
+        import traceback
+        tb = traceback.format_exc().strip().splitlines()
+        error_line = ""
+        for line in reversed(tb):
+            if line.strip().startswith('File '):
+                error_line = line
+                break
+        exception_type = type(e).__name__
+        msg = str(e) or f"[{exception_type}]"
+        print(f"CLI Error: {msg} ({error_line.strip()})")
         if monitor_proc.is_alive():
             monitor_proc.terminate()
             monitor_proc.join(timeout=10)

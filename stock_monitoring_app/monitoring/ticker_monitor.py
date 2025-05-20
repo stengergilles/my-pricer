@@ -5,6 +5,9 @@ import time
 import pandas as pd
 from typing import Optional, List, Dict
 
+# You will need to ensure this import path is correct for your project
+from stock_monitoring_app.backtest.backtest import BackTest
+
 class TickerMonitor:
     def __init__(
         self,
@@ -13,7 +16,6 @@ class TickerMonitor:
         trade_order_queue,
         entry_price,
         process_name="Monitor",
-        # Add other arguments as needed for your implementation
     ):
         self.ticker = ticker
         self.monitor_interval_seconds = monitor_interval_seconds
@@ -21,15 +23,10 @@ class TickerMonitor:
         self.entry_price = entry_price
         self.process_name = process_name
 
-        # Monitoring state
         self._running = False
-        self._is_active_position = False  # Example state variable
-        # ... Initialize other attributes as needed ...
+        self._is_active_position = False
 
     def _resolve_indicator_class(self, module_name: str, class_name: str):
-        """
-        Dynamically import and return the indicator class.
-        """
         import importlib
         try:
             module = importlib.import_module(module_name)
@@ -38,11 +35,25 @@ class TickerMonitor:
             print(f"ERROR: Could not resolve class '{class_name}' from module '{module_name}': {e}")
             return None
 
+    def _run_backtest(self):
+        print(f"INFO [{self.process_name}]: No optimized config found for {self.ticker}. Running backtest to generate one...")
+        try:
+            # Adjust period/interval as needed for your use case
+            backtester = BackTest(ticker=self.ticker, period="1y", interval="1d")
+            results = backtester.run_backtest()
+            if results is not None:
+                print(f"INFO [{self.process_name}]: Backtest complete for {self.ticker}.")
+            else:
+                print(f"WARN [{self.process_name}]: Backtest failed for {self.ticker}.")
+        except Exception as e:
+            print(f"ERROR [{self.process_name}]: Exception during backtest: {e}")
+
     def _load_optimized_config_from_disk(self) -> Optional[List[Dict]]:
         """
         Loads optimized indicator configurations for this ticker from the latest metrics file.
-        Returns a list of {'type': <class>, 'params': {...}} or None on failure.
+        If not found, runs a backtest to generate it. Returns a list of {'type': <class>, 'params': {...}} or None on failure.
         """
+        import time
         try:
             project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../.."))
             outputs_dir = os.path.join(project_root, "backtest_outputs")
@@ -50,7 +61,19 @@ class TickerMonitor:
             files = glob.glob(pattern)
             if not files:
                 print(f"INFO [{self.process_name}]: No optimized config files found for {self.ticker}.")
-                return None
+                self._run_backtest()
+                # Wait up to 10 seconds for backtest output to appear (race condition fix)
+                max_wait = 120
+                waited = 0
+                while waited < max_wait:
+                    files = glob.glob(pattern)
+                    if files:
+                        break
+                    time.sleep(1)
+                    waited += 1
+                if not files:
+                    print(f"ERROR [{self.process_name}]: Still no config after backtest. Giving up.")
+                    return None
             files.sort(key=os.path.getmtime, reverse=True)
             latest_metrics_path = files[0]
             with open(latest_metrics_path, "r") as f:
@@ -86,23 +109,35 @@ class TickerMonitor:
         Placeholder for actual strategy logic.
         """
         print(f"INFO [{self.process_name}]: Processing data for {self.ticker}...")
+        # Example: Simulate a HOLD order
+        self.trade_order_queue.put({
+            "action": "HOLD",
+            "ticker": self.ticker,
+            "price": None,
+            "timestamp": pd.Timestamp.now(tz='UTC').isoformat()
+        })
 
     def run(self):
         """Main monitoring loop, intended to be run in a subprocess."""
         print(f"INFO [{self.process_name}]: Starting monitor for {self.ticker} with entry price {self.entry_price:.2f}...")
-        # You might want to call self._initialize_strategy() here if you have such logic.
+        indicator_configs = self._load_optimized_config_from_disk()
         self._running = True
         print(f"INFO [{self.process_name}]: Monitor loop started. Interval: {self.monitor_interval_seconds}s.")
         while self._running:
             start_time = time.time()
             print(f"INFO [{self.process_name}]: Cycle started at {pd.Timestamp.now(tz='UTC')}.")
             
-            latest_data_df = self._fetch_latest_data()
-            
-            if latest_data_df is not None and not latest_data_df.empty:
-                self._process_data_and_decide(latest_data_df)
-            else:
-                print(f"WARN [{self.process_name}]: Skipping processing due to no data from fetch.")
+            try:
+                latest_data_df = self._fetch_latest_data()
+                if latest_data_df is not None and not latest_data_df.empty:
+                    self._process_data_and_decide(latest_data_df)
+                    fetch_status = "OK"
+                else:
+                    print(f"WARN [{self.process_name}]: Skipping processing due to no data from fetch.")
+                    fetch_status = "No data"
+            except Exception as e:
+                print(f"ERROR [{self.process_name}]: Exception during fetch or process: {e}")
+                fetch_status = f"Error: {e}"
 
             elapsed_time = time.time() - start_time
             sleep_duration = self.monitor_interval_seconds - elapsed_time
