@@ -1,5 +1,4 @@
 import pandas as pd
-import pandas_ta as ta
 from .base_indicator import Indicator
 
 class RSIIndicator(Indicator):
@@ -49,23 +48,44 @@ class RSIIndicator(Indicator):
 
     def calculate(self) -> pd.DataFrame:
         """
-        Calculates RSI and adds 'RSI_<period>', 'RSI_Oversold_Signal', 
+        Calculates RSI and adds 'RSI_<period>', 'RSI_Oversold_Signal',
         and 'RSI_Overbought_Signal' columns to the DataFrame.
         """
-        rsi_series = self.df.ta.rsi(close=self.df[self.column], length=self.period, append=False)
+        close = self.df[self.column]
+        delta = close.diff()
+
+        gain = delta.where(delta > 0, 0.0)
+        loss = -delta.where(delta < 0, 0.0)
+
+        # Calculate average gain and loss
+        avg_gain = gain.rolling(window=self.period, min_periods=self.period).mean()
+        avg_loss = loss.rolling(window=self.period, min_periods=self.period).mean()
+
+        # Use the Wilder smoothing method after the first window
+        avg_gain = avg_gain.copy()
+        avg_loss = avg_loss.copy()
+
+        for i in range(self.period, len(self.df)):
+            if i == self.period:
+                continue  # already computed
+            avg_gain.iat[i] = (avg_gain.iat[i - 1] * (self.period - 1) + gain.iat[i]) / self.period
+            avg_loss.iat[i] = (avg_loss.iat[i - 1] * (self.period - 1) + loss.iat[i]) / self.period
+
+        rs = avg_gain / avg_loss
+        rsi = 100 - (100 / (1 + rs))
 
         rsi_col_name = f'RSI_{self.period}'
-        self.df[rsi_col_name] = rsi_series
+        self.df[rsi_col_name] = rsi
 
         # Generate signals
         oversold_signal_col_name = f'RSI_Oversold_Signal_{self.period}'
         overbought_signal_col_name = f'RSI_Overbought_Signal_{self.period}'
-        
+
         self.df[oversold_signal_col_name] = (self.df[rsi_col_name] < self.rsi_oversold)
         self.df[overbought_signal_col_name] = (self.df[rsi_col_name] > self.rsi_overbought)
 
         # Populate signal orientations
         self.signal_orientations[oversold_signal_col_name] = 'buy'
         self.signal_orientations[overbought_signal_col_name] = 'sell'
-        
+
         return self.df

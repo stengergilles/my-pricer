@@ -1,52 +1,51 @@
 import pandas as pd
-import pandas_ta as ta
 from .base_indicator import Indicator
 
-class MAIndicator(Indicator):    
+class MAIndicator(Indicator):
+    """
+    Calculates Simple Moving Average (SMA) or Exponential Moving Average (EMA) using pandas.
+    """
 
-    """
-    Calculates Moving Averages (SMA or EMA).
-    """
-    def __init__(self, 
-                 df: pd.DataFrame, 
-                 window: int = 20, 
-                 ma_type: str = 'sma', 
-                 column: str = 'Close'):
+    @staticmethod
+    def get_search_space():
+        return {
+            "window": [10, 20, 50, 100, 200],
+            "ma_type": ["sma", "ema"],
+            "column": ["Close", "Open", "High", "Low"]
+        }
+
+    def __init__(
+        self,
+        df: pd.DataFrame,
+        window: int = 20,
+        ma_type: str = "sma",
+        column: str = "Close"
+    ):
         """
         Args:
             df: OHLCV DataFrame.
             window: The time period for the moving average.
-            ma_type: Type of moving average ('sma' for Simple, 'ema' for Exponential).
-            column: The DataFrame column to use for MA calculation.
+            ma_type: 'sma' for Simple, 'ema' for Exponential.
+            column: Which column to calculate MA on.
         """
         super().__init__(df)
         self.window = window
         self.ma_type = ma_type.lower()
-        self.column = column        
-        if self.column not in self.df.columns:
-            raise ValueError(f"Column '{self.column}' not found in DataFrame for MA calculation.")
-        if self.ma_type not in ['sma', 'ema']:
-            raise ValueError("ma_type must be 'sma' or 'ema'.")
+        self.column = column
 
     def calculate(self) -> pd.DataFrame:
         """
-        Calculates the specified moving average and adds it as a new column.
-        Column name will be like 'SMA_20_Close' or 'EMA_50_Open'.
+        Calculates MA and adds 'SMA_<window>_<column>' or 'EMA_<window>_<column>' column.
         """
-        ma_column_name = f'{self.ma_type.upper()}_{self.window}_{self.column}'
-        
-        if self.ma_type == 'sma':
-            self.df[ma_column_name] = self.df.ta.sma(close=self.df[self.column], length=self.window, append=False)
-        elif self.ma_type == 'ema':
-            self.df[ma_column_name] = self.df.ta.ema(close=self.df[self.column], length=self.window, append=False)
+        source = self.df[self.column]
+        if self.ma_type == "sma":
+            ma_series = source.rolling(window=self.window, min_periods=self.window).mean()
+            col_name = f"SMA_{self.window}_{self.column}"
+        elif self.ma_type == "ema":
+            ma_series = source.ewm(span=self.window, min_periods=self.window, adjust=False).mean()
+            col_name = f"EMA_{self.window}_{self.column}"
+        else:
+            raise ValueError(f"Unknown ma_type: {self.ma_type}")
 
+        self.df[col_name] = ma_series
         return self.df
-    
-    @staticmethod
-    def get_search_space():
-        return {
-            "window": [10, 20, 50],
-            "ma_type": ["sma", "ema"],
-            "column": ["Close"],
-        }
-

@@ -37,3 +37,4 @@ def test_atr_init_missing_ohlc(sample_ohlcv_data):
     df_missing_close = sample_ohlcv_data.drop(columns=['Close'])
     with pytest.raises(ValueError, match="DataFrame is missing required OHLC columns: Close"):
         ATRIndicator(df_missing_close)
+

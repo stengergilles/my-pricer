@@ -172,7 +172,6 @@ class TickerMonitor:
         print(f"INFO [{self.process_name}]: Starting monitor for {self.ticker} with entry price {self.entry_price:.2f}...")
         indicator_configs = self._load_optimized_config_from_disk()
         self._indicator_configs=indicator_configs
-        print("loaded indicators",self._indicator_configs)
         self._running = True
         print(f"INFO [{self.process_name}]: Monitor loop started. Interval: {self.monitor_interval_seconds}s.")
         while self._running:
