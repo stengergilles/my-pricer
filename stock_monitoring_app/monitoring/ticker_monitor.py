@@ -7,6 +7,7 @@ from typing import Optional, List, Dict
 
 # You will need to ensure this import path is correct for your project
 from stock_monitoring_app.backtest.backtest import BackTest
+from stock_monitoring_app.strategies.base_strategy import BaseStrategy
 
 BACKTEST_SCOPE_PRESETS = {
     "intraday": {"period": "1d", "interval": "1m"},
@@ -170,6 +171,8 @@ class TickerMonitor:
         """Main monitoring loop, intended to be run in a subprocess."""
         print(f"INFO [{self.process_name}]: Starting monitor for {self.ticker} with entry price {self.entry_price:.2f}...")
         indicator_configs = self._load_optimized_config_from_disk()
+        self._indicator_configs=indicator_configs
+        print("loaded indicators",self._indicator_configs)
         self._running = True
         print(f"INFO [{self.process_name}]: Monitor loop started. Interval: {self.monitor_interval_seconds}s.")
         while self._running:

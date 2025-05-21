@@ -4,6 +4,29 @@ import time
 from queue import Empty
 
 from stock_monitoring_app.monitoring.ticker_monitor import TickerMonitor
+from stock_monitoring_app.monitoring.ticker_monitor import BACKTEST_SCOPE_PRESETS
+
+def parse_interval_to_seconds(interval):
+    """Convert interval strings like '1m', '15m', '1d', '1s', '2h' to seconds."""
+    if isinstance(interval, (int, float)):
+        return int(interval)
+    if isinstance(interval, str):
+        interval = interval.strip().lower()
+        if interval.endswith("ms"):
+            return float(interval[:-2]) / 1000
+        if interval.endswith("s"):
+            return int(interval[:-1])
+        if interval.endswith("m"):
+            return int(interval[:-1]) * 60
+        if interval.endswith("h"):
+            return int(interval[:-1]) * 60 * 60
+        if interval.endswith("d"):
+            return int(interval[:-1]) * 60 * 60 * 24
+        try:
+            return int(interval)
+        except ValueError:
+            raise ValueError(f"Unrecognized interval format: {interval}")
+    raise TypeError(f"Invalid interval type: {type(interval)}")
 
 def print_indicator_summary(indicator_configs):
     print("\n--- Indicators from backtest ---")
@@ -15,8 +38,11 @@ def print_indicator_summary(indicator_configs):
         params = conf.get("params")
         print(f"- {getattr(cls, '__name__', str(cls))} | Params: {params}")
 
-def monitor_worker(ticker, monitor_interval, entry_price, order_queue, status_queue):
+def monitor_worker(ticker, entry_price, order_queue, status_queue, scope):
     import traceback
+
+    monitor_interval = parse_interval_to_seconds(BACKTEST_SCOPE_PRESETS[scope]['interval'])
+
     try:
         monitor = TickerMonitor(
             ticker=ticker,
@@ -24,44 +50,16 @@ def monitor_worker(ticker, monitor_interval, entry_price, order_queue, status_qu
             trade_order_queue=order_queue,
             entry_price=entry_price,
             process_name=f"CLI-Monitor-{ticker}",
+            backtest_scope=scope,
         )
+
+        # Optionally load indicator configs for CLI summary, but actual logic should always use run()
         indicator_configs = monitor._load_optimized_config_from_disk()
         status_queue.put({"type": "indicators", "data": indicator_configs})
 
-        last_fetch_status = "Never"
-        while True:
-            start_time = time.time()
-            try:
-                data = monitor._fetch_latest_data()
-                if data is None or (hasattr(data, "empty") and data.empty):
-                    fetch_status = "No data"
-                else:
-                    fetch_status = "OK"
-                    last_fetch_status = f"Success at {time.strftime('%H:%M:%S')}"
-            except Exception as e:
-                tb = traceback.format_exc().strip().splitlines()
-                error_line = ""
-                for line in reversed(tb):
-                    if line.strip().startswith('File '):
-                        error_line = line
-                        break
-                exception_type = type(e).__name__
-                msg = str(e) or f"[{exception_type}]"
-                fetch_status = f"Error: {msg} ({error_line.strip()})"
-                last_fetch_status = fetch_status
-                data = None
+        # The key fix: Use monitor.run() so configs and main loop are handled correctly
+        monitor.run()
 
-            status_queue.put({"type": "fetch_status", "data": fetch_status, "last_good": last_fetch_status})
-
-            if data is not None and not (hasattr(data, "empty") and data.empty):
-                monitor._process_data_and_decide(data)
-
-            elapsed = time.time() - start_time
-            sleep_time = monitor_interval - elapsed
-            if sleep_time > 0:
-                time.sleep(sleep_time)
-            if not getattr(monitor, "_running", True):
-                break
     except Exception as e:
         import traceback
         tb = traceback.format_exc().strip().splitlines()
@@ -77,25 +75,33 @@ def monitor_worker(ticker, monitor_interval, entry_price, order_queue, status_qu
         status_queue.put({"type": "stopped"})
 
 def main():
+    available_scopes = list(BACKTEST_SCOPE_PRESETS.keys())
     parser = argparse.ArgumentParser(description="Start a real-time ticker monitor.")
     parser.add_argument("ticker", help="Ticker symbol (e.g., AAPL, BTC)")
-    parser.add_argument("--interval", type=int, default=15, help="Monitor interval in seconds (default: 15)")
     parser.add_argument("--entry", type=float, default=100.0, help="Entry price (default: 100.0)")
+    parser.add_argument(
+        "--scope",
+        type=str,
+        default="intraday",
+        choices=available_scopes,
+        help=f"Scope for monitoring/backtest. Available: {', '.join(available_scopes)}. Default: intraday"
+    )
     args = parser.parse_args()
 
     ticker = args.ticker
-    monitor_interval = args.interval
     entry_price = args.entry
+    scope = args.scope
+    monitor_interval = parse_interval_to_seconds(BACKTEST_SCOPE_PRESETS[scope]['interval'])
 
     order_queue = multiprocessing.Queue()
     status_queue = multiprocessing.Queue()
     monitor_proc = multiprocessing.Process(
         target=monitor_worker,
-        args=(ticker, monitor_interval, entry_price, order_queue, status_queue),
+        args=(ticker, entry_price, order_queue, status_queue, scope),
         daemon=True,
     )
 
-    print(f"Starting monitor for {ticker} (every {monitor_interval}s)...\n")
+    print(f"Starting monitor for {ticker} (scope: {scope}, interval: {monitor_interval}s)...\n")
 
     monitor_proc.start()
     indicator_configs = None
