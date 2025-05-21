@@ -8,6 +8,12 @@ from typing import Optional, List, Dict
 # You will need to ensure this import path is correct for your project
 from stock_monitoring_app.backtest.backtest import BackTest
 
+BACKTEST_SCOPE_PRESETS = {
+    "intraday": {"period": "1d", "interval": "1m"},
+    "short": {"period": "1w", "interval": "15m"},
+    "long": {"period": "1mo", "interval": "1d"}
+}
+
 class TickerMonitor:
     def __init__(
         self,
@@ -16,6 +22,7 @@ class TickerMonitor:
         trade_order_queue,
         entry_price,
         process_name="Monitor",
+        backtest_scope="intraday"
     ):
         self.ticker = ticker
         self.monitor_interval_seconds = monitor_interval_seconds
@@ -25,6 +32,12 @@ class TickerMonitor:
 
         self._running = False
         self._is_active_position = False
+        if backtest_scope not in BACKTEST_SCOPE_PRESETS:
+            raise ValueError(f"Unknown backtest_scope '{backtest_scope}'. Choose from {list(BACKTEST_SCOPE_PRESETS.keys())}")
+        self.backtest_scope = backtest_scope
+        self._period = BACKTEST_SCOPE_PRESETS[backtest_scope]["period"]
+        self._interval = BACKTEST_SCOPE_PRESETS[backtest_scope]["interval"]
+        self._indicator_configs = None
 
     def _resolve_indicator_class(self, module_name: str, class_name: str):
         import importlib
@@ -39,7 +52,7 @@ class TickerMonitor:
         print(f"INFO [{self.process_name}]: No optimized config found for {self.ticker}. Running backtest to generate one...")
         try:
             # Adjust period/interval as needed for your use case
-            backtester = BackTest(ticker=self.ticker, period="1y", interval="1d")
+            backtester = BackTest(ticker=self.ticker, period=self._period, interval=self._interval)
             results = backtester.run_backtest()
             if results is not None:
                 print(f"INFO [{self.process_name}]: Backtest complete for {self.ticker}.")
@@ -96,24 +109,60 @@ class TickerMonitor:
 
     def _fetch_latest_data(self):
         """
-        Fetch the latest data for the ticker.
-        This is a placeholder; actual logic will depend on your fetcher implementation.
+        Fetch only the latest market data for this ticker.
+        Uses BackTest's fetcher, but does NOT run a backtest.
         """
         print(f"INFO [{self.process_name}]: Fetching latest data for {self.ticker}...")
-        # Replace with actual fetcher logic.
-        return pd.DataFrame()  # Dummy placeholder
+        try:
+            # Use the same fetcher logic as BackTest
+            fetcher = BackTest(ticker=self.ticker, period=self._period, interval=self._interval).fetcher
+            # You may change period/interval as needed for your needs
+            data = fetcher.fetch_data(self.ticker, period=self._period, interval=self._interval)
+            if data is not None and not data.empty:
+                # Optionally, return only the most recent row
+                # return data.iloc[[-1]]
+                return data
+            else:
+                print(f"WARN [{self.process_name}]: No data returned for {self.ticker}.")
+                return pd.DataFrame()
+        except Exception as e:
+            print(f"ERROR [{self.process_name}]: Exception in _fetch_latest_data: {e}")
+            return pd.DataFrame()
 
     def _process_data_and_decide(self, latest_data_df):
         """
-        Process the data and decide what to do.
-        Placeholder for actual strategy logic.
+        Process the latest data and decide on trading actions.
+        Uses precomputed indicator configs to generate a signal and enqueue an action.
         """
         print(f"INFO [{self.process_name}]: Processing data for {self.ticker}...")
-        # Example: Simulate a HOLD order
+
+        if self._indicator_configs is None:
+            print(f"WARN [{self.process_name}]: No indicator configs available, skipping decision.")
+            return
+
+        # You might want to only use the last row (most recent data point)
+        # If your interval is 1m, this is likely a single row
+        latest_row = latest_data_df.iloc[[-1]]
+
+        # Instantiate your strategy with the loaded configs
+        strategy = BaseStrategy(indicator_configs=self._indicator_configs)
+        signals_df = strategy.run(latest_row)
+
+        if signals_df is not None and not signals_df.empty:
+            # Assume 'Strategy_Signal' column exists and contains values like 'BUY', 'SELL', 'HOLD'
+            signal = signals_df.iloc[0].get('Strategy_Signal', "HOLD")
+            price = signals_df.iloc[0].get('Close', None)
+        else:
+            signal = "HOLD"
+            price = None
+
+        print(f"INFO [{self.process_name}]: Signal for {self.ticker}: {signal}")
+
+        # Send the action to the order queue
         self.trade_order_queue.put({
-            "action": "HOLD",
+            "action": signal,
             "ticker": self.ticker,
-            "price": None,
+            "price": price,
             "timestamp": pd.Timestamp.now(tz='UTC').isoformat()
         })
 
