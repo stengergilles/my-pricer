@@ -55,7 +55,7 @@ class TickerMonitor:
         """
         import time
         try:
-            project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../.."))
+            project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
             outputs_dir = os.path.join(project_root, "backtest_outputs")
             pattern = os.path.join(outputs_dir, f"{self.ticker}_*_metrics.json")
             files = glob.glob(pattern)
