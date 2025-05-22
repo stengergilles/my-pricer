@@ -23,7 +23,7 @@ class TUIMonitorManager:
     def get_monitor_data(self, tui_id: str) -> Optional[TUIMonitorData]:
         return self._monitors_data.get(tui_id)
 
-    def get_all_monitor_data(self) -> List[TUIMonitorData]:
+    def get_all_monitor_data(self) -> 'List[TUIMonitorData]':
         for tui_id, data in self._monitors_data.items():
             process = self._processes.get(tui_id)
             if process:
@@ -69,6 +69,14 @@ class TUIMonitorManager:
             monitor_data.trade_order_queue = trade_queue
 
             def _run_monitor_process(config_dict, q):
+                import sys, os
+                try:
+                    log_path = f"/tmp/monitor_{config_dict.get('ticker', 'unknown')}_{os.getpid()}.log"
+                    sys.stdout = open(log_path, "a", buffering=1)
+                    sys.stderr = sys.stdout
+                    print(f"DEBUG: _run_monitor_process called for {config_dict.get('ticker', 'UNKNOWN')}")
+                except Exception as e:
+                    print(f"ERROR: Could not open log file: {e}", file=sys.__stderr__)
                 try:
                     from stock_monitoring_app.monitoring.ticker_monitor import TickerMonitor as ActualTickerMonitor
                     monitor_instance = ActualTickerMonitor(
@@ -93,12 +101,14 @@ class TUIMonitorManager:
                 "backtest_scope": monitor_data.backtest_scope
             }
 
+            print(f"DEBUG: About to start process for {monitor_data.ticker} ({tui_id[:8]})")
             process = mp.Process(
                 target=_run_monitor_process,
                 args=(config_for_process, trade_queue),
                 daemon=True
             )
             process.start()
+            print(f"DEBUG: process.start() called for {monitor_data.ticker} ({tui_id[:8]}), PID: {process.pid}")
             self._processes[tui_id] = process
             monitor_data.process = process
             monitor_data.status = MonitorTUIStatus.RUNNING

@@ -1,3 +1,6 @@
+import multiprocessing as mp
+mp.set_start_method("fork", force=True)
+
 import asyncio
 from typing import Optional, Dict
 
@@ -81,11 +84,39 @@ class TickerMonitorApp(App):
                     self.log_status(f"[bold red]Error adding monitor: {e}[/bold red]")
         self.run_worker(show_dialog(), exclusive=True)
 
+    def start_queue_polling_worker(self, tui_id: str):
+        monitor_data = self.manager.get_monitor_data(tui_id)
+        queue = self.manager.get_trade_queue_for_monitor(tui_id)
+        if not monitor_data or not queue:
+            self.log_status(f"[bold red]No monitor data or queue found for TUI ID {tui_id}.[/bold red]")
+            return
+
+        async def poll_queue():
+            import queue as pyqueue
+            process = getattr(monitor_data, 'process', None)
+            if process and process.is_alive():
+                monitor_data.status = MonitorTUIStatus.RUNNING
+                self.refresh_monitor_table_display()
+            while True:
+                try:
+                    order = queue.get(timeout=1)
+                    if order:
+                        monitor_data.update_from_trade_order(order)
+                        self.refresh_monitor_table_display()
+                except pyqueue.Empty:
+                    process = getattr(monitor_data, 'process', None)
+                    if process and not process.is_alive():
+                        monitor_data.status = MonitorTUIStatus.STOPPED
+                        self.refresh_monitor_table_display()
+                        break
+        self.run_worker(poll_queue(), exclusive=False)
+
     def action_start_monitor(self):
         if self.selected_monitor:
             success = self.manager.start_monitor(self.selected_monitor.tui_id)
             if success:
                 self.log_status(f"Started monitor {self.selected_monitor.ticker}.")
+                self.start_queue_polling_worker(self.selected_monitor.tui_id)
             else:
                 self.log_status(f"Failed to start monitor {self.selected_monitor.ticker}.")
             self.refresh_monitor_table_display()

@@ -242,6 +242,7 @@ class TickerMonitor:
             self._forced_entry_done = True
 
     def run(self):
+        print(f"DEBUG: TickerMonitor.run() called for {self.ticker}")
         print(f"INFO [{self.process_name}]: Starting monitor for {self.ticker} with entry price {self.entry_price:.2f}...")
         indicator_configs = self._load_optimized_config_from_disk()
         self._indicator_configs = indicator_configs
