@@ -6,3 +6,4 @@ setuptools
 pytest-mock
 pytest-asyncio
 pyjnius
+plyer

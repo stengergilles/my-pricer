@@ -63,5 +63,6 @@ build/
 # Project Specific 
 
 backtest_outputs/
+forwardtest_output/
 
 
