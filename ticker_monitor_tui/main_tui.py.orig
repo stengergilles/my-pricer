@@ -1,0 +1,259 @@
+import asyncio
+from textual.app import App, ComposeResult
+from textual.widgets import Header, Footer, Log
+from textual.containers import HorizontalScroll
+from textual.binding import Binding
+from textual.reactive import reactive
+from textual.message import Message
+
+from typing import Optional, Dict
+
+from .tui_models import TUIMonitorData, MonitorTUIStatus
+from .tui_monitor_manager import TUIMonitorManager
+from .widgets.monitor_table import MonitorTable
+from .widgets.add_monitor_dialog import AddMonitorDialog
+
+# Attempt to import TickerMonitor for runtime checks
+try:
+    from stock_monitoring_app.monitoring.ticker_monitor import TickerMonitor
+except ImportError as e:
+    print(f"Could not import TickerMonitor: {e}")
+    TickerMonitor = None
+
+class StatusLog(Log):
+    """A simple log widget for status messages."""
+
+class TickerMonitorApp(App[None]):
+    TITLE = "Ticker Monitor Control Panel"
+
+    BINDINGS = [
+        Binding("ctrl+q", "quit_app", "Quit", show=True, priority=True),
+        Binding("ctrl+a", "add_monitor_dialog", "Add Monitor", show=True),
+        Binding("ctrl+s", "start_selected_monitor", "Start Selected", show=False),
+        Binding("ctrl+x", "stop_selected_monitor", "Stop Selected", show=False),
+        Binding("delete", "delete_selected_monitor", "Delete Selected", show=False),
+        Binding("enter", "toggle_selected_monitor", "Start/Stop Selected", show=False),
+    ]
+
+    monitors_data_list = reactive([])
+
+    class MonitorStatusUpdate(Message):
+        def __init__(self, tui_id: str, updated_data: TUIMonitorData):
+            super().__init__()
+            self.tui_id = tui_id
+            self.updated_data = updated_data
+
+    class UIRefreshRequest(Message):
+        pass
+
+    def __init__(self):
+        super().__init__()
+        self.manager = TUIMonitorManager()
+        self.status_log_widget: Optional[StatusLog] = None
+        self.monitor_table_widget: Optional[MonitorTable] = None
+        self._queue_poll_workers: Dict[str, asyncio.Task] = {}
+
+    def compose(self) -> ComposeResult:
+        yield Header()
+        self.monitor_table_widget = MonitorTable(id="monitor_list_table")
+        yield self.monitor_table_widget
+        self.status_log_widget = StatusLog(highlight=True, max_lines=200, id="status_log")
+        yield HorizontalScroll(self.status_log_widget, id="log_container")
+        yield Footer()
+
+    def on_mount(self) -> None:
+        self.log_status("[bold cyan]Ticker Monitor TUI Started.[/bold cyan]")
+        self.log_status("Use Ctrl+A to Add, Enter to Start/Stop, Delete to Remove.")
+        if TickerMonitor is None:
+            self.log_status("[bold red]ERROR: TickerMonitor class not found. Monitors cannot be started.[/]")
+        self.refresh_monitor_table_display()
+        self.set_interval(5.0, self.request_ui_refresh)
+
+    def log_status(self, message: str):
+        if self.status_log_widget:
+            self.status_log_widget.write_line(message)
+
+    def request_ui_refresh(self):
+        self.post_message(TickerMonitorApp.UIRefreshRequest())
+
+    def refresh_monitor_table_display(self):
+        self.monitors_data_list = self.manager.get_all_monitor_data()
+        if self.monitor_table_widget:
+            self.monitor_table_widget.monitors_data = self.monitors_data_list
+        self.update_contextual_bindings()
+
+    def update_contextual_bindings(self):
+        selected_row_key = self.monitor_table_widget.cursor_row if self.monitor_table_widget else None
+        can_start = can_stop = can_delete = can_toggle = False
+        if selected_row_key is not None:
+            monitor_data = self.manager.get_monitor_data(str(selected_row_key))
+            if monitor_data:
+                can_delete = can_toggle = True
+                if monitor_data.status in [MonitorTUIStatus.STOPPED, MonitorTUIStatus.ERROR, MonitorTUIStatus.UNKNOWN]:
+                    can_start = True
+                elif monitor_data.status in [MonitorTUIStatus.RUNNING, MonitorTUIStatus.STARTING]:
+                    can_stop = True
+        self.bindings["ctrl+s"].show = can_start
+        self.bindings["ctrl+x"].show = can_stop
+        self.bindings["delete"].show = can_delete
+        self.bindings["enter"].show = can_toggle
+
+    async def on_data_table_row_selected(self, event):
+        self.update_contextual_bindings()
+
+    async def on_ticker_monitor_app_monitor_status_update(self, message: MonitorStatusUpdate):
+        self.refresh_monitor_table_display()
+        self.log_status(f"[dim]UI Updated for {message.updated_data.ticker} ({message.tui_id[:8]})[/dim]")
+
+    async def on_ticker_monitor_app_ui_refresh_request(self, message: UIRefreshRequest):
+        self.refresh_monitor_table_display()
+
+    async def action_add_monitor_dialog(self) -> None:
+        dialog = AddMonitorDialog()
+        returned_config = await self.app.push_screen_wait(dialog)
+        if returned_config:
+            try:
+                self.manager.add_monitor_config(returned_config)
+                self.log_status(f"[green]Added new monitor config for: {returned_config.ticker}[/green]")
+                self.refresh_monitor_table_display()
+            except ValueError as e:
+                self.log_status(f"[bold red]Error adding monitor: {e}[/bold red]")
+
+    def _get_selected_monitor_id(self) -> Optional[str]:
+        if self.monitor_table_widget and self.monitor_table_widget.cursor_row is not None:
+            return str(self.monitor_table_widget.get_row_key(self.monitor_table_widget.cursor_row))
+        self.log_status("[yellow]No monitor selected in the table.[/yellow]")
+        return None
+
+    async def action_start_selected_monitor(self) -> None:
+        tui_id = self._get_selected_monitor_id()
+        if tui_id:
+            monitor_data = self.manager.get_monitor_data(tui_id)
+            if monitor_data:
+                self.log_status(f"Attempting to start monitor: {monitor_data.ticker} ({tui_id[:8]})")
+                if self.manager.start_monitor(tui_id):
+                    self.log_status(f"[green]Successfully initiated start for {monitor_data.ticker}.[/green]")
+                    self.start_queue_polling_worker(tui_id)
+                else:
+                    self.log_status(f"[bold red]Failed to start {monitor_data.ticker}. Check logs.[/bold red]")
+                self.refresh_monitor_table_display()
+
+    async def action_stop_selected_monitor(self) -> None:
+        tui_id = self._get_selected_monitor_id()
+        if tui_id:
+            monitor_data = self.manager.get_monitor_data(tui_id)
+            if monitor_data:
+                self.log_status(f"Attempting to stop monitor: {monitor_data.ticker} ({tui_id[:8]})")
+                if self.manager.stop_monitor(tui_id):
+                    self.log_status(f"[green]Successfully stopped {monitor_data.ticker}.[/green]")
+                else:
+                    self.log_status(f"[bold red]Failed to stop {monitor_data.ticker} gracefully. Check logs.[/bold red]")
+                self.stop_queue_polling_worker(tui_id)
+                self.refresh_monitor_table_display()
+
+    async def action_delete_selected_monitor(self) -> None:
+        tui_id = self._get_selected_monitor_id()
+        if tui_id:
+            monitor_data = self.manager.get_monitor_data(tui_id)
+            if monitor_data:
+                ticker_name = monitor_data.ticker
+                if self.manager.delete_monitor_config(tui_id):
+                    self.log_status(f"[green]Deleted monitor: {ticker_name} ({tui_id[:8]})[/green]")
+                    self.stop_queue_polling_worker(tui_id)
+                else:
+                    self.log_status(f"[bold red]Failed to delete monitor {ticker_name}.[/bold red]")
+                self.refresh_monitor_table_display()
+
+    async def action_toggle_selected_monitor(self) -> None:
+        tui_id = self._get_selected_monitor_id()
+        if tui_id:
+            monitor_data = self.manager.get_monitor_data(tui_id)
+            if monitor_data:
+                if monitor_data.status in [MonitorTUIStatus.RUNNING, MonitorTUIStatus.STARTING]:
+                    await self.action_stop_selected_monitor()
+                elif monitor_data.status in [MonitorTUIStatus.STOPPED, MonitorTUIStatus.ERROR, MonitorTUIStatus.UNKNOWN]:
+                    await self.action_start_selected_monitor()
+                else:
+                    self.log_status(f"[yellow]Monitor {monitor_data.ticker} is currently {monitor_data.status}. Please wait.[/yellow]")
+
+    def _poll_monitor_queue(self, tui_id: str, monitor_data: TUIMonitorData):
+        import queue
+        mp_queue = self.manager.get_trade_queue_for_monitor(tui_id)
+        if not mp_queue:
+            self.log_status(f"[bold red]Error: No queue found for monitor {monitor_data.ticker} ({tui_id[:8]}) polling worker.[/bold red]")
+            return
+        self.log_status(f"[dim]Starting queue poller for {monitor_data.ticker} ({tui_id[:8]}).[/dim]")
+        try:
+            while True:
+                if self.app._exit:
+                    break
+                try:
+                    order = mp_queue.get(block=True, timeout=1.0)
+                    if order:
+                        monitor_data.update_from_trade_order(order)
+                        self.app.post_message(TickerMonitorApp.MonitorStatusUpdate(tui_id, monitor_data))
+                except queue.Empty:
+                    if monitor_data.process and not monitor_data.process.is_alive():
+                        self.log_status(f"[yellow]Process for {monitor_data.ticker} ({tui_id[:8]}) ended. Stopping poller.[/yellow]")
+                        monitor_data.status = MonitorTUIStatus.STOPPED
+                        monitor_data.last_error_message = f"Process ended (exitcode {monitor_data.process.exitcode})."
+                        self.app.post_message(TickerMonitorApp.MonitorStatusUpdate(tui_id, monitor_data))
+                        break
+                    continue
+                except (EOFError, BrokenPipeError) as e:
+                    self.log_status(f"[yellow]Queue error for {monitor_data.ticker} ({tui_id[:8]}): {type(e).__name__}[/yellow]")
+                    break
+                except Exception as e:
+                    self.log_status(f"[bold red]Error polling queue for {monitor_data.ticker} ({tui_id[:8]}): {e}[/bold red]")
+                    break
+        finally:
+            self.log_status(f"[dim]Queue poller for {monitor_data.ticker} ({tui_id[:8]}) stopped.[/dim]")
+            if tui_id in self._queue_poll_workers:
+                del self._queue_poll_workers[tui_id]
+            self.app.post_message(TickerMonitorApp.UIRefreshRequest())
+
+    def start_queue_polling_worker(self, tui_id: str):
+        if tui_id in self._queue_poll_workers and not self._queue_poll_workers[tui_id].done():
+            self.log_status(f"[yellow]Queue poller for TUI ID {tui_id[:8]} already running.[/yellow]")
+            return
+        monitor_data = self.manager.get_monitor_data(tui_id)
+        if not monitor_data or monitor_data.trade_order_queue is None:
+            self.log_status(f"[bold red]Cannot start poller: No monitor data or queue for TUI ID {tui_id[:8]}.[/bold red]")
+            return
+        worker = self.run_worker(
+            self._poll_monitor_queue(tui_id, monitor_data),
+            name=f"QueuePoller-{tui_id[:8]}",
+            group="monitor_pollers",
+            exclusive=False
+        )
+        self._queue_poll_workers[tui_id] = worker
+
+    def stop_queue_polling_worker(self, tui_id: str):
+        if tui_id in self._queue_poll_workers:
+            worker_task = self._queue_poll_workers.pop(tui_id)
+            if worker_task and not worker_task.done():
+                try:
+                    worker_task.cancel()
+                    self.log_status(f"[dim]Requested cancellation for queue poller {tui_id[:8]}.[/dim]")
+                except Exception as e:
+                    self.log_status(f"[bold red]Error cancelling queue poller {tui_id[:8]}: {e}[/bold red]")
+        else:
+            self.log_status(f"[dim]No active queue poller found to stop for TUI ID {tui_id[:8]}.[/dim]")
+
+    async def on_key(self, event):
+        if self.monitor_table_widget and self.monitor_table_widget.has_focus:
+            await self.monitor_table_widget.forward_event(event)
+
+    async def action_quit_app(self) -> None:
+        self.log_status("[bold cyan]Initiating shutdown...[/bold cyan]")
+        for tui_id in list(self._queue_poll_workers.keys()):
+            self.stop_queue_polling_worker(tui_id)
+        await asyncio.sleep(0.2)
+        self.manager.cleanup_all_monitors()
+        await asyncio.sleep(0.5)
+        self.log_status("[bold cyan]Exiting Ticker Monitor TUI.[/bold cyan]")
+        await super().action_quit()
+
+if __name__ == "__main__":
+    app = TickerMonitorApp()
+    app.run()

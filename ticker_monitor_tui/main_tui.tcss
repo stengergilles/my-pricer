@@ -1,0 +1,57 @@
+/* main_tui.tcss: Styling for TickerMonitorApp UI */
+
+Screen {
+    background: $panel;
+    color: $text;
+}
+
+Header {
+    background: $primary;
+    color: $text;
+    text-style: bold;
+    border-bottom: solid $accent;
+}
+
+Footer {
+    background: $primary;
+    color: $text;
+    border-top: solid $accent;
+}
+
+#status-log {
+    background: $surface;
+    color: $text;
+    padding: 1 2;
+    height: 5;
+    border: round $accent;
+    overflow-y: auto;
+}
+
+MonitorTable {
+    margin: 1 2;
+    width: 100%;
+    border: solid $accent;
+    background: $background;
+    color: $text;
+}
+
+.monitortable--status-running {
+    color: green;
+}
+.monitortable--status-stopped {
+    color: gray;
+}
+.monitortable--status-starting {
+    color: blue;
+}
+.monitortable--status-stopping {
+    color: darkorange;
+}
+.monitortable--status-error {
+    color: red;
+}
+.monitortable--status-unknown {
+    color: magenta;
+}
+
+/* Add more widget-specific styles as needed */

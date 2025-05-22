@@ -1,86 +1,51 @@
-from textual.app import ComposeResult
 from textual.screen import ModalScreen
-from textual.widgets import Label, Input, Button, Static, Select
-from textual.containers import Vertical, Horizontal
-from textual.validation import Number
+from textual.widgets import Input, Button, Label, Static
+from textual.containers import Vertical
+from textual.reactive import reactive
 
-from ..tui_models import TUIMonitorData # For default values and type hints
+from ..tui_models import TUIMonitorData
 
-# Attempt to import BACKTEST_SCOPE_PRESETS for the Select widget
-try:    from stock_monitoring_app.monitoring.ticker_monitor import BACKTEST_SCOPE_PRESETS
-except ImportError:
-    BACKTEST_SCOPE_PRESETS = {"intraday": {}, "short": {}, "long": {}} # Fallback
+class AddMonitorDialog(ModalScreen):
+    """A dialog to add a new TickerMonitor config."""
 
+    input_ticker = reactive("")
+    input_interval = reactive("")
+    input_entry_price = reactive("")
+    input_scope = reactive("")
 
-class AddMonitorDialog(ModalScreen[TUIMonitorData | None]):
-    """A dialog screen for adding a new TickerMonitor configuration."""
+    def compose(self):
+        yield Static(Label("Add New Ticker Monitor", id="dialog-title"))
+        with Vertical():
+            yield Input(placeholder="Ticker (e.g. BTC-USD)", id="input-ticker")
+            yield Input(placeholder="Interval Seconds (e.g. 60)", id="input-interval")
+            yield Input(placeholder="Entry Price (optional)", id="input-entry-price")
+            yield Input(placeholder="Scope (e.g. intraday, short, long)", id="input-scope")
+            yield Button(label="Add", id="btn-add")
+            yield Button(label="Cancel", id="btn-cancel")
 
-    DEFAULT_CSS = """
-    AddMonitorDialog {
-        align: center middle;
-    }
-    #add_monitor_dialog_content {
-        width: 60;
-        height: auto;
-        padding: 1 2;
-        border: thick $primary;
-        background: $surface;
-    }
-    Label { margin-top: 1; }
-    Input, Select { margin-bottom: 1; }
-    #add_monitor_buttons_container {
-        align-horizontal: right;
-        margin-top: 1;
-    }
-    Button { margin-left: 1; }
-    """
+    def on_mount(self):
+        self.query_one("#input-ticker", Input).focus()
 
-    def __init__(self): # Simplified: always for adding new
-        super().__init__()
-        self.title_text = "Add New Ticker Monitor"
+    async def on_button_pressed(self, event):
+        button_id = event.button.id
+        if button_id == "btn-add":
+            ticker = self.query_one("#input-ticker", Input).value.strip()
+            try:
+                interval = int(self.query_one("#input-interval", Input).value.strip())
+            except Exception:
+                interval = 60
+            try:
+                entry_price = float(self.query_one("#input-entry-price", Input).value.strip())
+            except Exception:
+                entry_price = 0.0
+            scope = self.query_one("#input-scope", Input).value.strip() or "intraday"
 
-    def compose(self) -> ComposeResult:
-        # Prepare options for the Select widget
-        scope_options = [(scope_name, scope_name) for scope_name in BACKTEST_SCOPE_PRESETS.keys()]
-
-        with Vertical(id="add_monitor_dialog_content"):
-            yield Label(self.title_text)
-            yield Label("Ticker (e.g., BTC-USD, AAPL):")
-            yield Input(placeholder="BTC-USD", id="ticker_input")
-            
-            yield Label("Entry Price (USD, 0 for strategy-only entry):")
-            yield Input(
-                value="0.0",
-                id="entry_price_input",
-                validators=[Number(minimum=0.0)]
+            config = TUIMonitorData(
+                ticker=ticker or "BTC-USD",
+                monitor_interval_seconds=interval,
+                entry_price=entry_price,
+                backtest_scope=scope,
             )
-            yield Label("Monitor Interval (seconds):")
-            yield Input(
-                value="60",
-                id="interval_input",                validators=[Number(minimum=5, maximum=86400)] # 5s to 1 day
-            )
-            yield Label("Backtest Scope:")
-            yield Select(options=scope_options, value="intraday", id="backtest_scope_select")
-
-            with Horizontal(id="add_monitor_buttons_container"):                yield Button("Save", variant="primary", id="save_button")
-                yield Button("Cancel", id="cancel_button")
-
-    async def on_button_pressed(self, event: Button.Pressed) -> None:
-        if event.button.id == "save_button":
-            ticker_input = self.query_one("#ticker_input", Input)
-            entry_price_input = self.query_one("#entry_price_input", Input)
-            interval_input = self.query_one("#interval_input", Input)
-            scope_select = self.query_one("#backtest_scope_select", Select)
-
-            if not ticker_input.value or not entry_price_input.is_valid or not interval_input.is_valid:
-                self.app.bell()
-                return
-
-            new_config = TUIMonitorData(
-                ticker=ticker_input.value.upper(),
-                entry_price=float(entry_price_input.value),                monitor_interval_seconds=int(interval_input.value),
-                backtest_scope=str(scope_select.value) # value is an object, ensure it's string
-            )
-            self.dismiss(new_config)
-        elif event.button.id == "cancel_button":
-            self.dismiss(None)
+            await self.app.pop_screen(config)
+        elif button_id == "btn-cancel":
+            await self.app.pop_screen(None)

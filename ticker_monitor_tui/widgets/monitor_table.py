@@ -1,5 +1,6 @@
-from textual.widgets import DataTablefrom textual.reactive import reactive
-from typing import List, Dict
+from textual.widgets import DataTable
+from textual.reactive import reactive
+from typing import List
 from ..tui_models import TUIMonitorData, MonitorTUIStatus
 
 class MonitorTable(DataTable):
@@ -26,8 +27,8 @@ class MonitorTable(DataTable):
             "ID", "Ticker", "Status", "Entry Price", "Interval(s)",
             "Position $", "Quantity", "Last Price", "Last Signal",
             "Last Checked", "Scope", "Opening Date"
-        )        self.update_table_data(self.monitors_data)
-
+        )
+        self.update_table_data(self.monitors_data)
 
     def watch_monitors_data(self, new_monitors_data: List[TUIMonitorData]) -> None:
         self.update_table_data(new_monitors_data)
