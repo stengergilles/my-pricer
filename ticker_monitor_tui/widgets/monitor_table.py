@@ -13,7 +13,7 @@ class MonitorTable(DataTable):
         self.zebra_stripes = True
         self.cursor_type = "row"
 
-    COMPONENT_CLASSES = {
+    COMPONENT_CLASSES_DEFAULT_CSS = {
         "monitortable--status-running": {"color": "green"},
         "monitortable--status-stopped": {"color": "gray"},
         "monitortable--status-starting": {"color": "blue"},

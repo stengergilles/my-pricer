@@ -14,7 +14,7 @@ class AddMonitorDialog(ModalScreen):
     input_scope = reactive("")
 
     def compose(self):
-        yield Static(Label("Add New Ticker Monitor", id="dialog-title"))
+        yield Label("Add New Ticker Monitor", id="dialog-title")
         with Vertical():
             yield Input(placeholder="Ticker (e.g. BTC-USD)", id="input-ticker")
             yield Input(placeholder="Interval Seconds (e.g. 60)", id="input-interval")
