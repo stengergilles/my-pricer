@@ -5,3 +5,4 @@ pytest
 setuptools
 pytest-mock
 pytest-asyncio
+pyjnius

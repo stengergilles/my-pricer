@@ -35,12 +35,8 @@ class TickerMonitor:
         self._interval = BACKTEST_SCOPE_PRESETS[backtest_scope]["interval"]
         self._indicator_configs = None
 
-        # For position management in dollars
+        # Added for position management in dollars
         self.position_value = 0.0  # USD value of current position
-        self._forced_entry_done = False  # Track if forced entry was executed
-
-        # Track opening date for filename
-        self.opening_date_str = None  # Will be set when a position is opened
 
     def _resolve_indicator_class(self, module_name: str, class_name: str):
         import importlib
@@ -54,6 +50,7 @@ class TickerMonitor:
     def _run_backtest(self):
         print(f"INFO [{self.process_name}]: No optimized config found for {self.ticker}. Running backtest to generate one...")
         try:
+            # Adjust period/interval as needed for your use case
             from stock_monitoring_app.backtest.backtest import BackTest
             backtester = BackTest(ticker=self.ticker, period=self._period, interval=self._interval)
             results = backtester.run_backtest()
@@ -74,6 +71,7 @@ class TickerMonitor:
             if not files:
                 print(f"INFO [{self.process_name}]: No optimized config files found for {self.ticker}.")
                 self._run_backtest()
+                # Wait up to 10 seconds for backtest output to appear (race condition fix)
                 max_wait = 10
                 waited = 0
                 while waited < max_wait:
@@ -120,29 +118,6 @@ class TickerMonitor:
             print(f"ERROR [{self.process_name}]: Exception in _fetch_latest_data: {e}")
             return pd.DataFrame()
 
-    def _store_forwardtest_result(self, order):
-        """
-        Store trade order results in a forwardtest_output directory (alongside backtest_outputs).
-        The filename includes the opening date (YYYYMMDD_HHMMSS) and the ticker.
-        Each order is appended as a new line in JSONL format.
-        """
-        project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
-        output_dir = os.path.join(project_root, "forwardtest_output")
-        os.makedirs(output_dir, exist_ok=True)
-        # Ensure opening_date_str is set (should be set at the first BUY/forced entry)
-        if not self.opening_date_str and order["action"] == "BUY":
-            # Use the timestamp of this order
-            self.opening_date_str = pd.Timestamp(order["timestamp"]).strftime("%Y%m%d_%H%M%S")
-        elif not self.opening_date_str:
-            # Fallback: use current time
-            self.opening_date_str = pd.Timestamp.now(tz='UTC').strftime("%Y%m%d_%H%M%S")
-        output_file = os.path.join(
-            output_dir,
-            f"{self.opening_date_str}_{self.ticker}_forwardtest.json"
-        )
-        with open(output_file, "a") as f:
-            f.write(json.dumps(order) + "\n")
-
     def _process_data_and_decide(self, latest_data_df):
         print(f"INFO [{self.process_name}]: Processing data for {self.ticker}...")
 
@@ -152,90 +127,72 @@ class TickerMonitor:
 
         latest_row = latest_data_df.iloc[[-1]]
 
+        # Instantiate your strategy with the loaded configs
         strategy = BaseStrategy(indicator_configs=self._indicator_configs)
         signals_df = strategy.run(latest_row)
 
         if signals_df is not None and not signals_df.empty:
             signal = signals_df.iloc[0].get('Strategy_Signal', "HOLD")
             price = signals_df.iloc[0].get('Close', None)
+            # The CLI expects asset price to be valid; skip if not
             if price is None or price == 0:
                 print(f"WARN [{self.process_name}]: No valid price for trade signal; skipping order emission.")
                 return
+            # Decide trade size: here, use all available position_value for each buy, and liquidate all for sell
+            # For simplicity, assume $1000 trade size per position (can be made configurable)
             DEFAULT_POSITION_VALUE = 1000.0
-            quantity = 0.0
+            quantity = 0
             actioned_signals = {}
+            # Optionally, collect more info about indicators/signals
             for col in signals_df.columns:
                 if col != 'Strategy_Signal' and pd.notna(signals_df.iloc[0][col]):
                     actioned_signals[col] = signals_df.iloc[0][col]
         else:
             signal = "HOLD"
             price = None
-            quantity = 0.0
+            quantity = 0
             actioned_signals = {}
 
         position_before = self.position_value
 
+        # Update position_value in $ based on action
         if signal == "BUY":
+            # Open or add to a position with DEFAULT_POSITION_VALUE
             if self.position_value == 0:
                 self.position_value = DEFAULT_POSITION_VALUE
-            quantity = float(self.position_value) / float(price)
+            # else: already in a position, keep position_value unchanged (or could add more)
+            quantity = self.position_value / price
         elif signal == "SELL":
+            # Sell entire position if any
             if self.position_value > 0:
-                quantity = float(self.position_value) / float(price)
+                quantity = self.position_value / price
             else:
-                quantity = 0.0
+                quantity = 0
             self.position_value = 0.0
         else:
-            quantity = float(self.position_value) / float(price) if price else 0.0
+            # HOLD: nothing changes
+            quantity = 0
 
-        print(f"INFO [{self.process_name}]: Signal for {self.ticker}: {signal} | Price: {price} | Position $ before: {position_before} | after: {self.position_value} | Quantity: {quantity}")
+        print(f"INFO [{self.process_name}]: Signal for {self.ticker}: {signal} | Price: {price} | Position $ before: {position_before} | after: {self.position_value}")
 
+        # Only emit trade order if not HOLD
         if signal != "HOLD":
             order = {
                 "action": signal,
                 "ticker": self.ticker,
                 "price": price,
-                "quantity": quantity,  # number of shares as float
+                "quantity": quantity,
                 "position_value": self.position_value,
                 "timestamp": pd.Timestamp.now(tz='UTC').isoformat(),
                 "actioned_signals": actioned_signals,
             }
             self.trade_order_queue.put(order)
-            self._store_forwardtest_result(order)  # Store in forwardtest_output
-
-    def _force_initial_position(self):
-        if self._forced_entry_done or self.entry_price <= 0 or self.position_value > 0:
-            return
-        latest_data_df = self._fetch_latest_data()
-        if latest_data_df is not None and not latest_data_df.empty:
-            price = latest_data_df.iloc[-1]["Close"]
-            self.position_value = self.entry_price
-            quantity = float(self.entry_price) / float(price)
-            # Set the opening date string here on first forced entry
-            self.opening_date_str = pd.Timestamp.now(tz='UTC').strftime("%Y%m%d_%H%M%S")
-            order = {
-                "action": "BUY",
-                "ticker": self.ticker,
-                "price": price,
-                "quantity": quantity,  # number of shares as float
-                "position_value": self.position_value,
-                "timestamp": pd.Timestamp.now(tz='UTC').isoformat(),
-                "actioned_signals": {"forced_entry": True}
-            }
-            self.trade_order_queue.put(order)
-            self._store_forwardtest_result(order)  # Store in forwardtest_output
-            print(f"INFO [{self.process_name}]: Forced initial BUY at entry price {self.entry_price} (market price {price}) | Quantity: {quantity}")
-            self._forced_entry_done = True
 
     def run(self):
         print(f"INFO [{self.process_name}]: Starting monitor for {self.ticker} with entry price {self.entry_price:.2f}...")
         indicator_configs = self._load_optimized_config_from_disk()
         self._indicator_configs = indicator_configs
         self._running = True
-
-        # >>>> FORCE INITIAL POSITION IF NEEDED <<<<
-        self._force_initial_position()
-
         print(f"INFO [{self.process_name}]: Monitor loop started. Interval: {self.monitor_interval_seconds}s.")
         while self._running:
             start_time = time.time()

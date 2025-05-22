@@ -141,7 +141,8 @@ def main():
             while True:
                 try:
                     order = order_queue.get_nowait()
-                    print(f"[TRADE ORDER] {order}")
+                    if order.get("action") != "HOLD":
+                        print(f"[TRADE ORDER] {order}")
                 except Empty:
                     break
 
