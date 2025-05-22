@@ -146,10 +146,12 @@ class TickerMonitor:
     def _process_data_and_decide(self, latest_data_df):
         print(f"INFO [{self.process_name}]: Processing data for {self.ticker}...")
 
+
         if self._indicator_configs is None:
-            print(f"WARN [{self.process_name}]: No indicator configs available, skipping decision.")
+            print(f"WARN [{self.process_name}]: No indicator configs available, skipping decision.")            
             return
 
+        DEFAULT_POSITION_VALUE = 1000.0  # Define unconditionally here
         latest_row = latest_data_df.iloc[[-1]]
 
         strategy = BaseStrategy(indicator_configs=self._indicator_configs)
@@ -158,10 +160,11 @@ class TickerMonitor:
         if signals_df is not None and not signals_df.empty:
             signal = signals_df.iloc[0].get('Strategy_Signal', "HOLD")
             price = signals_df.iloc[0].get('Close', None)
+
             if price is None or price == 0:
                 print(f"WARN [{self.process_name}]: No valid price for trade signal; skipping order emission.")
                 return
-            DEFAULT_POSITION_VALUE = 1000.0
+            # DEFAULT_POSITION_VALUE = 1000.0 # Removed from conditional block
             quantity = 0.0
             actioned_signals = {}
             for col in signals_df.columns:
@@ -175,13 +178,24 @@ class TickerMonitor:
 
         position_before = self.position_value
 
+
         if signal == "BUY":
-            if self.position_value == 0:
-                self.position_value = DEFAULT_POSITION_VALUE
-            quantity = float(self.position_value) / float(price)
+            if price is not None and price > 0:
+                if self.position_value == 0:
+                    self.position_value = DEFAULT_POSITION_VALUE
+                quantity = float(self.position_value) / float(price)
+            else:
+                quantity = 0.0
+                # This case should ideally not be reached due to earlier checks, but good for robustness
+                print(f"WARN [{self.process_name}]: Invalid price ({price}) for BUY signal. Setting quantity to 0.")
         elif signal == "SELL":
             if self.position_value > 0:
-                quantity = float(self.position_value) / float(price)
+                if price is not None and price > 0:
+                    quantity = float(self.position_value) / float(price)
+                else:
+                    quantity = 0.0
+                    # This case should ideally not be reached
+                    print(f"WARN [{self.process_name}]: Invalid price ({price}) for SELL signal. Setting quantity to 0.")
             else:
                 quantity = 0.0
             self.position_value = 0.0
