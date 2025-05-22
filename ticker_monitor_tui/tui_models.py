@@ -51,8 +51,8 @@ class TUIMonitorData:
     def update_from_trade_order(self, order: dict):
         self.display_last_signal = order.get("action")
         self.display_last_price = order.get("price")
-        self.display_quantity = order.get("quantity")
-        self.display_current_position_value = order.get("position_value")
+        self.display_quantity = float(order.get("quantity") or 0.0)
+        self.display_current_position_value = float(order.get("position_value") or 0.0)
         ts = order.get("timestamp")
         if ts:
             self.display_last_checked = datetime.fromisoformat(ts)
