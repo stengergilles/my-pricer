@@ -21,16 +21,25 @@ def send_notification(title, message, app_name="Stock Monitoring App", timeout=1
         else:
             print("Termux notification unavailable: 'termux-notification' command or Termux:API app is missing.")
     
+
     # --- Desktop platforms (fallback) ---
     try:
         from plyer import notification as plyer_notification
-        plyer_notification.notify(
-            title=title,
-            message=message,
-            app_name=app_name,
-            timeout=timeout
-        )
-        return
+        
+
+        # Check if 'notify' attribute exists and is not None before calling        
+        if hasattr(plyer_notification, 'notify') and plyer_notification.notify is not None:
+            plyer_notification.notify( # Moved to a new, indented line
+                title=title,
+                message=message,
+                app_name=app_name,
+                timeout=timeout
+            )
+            return
+        # If plyer_notification.notify is None or doesn't exist,
+        # the 'if' condition fails, and we'll fall through.
+        # The existing 'except Exception: pass' will catch other potential issues
+        # such as ImportError or errors from within a successful notify() call.
     except Exception:
         pass
 
