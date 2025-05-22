@@ -46,6 +46,6 @@ class AddMonitorDialog(ModalScreen):
                 entry_price=entry_price,
                 backtest_scope=scope,
             )
-            await self.app.pop_screen(config)
+            await self.app.pop_screen()
         elif button_id == "btn-cancel":
-            await self.app.pop_screen(None)
+            await self.app.pop_screen()
