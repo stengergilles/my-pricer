@@ -22,6 +22,15 @@ class MonitorTable(DataTable):
         "monitortable--status-unknown": {"color": "magenta"},
     }
 
+    COMPONENT_CLASSES = {
+        "monitortable--status-running",
+        "monitortable--status-stopped",
+        "monitortable--status-starting",
+        "monitortable--status-stopping",
+        "monitortable--status-error",
+        "monitortable--status-unknown",
+    }
+
     def on_mount(self) -> None:
         self.add_columns(
             "ID", "Ticker", "Status", "Entry Price", "Interval(s)",

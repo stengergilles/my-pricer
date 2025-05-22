@@ -68,8 +68,18 @@ class TickerMonitorApp(App):
         return self.selected_monitor is not None
 
     # Example command implementations (add your real logic as needed)
-    def action_add_monitor(self):
-        self.log_status("Add monitor dialog not yet implemented.")
+    async def action_add_monitor(self):
+        async def show_dialog():
+            dialog = AddMonitorDialog()
+            config = await self.push_screen_wait(dialog)
+            if config:
+                try:
+                    self.manager.add_monitor_config(config)
+                    self.log_status(f"[green]Added new monitor config for: {config.ticker}[/green]")
+                    self.refresh_monitor_table_display()
+                except ValueError as e:
+                    self.log_status(f"[bold red]Error adding monitor: {e}[/bold red]")
+        self.run_worker(show_dialog(), exclusive=True)
 
     def action_start_monitor(self):
         if self.selected_monitor:

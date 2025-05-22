@@ -17,7 +17,6 @@ class AddMonitorDialog(ModalScreen):
         yield Label("Add New Ticker Monitor", id="dialog-title")
         with Vertical():
             yield Input(placeholder="Ticker (e.g. BTC-USD)", id="input-ticker")
-            yield Input(placeholder="Interval Seconds (e.g. 60)", id="input-interval")
             yield Input(placeholder="Entry Price (optional)", id="input-entry-price")
             yield Input(placeholder="Scope (e.g. intraday, short, long)", id="input-scope")
             yield Button(label="Add", id="btn-add")
@@ -31,14 +30,18 @@ class AddMonitorDialog(ModalScreen):
         if button_id == "btn-add":
             ticker = self.query_one("#input-ticker", Input).value.strip()
             try:
-                interval = int(self.query_one("#input-interval", Input).value.strip())
-            except Exception:
-                interval = 60
-            try:
                 entry_price = float(self.query_one("#input-entry-price", Input).value.strip())
             except Exception:
                 entry_price = 0.0
             scope = self.query_one("#input-scope", Input).value.strip() or "intraday"
+
+            # Set interval based on scope
+            scope_to_interval = {
+                "intraday": 60,
+                "short": 300,
+                "long": 3600,
+            }
+            interval = scope_to_interval.get(scope.lower(), 60)
 
             config = TUIMonitorData(
                 ticker=ticker or "BTC-USD",
@@ -46,6 +49,6 @@ class AddMonitorDialog(ModalScreen):
                 entry_price=entry_price,
                 backtest_scope=scope,
             )
-            await self.app.pop_screen()
+            self.dismiss(config)
         elif button_id == "btn-cancel":
-            await self.app.pop_screen()
+            self.dismiss(None)
