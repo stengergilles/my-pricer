@@ -54,4 +54,22 @@ MonitorTable {
     color: magenta;
 }
 
-/* Add more widget-specific styles as needed */
+#main-content {
+    align: center middle;
+    height: 1fr;
+    width: 100%;
+}
+
+MonitorTable {
+    width: 2fr;
+    min-width: 40;
+}
+
+#log-view-container {
+    width: 1fr;
+    min-width: 40;
+    max-width: 60;
+    border: solid red ;
+    margin-left: 1;
+    align: center middle;
+}
