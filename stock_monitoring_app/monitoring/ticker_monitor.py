@@ -9,30 +9,52 @@ from stock_monitoring_app.strategies.base_strategy import BaseStrategy
 
 BACKTEST_SCOPE_PRESETS = {                        "intraday": {"period": "1d", "interval": "1m"},                                             "short": {"period": "1w", "interval": "15m"},                                               "long": {"period": "1mo", "interval": "1d"}                                             }
 
+# Dictionary to convert time intervals to seconds
+time_intervals = {
+    '1s': 1,
+    '5s': 5,
+    '10s': 10,
+    '30s': 30,
+    '1m': 60,
+    '5m': 300,
+    '15m': 900,
+    '30m': 1800,
+    '1h': 3600,
+    '2h': 7200,
+    '1d': 86400,
+    '7d': 604800,
+    '30d': 2592000,
+    '1month': 2592000,  # Approximation: 30 days
+    '1year': 31536000    # Approximation: 365 days
+}
+
+# Function to convert interval to seconds
+def convert_to_seconds(interval):
+    return time_intervals.get(interval, "Invalid interval")
+
 class TickerMonitor:
     def __init__(
         self,
         ticker,
-        monitor_interval_seconds,
         trade_order_queue,
         entry_price,
         process_name="Monitor",
         backtest_scope="intraday"
     ):
         self.ticker = ticker
-        self.monitor_interval_seconds = monitor_interval_seconds
         self.trade_order_queue = trade_order_queue
         self.entry_price = entry_price
         self.process_name = process_name
 
         self._running = False
         self._is_active_position = False
-        from stock_monitoring_app.monitoring.ticker_monitor import BACKTEST_SCOPE_PRESETS
+        from stock_monitoring_app.monitoring.ticker_monitor import BACKTEST_SCOPE_PRESETS,convert_to_seconds
         if backtest_scope not in BACKTEST_SCOPE_PRESETS:
             raise ValueError(f"Unknown backtest_scope '{backtest_scope}'. Choose from {list(BACKTEST_SCOPE_PRESETS.keys())}")
         self.backtest_scope = backtest_scope
         self._period = BACKTEST_SCOPE_PRESETS[backtest_scope]["period"]
         self._interval = BACKTEST_SCOPE_PRESETS[backtest_scope]["interval"]
+        self.monitor_interval_seconds = convert_to_seconds(self._interval)
         self._indicator_configs = None
 
         # For position management in dollars

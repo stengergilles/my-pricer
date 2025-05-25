@@ -37,7 +37,6 @@ def monitor_worker(ticker, entry_price, scope, conn):
         return
     try:
         process_name = f"Monitor-{ticker}"
-        interval = 5  # You can make this configurable
         # Pipe as queue-like for compatibility
         class PipeAsQueue:
             def __init__(self, conn):
@@ -47,7 +46,6 @@ def monitor_worker(ticker, entry_price, scope, conn):
         queue_like = PipeAsQueue(conn)
         monitor = TickerMonitor(
             ticker,
-            interval,
             queue_like,
             entry_price,
             process_name=process_name,
