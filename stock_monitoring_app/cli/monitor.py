@@ -41,8 +41,6 @@ def print_indicator_summary(indicator_configs):
 def monitor_worker(ticker, entry_price, order_queue, status_queue, scope):
     import traceback
 
-#    monitor_interval = parse_interval_to_seconds(BACKTEST_SCOPE_PRESETS[scope]['interval'])
-
     try:
         monitor = TickerMonitor(
             ticker=ticker,

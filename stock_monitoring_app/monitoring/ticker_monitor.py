@@ -39,7 +39,8 @@ class TickerMonitor:
         trade_order_queue,
         entry_price,
         process_name="Monitor",
-        backtest_scope="intraday"
+        backtest_scope="intraday",
+        leverage=1
     ):
         self.ticker = ticker
         self.trade_order_queue = trade_order_queue
@@ -85,6 +86,7 @@ class TickerMonitor:
                 print(f"WARN [{self.process_name}]: Backtest failed for {self.ticker}.")
         except Exception as e:
             print(f"ERROR [{self.process_name}]: Exception during backtest: {e}")
+            raise
 
     def _load_optimized_config_from_disk(self) -> Optional[List[Dict]]:
         import time
@@ -140,7 +142,8 @@ class TickerMonitor:
                 return pd.DataFrame()
         except Exception as e:
             print(f"ERROR [{self.process_name}]: Exception in _fetch_latest_data: {e}")
-            return pd.DataFrame()
+#            return pd.DataFrame()
+            raise
 
     def _store_forwardtest_result(self, order):
         """

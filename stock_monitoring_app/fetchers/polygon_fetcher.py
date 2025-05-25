@@ -67,7 +67,8 @@ class PolygonFetcher(Fetcher):
                 from_date = to_date - timedelta(days=1)
             elif period == "5d":
                 from_date = to_date - timedelta(days=5)
-
+            elif period == "1w":
+                from_date = to_date - timedelta(days=7)
             elif period == "1mo":
                 from_date = to_date - pd.DateOffset(months=1) # Using pd.DateOffset for month precision
                 from_date = pd.Timestamp(from_date).date() # Convert back to datetime.date
@@ -98,7 +99,7 @@ class PolygonFetcher(Fetcher):
             interval_map = {
                 "1m": (1, "minute"), "5m": (5, "minute"), "15m": (15, "minute"), "30m": (30, "minute"),
                 "1h": (1, "hour"), "2h": (2, "hour"),
-                "1d": (1, "day"),
+                "1d": (1, "day"),"1w":(7,"day")
                 # Polygon also supports "week", "month", "quarter", "year" as timespan
             }
             if interval not in interval_map:

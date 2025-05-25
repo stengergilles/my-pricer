@@ -48,6 +48,7 @@ class CoinGeckoFetcher(Fetcher):
             period: The duration for which to fetch data. Mapped to CoinGecko's 'days' parameter.
                     Supported: "1d", "5d" (maps to 7 days), "1mo" (30d), "3mo" (90d), 
                                "6mo" (180d), "1y" (365d), "2y", "5y", "max" (maps to "max").
+            "1w": (mapped to 7d)
             interval: This implementation targets 'daily' data from CoinGecko. Other requested
                       intervals might not be precisely matched.
 
@@ -67,6 +68,7 @@ class CoinGeckoFetcher(Fetcher):
         # 1, 7, 14, 30, 90, 180, 365, "max"
         period_map_cg = {
             "1d": 1, "5d": 7, # "5d" is mapped to 7 as it's the closest supported short period
+            "1w": 7,
             "1mo": 30, "3mo": 90, "6mo": 180, "1y": 365,
             "2y": "max", # No direct 2y, map to max
             "5y": "max", # No direct 5y, map to max
