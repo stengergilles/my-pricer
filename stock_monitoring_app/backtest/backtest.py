@@ -278,38 +278,154 @@ class BackTest:
 
             print(f"      Optimizing {indicator_class.__name__}: Initial PNL with default params = {best_pnl_for_current_type}")
 
+
             # --- Generalized grid search ---
             param_search_space_defined = False
             search_space = {}
 
-            # The indicator class must define a staticmethod get_search_space() returning {param: [values]}
             if hasattr(indicator_class, 'get_search_space') and callable(getattr(indicator_class, 'get_search_space')):
                 search_space = indicator_class.get_search_space()
-                param_search_space_defined = True
+                if search_space and isinstance(search_space, dict):
+                    param_search_space_defined = True
+                else:
+                    print(f"      INFO: get_search_space() for {indicator_class.__name__} returned an empty or non-dict search space. Using default params.")
+                    search_space = {} 
+                    param_search_space_defined = False
+            else:
+                print(f"      INFO: No get_search_space() method found or callable for {indicator_class.__name__}. Using default params.")
+                search_space = {}
+                param_search_space_defined = False
 
-
-            if param_search_space_defined and search_space:
+            if param_search_space_defined and search_space: # Proceed only if search space is valid
                 import itertools
                 param_names = list(search_space.keys())
-                param_value_lists = [search_space[k] for k in param_names]
+                
+                all_param_lists_valid = True
+                param_value_lists = []
 
-                for combination in itertools.product(*param_value_lists):
-                    current_trial_params = dict(zip(param_names, combination))                    # Always add 'column': 'Close' if not set and 'Close' is expected
-                    if 'column' in param_names and 'column' not in current_trial_params:
-                        current_trial_params['column'] = 'Close'
+                for p_name in param_names:
+                    # Ensure the value for the parameter key is a non-empty list
+                    param_values = search_space.get(p_name)
+                    if not param_values or not isinstance(param_values, list):
+                        print(f"      WARNING: Invalid or empty parameter list for '{p_name}' in {indicator_class.__name__}'s search space. Skipping detailed optimization for this indicator.")
+                        all_param_lists_valid = False
+                        break 
+                    param_value_lists.append(param_values)
 
-                    trial_run_configs = []
-                    for i_conf, conf_item in enumerate(initial_discovered_configs):
-                        if i_conf == idx_tuned:
-                            trial_run_configs.append({'type': indicator_class, 'params': current_trial_params})                
-                        else:
-                            trial_run_configs.append(conf_item)
+                if all_param_lists_valid and param_names: # Ensure param_names is not empty
+                    for combination in itertools.product(*param_value_lists):
+                        current_trial_params = dict(zip(param_names, combination))
+                        
+                        # Ensure 'column': 'Close' is added if not defined, this is a common default
+                        # However, it's better if get_search_space() explicitly includes 'column': ['Close'] or other relevant columns
+                        # if 'column' not in current_trial_params and 'Close' in data.columns: # Example specific handling
+                        #    current_trial_params['column'] = 'Close'
 
-            print(f"      Selected best PNL for {indicator_class.__name__}: {best_pnl_for_current_type} with params: {best_params_for_current_type}")
+
+                        trial_run_configs = []
+                        for i_conf, conf_item in enumerate(initial_discovered_configs):
+                            if i_conf == idx_tuned:
+                                trial_run_configs.append({'type': indicator_class, 'params': current_trial_params})
+
+                            else:                                trial_run_configs.append(conf_item)
+                        
+
+
+                        print(f"        TRIAL: Testing {indicator_class.__name__} with params: {current_trial_params}...", end="")
+                        try:
+                            trial_strategy = BaseStrategy(indicator_configs=trial_run_configs)
+                            trial_results = trial_strategy.run(data.copy())
+
+                            # --- START DEBUG BLOCK for printing raw signal counts from tuned indicator ---
+                            print_debug_raw_signals = True # Define the flag here
+                            if print_debug_raw_signals and trial_results is not None and not trial_results.empty:
+                                try:
+                                    # Instantiate the tuned indicator with current trial params to get its signal column names
+
+                                    # This relies on the indicator populating self.signal_orientations correctly in its __init__
+                                    temp_indicator_for_debug = indicator_class(data.copy(), **current_trial_params)
+                                    tuned_indicator_signal_cols = list(temp_indicator_for_debug.get_signal_orientations().keys())
+                                    
+                                    if tuned_indicator_signal_cols:
+                                        print(" (RawSigCounts: ", end="")
+                                        for sig_col_idx, sig_col_name in enumerate(tuned_indicator_signal_cols):
+                                            if sig_col_name in trial_results.columns:
+                                                true_count = trial_results[sig_col_name].sum()
+                                                # Use a more robust way to get a short name, or just use full name
+                                                short_sig_name = sig_col_name.replace(f"_{temp_indicator_for_debug.window}", "") if hasattr(temp_indicator_for_debug, 'window') else sig_col_name
+                                                short_sig_name = short_sig_name.replace(f"_{temp_indicator_for_debug.spike_multiplier}", "") if hasattr(temp_indicator_for_debug, 'spike_multiplier') else short_sig_name
+
+                                                print(f"{short_sig_name.split('_')[0]}={true_count}", end="")
+
+                                                # Specific debug for VolumeSpikeIndicator if counts are zero
+                                                if indicator_class.__name__ == "VolumeSpikeIndicator" and true_count == 0:
+                                                    try:
+                                                        # Re-calculate to inspect intermediate values for VolumeSpike
+                                                        # This is a bit redundant but helps debug this specific case
+                                                        # Ensure VolumeSpikeIndicator uses self.df and self.volume_col
+                                                        # The actual indicator calculation happens in strategy.run(), trial_results has the output
+                                                        # We need to inspect what led to the all-false signal column
+                                                        # Let's check a few values of the threshold and volume if possible
+                                                        # This assumes 'Volume' column exists in original 'data'
+                                                        if temp_indicator_for_debug.volume_col in data.columns:
+                                                            vol_series = data[temp_indicator_for_debug.volume_col]
+                                                            roll_avg = vol_series.rolling(window=temp_indicator_for_debug.window, min_periods=temp_indicator_for_debug.window).mean()
+                                                            threshold = roll_avg * temp_indicator_for_debug.spike_multiplier
+                                                            
+                                                            # Print some non-NaN threshold values if they exist
+                                                            valid_thresholds = threshold.dropna()
+                                                            if not valid_thresholds.empty:
+                                                                print(f" [VSI_Thresh_Sample: {valid_thresholds.iloc[0]:.2f}]", end="")
+                                                            else:
+                                                                print(" [VSI_Thresh_All_NaN]", end="")
+                                                        else:
+                                                            print(" [VSI_VolCol_Missing_In_Data]", end="")
+
+                                                    except Exception as vsi_debug_e:
+                                                        print(f" [VSI_Debug_Err: {vsi_debug_e}]", end="")
+                                            else:
+                                                print(f"{sig_col_name.split('_')[0]}=MISSING", end="")
+                                            if sig_col_idx < len(tuned_indicator_signal_cols) - 1:
+                                                print(", ", end="")
+                                        print(")", end="")
+                                except Exception as debug_e:
+                                    print(f" (RawSigCounts_ERR: {debug_e})", end="")
+                            # --- END DEBUG BLOCK ---
+
+
+                            current_pnl = self._calculate_placeholder_pnl(trial_results)
+                            print(f" PNL: {current_pnl:.2f}")
+
+                            # Changed > to >= to favor non-empty params if PNL is equal to baseline
+                            if current_pnl >= best_pnl_for_current_type: 
+                                if current_pnl > best_pnl_for_current_type:
+                                    print(f"          NEW BEST for {indicator_class.__name__}: PNL {current_pnl:.2f} with params {current_trial_params} (was {best_pnl_for_current_type:.2f})")
+                                elif current_pnl == best_pnl_for_current_type and not best_params_for_current_type : # If PNL is same as baseline and baseline params were empty
+                                    print(f"          MATCHING BASELINE PNL for {indicator_class.__name__}: PNL {current_pnl:.2f} with params {current_trial_params} (baseline had empty params)")
+                                # else: # PNL is same but baseline already had non-empty params, so we don't necessarily overwrite unless it's a true improvement.
+                                #     pass # Or add a log if you want to see these cases.
+                                best_pnl_for_current_type = current_pnl
+                                best_params_for_current_type = current_trial_params
+                        except Exception as e:
+                            print(f" EXCEPTION: {e}")
+                            # This parameter combination failed, log error but continue optimization
+                            pass 
+                elif not param_names and search_space: # Search space was provided but had no valid param names
+                     print(f"      INFO: No valid parameter names to iterate over in search space for {indicator_class.__name__}. Using default params.")
+                # If all_param_lists_valid became False, the warning about specific param list was already printed.
+
+            # If param_search_space_defined was false or search_space was empty initially, or all_param_lists_valid became false,
+            # best_params_for_current_type remains the initial (default) one. This is logged next.
+            print(f"      Selected best PNL for {indicator_class.__name__}: {best_pnl_for_current_type:.2f} with params: {best_params_for_current_type}")
             final_optimized_configs.append({'type': indicator_class, 'params': best_params_for_current_type})
 
         print(f"INFO: Generalized threshold optimization finished for {self.ticker}.")
+
+
+        print(f"INFO: Generalized threshold optimization finished for {self.ticker}.")
+
         self.current_indicator_configs = final_optimized_configs
+        # This return should be at the same indentation level as the main loop and initial checks in this method
         return final_optimized_configs
 
     def run_backtest(self) -> Optional[pd.DataFrame]:

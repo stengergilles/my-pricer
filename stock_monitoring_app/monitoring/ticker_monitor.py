@@ -61,16 +61,34 @@ class TickerMonitor:
         self.opening_date_str = None
 
         self.position_type = "none"
-        self.entry_trade_price = None
-        self.stop_loss_threshold = 1 - stop_loss
 
+        self.entry_trade_price = None
+
+
+
+
+
+        self.entry_trade_price = None
+
+        self.stop_loss_percentage: float = stop_loss # Store the stop-loss percentage directly (e.g., 0.05 for 5%)        # entry_price from constructor is the initial capital allocation for this monitor
+        self.initial_capital_allocation: float = float(entry_price)
+        # current_value is the total equity of the monitor, starts with the initial allocation
+        self.current_value: float = float(entry_price) 
+        # equity_at_trade_open stores current_value just before a new trade is opened
+        self.equity_at_trade_open: Optional[float] = None 
+        
+        self.current_price: Optional[float] = None # Latest market price
+        # self.position_value (existing) remains market value of current asset holding (price * quantity)
+        # self._initial_position_bias (existing) for forced entry
+
+        self._initial_position_bias: str = "long" # Default to long    
     def _resolve_indicator_class(self, module_name: str, class_name: str):
         import importlib
         try:
             module = importlib.import_module(module_name)
             return getattr(module, class_name)
         except Exception as e:
-            print(f"ERROR: Could not resolve class '{class_name}' from module '{module_name}': {e}")
+            print(f"ERROR: Could not resolve class '{class_name}' from module '{module_name}': {e}")            
             return None
 
     def _run_backtest(self):
@@ -109,9 +127,22 @@ class TickerMonitor:
                     print(f"ERROR [{self.process_name}]: Still no config after backtest. Giving up.")
                     return None
             files.sort(key=os.path.getmtime, reverse=True)
+
             latest_metrics_path = files[0]
             with open(latest_metrics_path, "r") as f:
                 metrics_data = json.load(f)
+
+            # Determine initial position bias based on backtest PNL
+            backtest_net_profit = metrics_data.get("net_profit", 0) # Default to 0 if not found
+            # Define a threshold for "significantly negative" if desired, e.g., < -self.entry_price * 0.01
+            # For simplicity, let's just use negative PNL for now.
+            if backtest_net_profit < 0:
+                self._initial_position_bias = "short"
+                print(f"INFO [{self.process_name}]: Backtest PNL was {backtest_net_profit}. Setting initial position bias to SHORT.")
+            else:
+                self._initial_position_bias = "long" # Default or positive PNL
+                print(f"INFO [{self.process_name}]: Backtest PNL was {backtest_net_profit}. Setting initial position bias to LONG.")
+
             loaded_raw_configs = metrics_data.get("indicator_configurations", [])
             resolved_configs = []
             for raw_conf in loaded_raw_configs:
@@ -197,179 +228,359 @@ class TickerMonitor:
                 print(f"WARN [{self.process_name}]: No valid price (None, NA, or 0) from the last signal row; skipping order emission.")
                 return
             
+
+
             # Ensure price is float for calculations
             price = float(price)
+            self.current_price = price # Update current_price with the latest valid market price
 
-            if hasattr(self, 'initial_deposit') and self.initial_deposit is not None and \
-               hasattr(self, 'current_price') and self.current_price is not None and self.current_price != 0:
-                self.delta = (price - self.current_price) / self.current_price
-                price_variation = self.initial_deposit * (self.delta / 100) * self.leverage # Note: delta calculation seems off for percentage
-                self.current_value = self.initial_deposit + price_variation
+            # Update self.current_value (total equity) and self.position_value based on P&L of any open position
+            if self.position_type != "none" and \
+               self.equity_at_trade_open is not None and \
+               self.entry_trade_price is not None and \
+               self.quantity != 0: # Price is guaranteed not None here
+                unrealized_pnl = 0.0
+                if self.position_type == "long":
+                    unrealized_pnl = (self.current_price - self.entry_trade_price) * self.quantity * self.leverage
+                elif self.position_type == "short":
+                    unrealized_pnl = (self.entry_trade_price - self.current_price) * self.quantity * self.leverage                
+                # self.current_value reflects total equity including unrealized P&L of the current open trade
+                self.current_value = self.equity_at_trade_open + unrealized_pnl
+                self.position_value = self.quantity * self.current_price # Market value of current asset holding
             
+            elif self.position_type == "none":
+                # If flat, current_value is already the total equity after the last closed trade.
+                # Position value is 0.
+                self.position_value = 0.0
+            # If self.current_value was None (e.g., very first run before __init__ fully sets if using entry_price=0),
+            # it would remain None until a trade properly initializes equity_at_trade_open.
+            # However, __init__ now ensures current_value is float.
 
 
-
-
-            self.current_price = price # Update current_price with the latest valid price
 
 
             actioned_signals = {}
-            for col in last_signal_row.index:
-                if col != 'Strategy_Signal':
-                    value = last_signal_row[col]
-                    if value is pd.NA:
-                        actioned_signals[col] = None  # Serialize pd.NA as None
+            # Populate actioned_signals with all indicator signals (True, False, or None for pd.NA)
+            for col_name in last_signal_row.index:
+                if col_name != 'Strategy_Signal' and not col_name.endswith(('_Raw_Signal', '_Strength')): # Exclude non-boolean/raw signals if any
+                    raw_signal_value = last_signal_row[col_name] # This might be a scalar or Series
+
+                    # Ensure we are working with a scalar for subsequent checks
+                    value_to_process = raw_signal_value
+                    if isinstance(raw_signal_value, pd.Series):
+                        if not raw_signal_value.empty:
+                            value_to_process = raw_signal_value.iloc[0] # Take the first element
+                        else:
+                            value_to_process = np.nan # Treat empty series as NA to be handled by pd.isna()
+
+
+                    # Now value_to_process is expected to be a scalar (or np.nan)
+                    
+                    # Check for NA, handling if pd.isna returns a Series
+                    is_na_check_result = pd.isna(value_to_process)
+                    is_actually_na = False
+                    if isinstance(is_na_check_result, pd.Series):
+                        is_actually_na = is_na_check_result.any() # True if any element in the series is NA
+                    elif isinstance(is_na_check_result, (bool, np.bool_)): # if pd.isna returned a scalar boolean
+                        is_actually_na = bool(is_na_check_result)
+
+                    if is_actually_na:
+                        actioned_signals[col_name] = None
+                    elif isinstance(value_to_process, (bool, np.bool_)): # Check the (potentially extracted) scalar
+                        actioned_signals[col_name] = bool(value_to_process)
+                    # Optionally, handle other types or log them if unexpected
+                    # else:
+                    #     print(f"DEBUG: Unexpected signal type for {col_name} after NA check: {type(value_to_process)}, value: {value_to_process}")
         position_before = self.position_value
         position_type_before = self.position_type
         order = None
         timestamp = pd.Timestamp.now(tz='UTC').isoformat()
 
 
+
         # Stop-loss logic
-        # Ensure price is not None before attempting comparisons for stop-loss
-        if price is not None and self.position_type in ("long", "short") and self.entry_trade_price:
-            # price is now guaranteed to be a float here due to earlier conversion if signals_df was valid,
-            # or this block is skipped if price is None.
+        # Ensure self.current_price is not None before attempting comparisons for stop-loss
+        if self.current_price is not None and self.position_type in ("long", "short") and self.entry_trade_price is not None:
+            stop_loss_triggered = False
+            threshold_price = 0.0 # Initialize to avoid undefined variable if logic path missed
+
             if self.position_type == "long":
-                threshold_price = self.entry_trade_price * self.stop_loss_threshold
-                stop_loss_triggered = price < threshold_price
-            else:
-                threshold_price = self.entry_trade_price / self.stop_loss_threshold
-                stop_loss_triggered = price > threshold_price
+                threshold_price = self.entry_trade_price * (1 - self.stop_loss_percentage)
+                if self.current_price < threshold_price:
+                    stop_loss_triggered = True
+            elif self.position_type == "short":
+                threshold_price = self.entry_trade_price * (1 + self.stop_loss_percentage)
+                if self.current_price > threshold_price:
+                    stop_loss_triggered = True
 
             if stop_loss_triggered:
-                print(f"INFO [{self.process_name}]: Stop-loss triggered. Closing {self.position_type} position.")
-                action = "SELL" if self.position_type == "long" else "BUY"
-                quantity = self.quantity
-                order = {
-                    "action": action,
-                    "ticker": self.ticker,
-                    "price": price,
+                print(f"DEBUG [{self.process_name}]: Stop-loss triggered for {self.position_type} at {self.current_price:.2f}, threshold was {threshold_price:.2f}")
+                action_to_close = "SELL" if self.position_type == "long" else "BUY"
+                
+                # Calculate realized P&L for this specific trade
+                realized_pnl_this_trade = 0.0
+                if self.equity_at_trade_open is not None and self.entry_trade_price is not None: # Should be true
+                    if self.position_type == "long":                        realized_pnl_this_trade = (self.current_price - self.entry_trade_price) * self.quantity * self.leverage
+                    elif self.position_type == "short":
+                        realized_pnl_this_trade = (self.entry_trade_price - self.current_price) * self.quantity * self.leverage
+                    # Update total equity
+                    self.current_value = self.equity_at_trade_open + realized_pnl_this_trade
+                else: # Fallback if equity_at_trade_open was somehow not set
+                    print(f"WARN [{self.process_name}]: equity_at_trade_open not set for stop-loss P&L calculation. Current equity might be inaccurate.")
+                
+                print(f"INFO [{self.process_name}]: Stop-loss triggered. Closing {self.position_type} position at {self.current_price:.2f}. Trade P&L: {realized_pnl_this_trade:.2f}. New Total Equity: {self.current_value:.2f}")
 
-                    "quantity": quantity,
-                    "position_value": 0.0,
+                order = {
+                    "action": action_to_close,
+                    "ticker": self.ticker,
+                    "price": self.current_price,
+                    "quantity": self.quantity, # The quantity being closed
+                    "asset_value_traded": 0.0, # Market value of asset holding becomes 0
+                    "equity_after_trade": self.current_value, # Total equity after this trade
+                    "pnl_this_trade": realized_pnl_this_trade,
                     "timestamp": timestamp,
-                    "actioned_signals": {**actioned_signals, "stop_loss_triggered": bool(True)} # Ensure Python bool
+                    "actioned_signals": {**actioned_signals, "stop_loss_triggered": True}
                 }
-                self.position_value = 0.0
+                
+                # Reset position state
+                self.position_value = 0.0 
                 self.quantity = 0
-                self.position_type = "none"
+                self.position_type = "none"                
                 self.entry_trade_price = None
+                self.equity_at_trade_open = None # Reset for next trade
+
                 self.trade_order_queue.put(order)
                 self._store_forwardtest_result(order)
                 return
+
         # Signal-based trade logic
+        # `current_price` is already set, `current_value` reflects unrealized P&L if a position is open
+        
         if signal == "BUY":
             if self.position_type == "none":
-                quantity = self.quantity
-                if not price is None:
-                    self.position_value = float(quantity) * float(price)
-                    self.position_type = "long"
-                    self.entry_trade_price = price
-                    order = {
-                        "action": "BUY",
-                        "ticker": self.ticker,
-                        "price": price,
-                        "quantity": quantity,
-                        "position_value": self.position_value,
-                        "timestamp": timestamp,
-                        "actioned_signals": actioned_signals
-                    }
-            elif self.position_type == "short":
-                quantity = self.quantity
-                self.position_value = 0.0
-                self.position_type = "none"
-                self.entry_trade_price = None
+                # Open NEW LONG position
+                self.equity_at_trade_open = self.current_value # Capture equity before this trade
+                if self.current_price is None or self.current_price == 0: # Should not happen due to earlier check
+                     print(f"WARN [{self.process_name}]: Cannot open BUY position, current price is invalid: {self.current_price}")                     
+                     return
+                self.quantity = self.initial_capital_allocation / self.current_price # Use initial capital for consistent trade size
+                self.position_type = "long"
+                self.entry_trade_price = self.current_price
+                self.position_value = self.quantity * self.current_price # Market value of assets bought
+                
                 order = {
                     "action": "BUY",
                     "ticker": self.ticker,
-                    "price": price,
-                    "quantity": quantity,
-                    "position_value": 0.0,
+                    "price": self.current_price,
+                    "quantity": self.quantity,
+                    "asset_value_traded": self.position_value,
+                    "equity_before_trade": self.equity_at_trade_open,
                     "timestamp": timestamp,
                     "actioned_signals": actioned_signals
                 }
+            elif self.position_type == "short":
+                # Close SHORT position and GO LONG (Reversal)
+
+                # 1. Calculate P&L of the closing short trade
+                realized_pnl_closing_short = 0.0
+                if self.equity_at_trade_open is not None and \
+                   self.entry_trade_price is not None and \
+                   self.current_price is not None: # Ensure current_price is not None for type checker
+                     realized_pnl_closing_short = (self.entry_trade_price - self.current_price) * self.quantity * self.leverage
+                     self.current_value = self.equity_at_trade_open + realized_pnl_closing_short # Update total equity
+                
+                print(f"INFO [{self.process_name}]: Closing SHORT for reversal. Trade P&L: {realized_pnl_closing_short:.2f}. New Total Equity: {self.current_value:.2f}")
+                
+                # 2. Open NEW LONG position
+                self.equity_at_trade_open = self.current_value # Capture equity before new long trade
+                if self.current_price is None or self.current_price == 0:
+                     print(f"WARN [{self.process_name}]: Cannot open BUY (reversal) position, current price is invalid: {self.current_price}")
+                     # Note: position state might be inconsistent if we return here after closing short
+                     return
+                self.quantity = self.initial_capital_allocation / self.current_price
+                self.position_type = "long"                
+                self.entry_trade_price = self.current_price
+                self.position_value = self.quantity * self.current_price
+
+                order = {
+                    "action": "BUY", # This order represents the new LONG position
+                    "ticker": self.ticker,
+                    "price": self.current_price,
+                    "quantity": self.quantity,
+                    "asset_value_traded": self.position_value, # Value of new long position
+                    "equity_before_trade": self.equity_at_trade_open, # Equity before this new long
+                    "pnl_from_prior_short_trade": realized_pnl_closing_short,
+                    "timestamp": timestamp,
+                    "actioned_signals": actioned_signals
+                }
+            # If signal is BUY and self.position_type is "long", no 'order' is created here (handled by INFO log later)
 
         elif signal == "SELL":
             if self.position_type == "none":
-                quantity = self.quantity
-                if not price is None:
-                    self.position_value = float(quantity) * float(price)
-                    self.position_type = "short"
-                    self.entry_trade_price = price
-                    order = {
-                        "action": "SELL",
-                        "ticker": self.ticker,
-                        "price": price,
-                        "quantity": quantity,
-                        "position_value": self.position_value,
-                        "timestamp": timestamp,
-                        "actioned_signals": actioned_signals
-                    }
-            elif self.position_type == "long":
-                quantity = self.quantity
-                self.position_value = 0.0
-                self.position_type = "none"
-                self.entry_trade_price = None
+                # Open NEW SHORT position
+                self.equity_at_trade_open = self.current_value
+                if self.current_price is None or self.current_price == 0:
+                     print(f"WARN [{self.process_name}]: Cannot open SELL position, current price is invalid: {self.current_price}")
+                     return
+                self.quantity = self.initial_capital_allocation / self.current_price
+                self.position_type = "short"
+                self.entry_trade_price = self.current_price
+                self.position_value = self.quantity * self.current_price # Market value of assets shorted (absolute)
+
                 order = {
                     "action": "SELL",
                     "ticker": self.ticker,
-                    "price": price,
-                    "quantity": quantity,
-                    "position_value": 0.0,
+                    "price": self.current_price,
+                    "quantity": self.quantity,
+                    "asset_value_traded": self.position_value,
+                    "equity_before_trade": self.equity_at_trade_open,
+                    "timestamp": timestamp,                    "actioned_signals": actioned_signals
+                }
+
+            elif self.position_type == "long":
+
+                # Close LONG position and GO SHORT (Reversal)                # 1. Calculate P&L of the closing long trade
+                realized_pnl_closing_long = 0.0
+                if self.equity_at_trade_open is not None and \
+                   self.entry_trade_price is not None and \
+                   self.current_price is not None: # Ensure current_price is not None for type checker
+                    realized_pnl_closing_long = (self.current_price - self.entry_trade_price) * self.quantity * self.leverage
+                    self.current_value = self.equity_at_trade_open + realized_pnl_closing_long # Update total equity
+                
+                print(f"INFO [{self.process_name}]: Closing LONG for reversal. Trade P&L: {realized_pnl_closing_long:.2f}. New Total Equity: {self.current_value:.2f}")
+
+                # 2. Open NEW SHORT position
+                self.equity_at_trade_open = self.current_value # Capture equity before new short trade
+                if self.current_price is None or self.current_price == 0:
+                     print(f"WARN [{self.process_name}]: Cannot open SELL (reversal) position, current price is invalid: {self.current_price}")
+                     return # Position state might be inconsistent if we return here
+                self.quantity = self.initial_capital_allocation / self.current_price
+                self.position_type = "short"
+                self.entry_trade_price = self.current_price
+                self.position_value = self.quantity * self.current_price
+
+                order = {
+                    "action": "SELL", # This order represents the new SHORT position
+                    "ticker": self.ticker,
+                    "price": self.current_price,
+                    "quantity": self.quantity,
+                    "asset_value_traded": self.position_value, # Value of new short position
+                    "equity_before_trade": self.equity_at_trade_open, # Equity before this new short                    "pnl_from_prior_long_trade": realized_pnl_closing_long,
                     "timestamp": timestamp,
                     "actioned_signals": actioned_signals
                 }
+            # If signal is SELL and self.position_type is "short", no 'order' is created here (handled by INFO log later)
 
         if order:
-            print(f"INFO [{self.process_name}]: Signal {signal} | Price: {price} | From {position_type_before} to {self.position_type} | Position $: {position_before} -> {self.position_value} | Quantity: {order['quantity']}")
+            # Log executed trade (BUY or SELL)
+            print(f"INFO [{self.process_name}]: Signal {signal} | Executing {order['action']} | Price: {self.current_price:.2f} | "
+                  f"From PosType: {position_type_before} -> {self.position_type} | "
+                  f"Asset Value: ${position_before:.2f} -> ${self.position_value:.2f} | "
+                  f"Quantity: {order['quantity']:.4f} | "
+                  f"Total Equity Before: ${order.get('equity_before_trade', self.current_value - order.get('pnl_this_trade', 0) - order.get('pnl_from_prior_short_trade',0) - order.get('pnl_from_prior_long_trade',0)):.2f} -> "
+                  f"After: ${self.current_value:.2f}")
+
             self.trade_order_queue.put(order)
-            self._store_forwardtest_result(order)
+            self._store_forwardtest_result(order) # Store BUY/SELL trades
+            if order["action"] in ["SELL", "BUY"]: # Send notification for actual trades
+                asset_value_field = "asset_value_traded" if "asset_value_traded" in order else "position_value" # backward compatibility
+                send_notification(
+                    f"Trade Order {order['action']}:{order['ticker']}",
+                    f"Price: ${order['price']:.2f}, Asset Value: ${order[asset_value_field]:.2f}, Total Equity: ${self.current_value:.2f}"
+                )
+
         else:
-            order = {
+            # No trade order was generated (HOLD signal, or signal matches current position)
+            info_status_reason = "Hold signal received" # Default
+            current_actioned_signals = {**actioned_signals} # Initialize current_actioned_signals here
+
+            if signal == "BUY" and self.position_type == "long":
+                info_status_reason = "Already long, signal BUY. Holding."
+                current_actioned_signals["status_reason"] = "already_long"            
+            elif signal == "SELL" and self.position_type == "short":
+                info_status_reason = "Already short, signal SELL. Holding."
+                current_actioned_signals["status_reason"] = "already_short"
+            elif signal == "HOLD":
+                info_status_reason = f"Hold signal received. Current position: {self.position_type}."
+                current_actioned_signals["status_reason"] = "hold_signal"
+            # Other cases (e.g. price was None) are handled by returning earlier.
+
+            log_equity_value = f"${self.current_value:.2f}" if self.current_value is not None else "N/A"
+            log_asset_value = f"${self.position_value:.2f}" if self.position_value is not None else "N/A"
+            log_market_price = f"${self.current_price:.2f}" if self.current_price is not None else "N/A"
+
+            print(f"INFO [{self.process_name}]: {info_status_reason} | Ticker: {self.ticker} | Market Price: {log_market_price} | "
+                  f"Asset Value: {log_asset_value} | Total Equity: {log_equity_value}")
+
+            info_order = {
                 "action": "INFO",
                 "ticker": self.ticker,
-                "price": self.current_price,
-                "quantity": self.quantity,
-                "position_value": self.current_value,
                 "timestamp": timestamp,
-                "actioned_signals": {}
+                "status_reason": info_status_reason,
+                "current_market_price": self.current_price,
+                "asset_value_held": self.position_value,
+                "total_equity": self.current_value,
+                "current_position_type": self.position_type,                "actioned_signals": current_actioned_signals
             }
-            print(f"INFO [{self.process_name}]: No position change for signal {signal}. Holding current position at ${self.current_value} Market Price ${self.current_price}")
+            self.trade_order_queue.put(info_order)
+            # Typically, INFO orders are not stored in the same way as trade executions.
+            # If _store_forwardtest_result is desired for INFO, uncomment the next line:
+            # self._store_forwardtest_result(info_order)
+            
+
+    def _force_initial_position(self):        
+        if self._forced_entry_done or self.initial_capital_allocation <= 0: # Check initial_capital_allocation
+            return
+        if self.position_type != "none": # Already in a position (e.g., if run manually after normal trading started)
+            print(f"INFO [{self.process_name}]: Already in position {self.position_type}, skipping forced initial position.")
+            self._forced_entry_done = True # Mark as done to prevent re-attempts
+            return
+        
+        latest_data_df = self._fetch_latest_data()
+
+        if latest_data_df is None or latest_data_df.empty:
+            print(f"WARN [{self.process_name}]: Cannot force initial position, no latest data.")
+            return
+
+        price = latest_data_df.iloc[-1]["Close"]
+        if pd.isna(price) or price <= 0:
+            print(f"WARN [{self.process_name}]: Cannot force initial position, invalid latest price: {price}")
+            return
+        
+        self.current_price = float(price) # Ensure current_price is set
+
+        # Set equity before this trade. At this point, self.current_value is initial_capital_allocation.
+        self.equity_at_trade_open = self.current_value 
+        
+        # Calculate quantity based on initial capital allocation
+        quantity_to_open = self.initial_capital_allocation / self.current_price
+        
+        action_type = "BUY" if self._initial_position_bias == "long" else "SELL"
+        
+
+        self.position_type = self._initial_position_bias        
+        self.entry_trade_price = self.current_price
+        self.quantity = quantity_to_open        
+        self.position_value = self.quantity * self.current_price # Market value of the assets traded        if not self.opening_date_str: # Set opening date if not already set by a regular trade            self.opening_date_str = pd.Timestamp.now(tz='UTC').strftime("%Y%m%d_%H%M%S")
+
+        order = {
+            "action": action_type,            "ticker": self.ticker,
+            "price": self.current_price, # Use the validated and set self.current_price
+            "quantity": self.quantity,
+            "asset_value_traded": self.position_value,
+            "equity_before_trade": self.equity_at_trade_open, # Equity before this specific trade
+            "timestamp": pd.Timestamp.now(tz='UTC').isoformat(),
+            "actioned_signals": {"forced_entry": True, "initial_bias": self._initial_position_bias}
+        }
+        
         self.trade_order_queue.put(order)
         self._store_forwardtest_result(order)
-        if order["action"]=="SELL" or order["action"]=="BUY":
-            send_notification(f"Trade Order {order['action']}:{order['ticker']}",f"${order['price']}, ${order['position_value']}")
-            
-    def _force_initial_position(self):
-        if self._forced_entry_done or self.entry_price <= 0 or self.position_value > 0:
-            return
-        latest_data_df = self._fetch_latest_data()
-        if latest_data_df is not None and not latest_data_df.empty:
-            price = latest_data_df.iloc[-1]["Close"]
-            quantity = float(self.entry_price) / float(price)
-            self.current_value = quantity * price
-            self.initial_deposit = self.current_value
-            self.current_price = price
-            self.quantity = quantity
-            self.position_value = quantity * price
-            self.position_type = "long"
-            self.entry_trade_price = price
-            self.opening_date_str = pd.Timestamp.now(tz='UTC').strftime("%Y%m%d_%H%M%S")
-            order = {
-                "action": "BUY",
-                "ticker": self.ticker,
-                "price": price,
-                "quantity": quantity,
-                "position_value": self.position_value,
-                "timestamp": pd.Timestamp.now(tz='UTC').isoformat(),
-                "actioned_signals": {"forced_entry": True}
-            }
-            self.trade_order_queue.put(order)
-            self._store_forwardtest_result(order)
-            print(f"INFO [{self.process_name}]: Forced initial BUY at entry price {self.entry_price} (market price {price}) | Quantity: {quantity}")
+        print(f"INFO [{self.process_name}]: Forced initial {action_type} ({self._initial_position_bias} bias) at market price {self.current_price:.2f} | "
+              f"Quantity: {self.quantity:.4f} | Asset Value: ${self.position_value:.2f} | "
+              f"Equity Before: ${self.equity_at_trade_open:.2f}")
 
-            self._forced_entry_done = True
+        self._forced_entry_done = True
+
 
     def run(self):
         print(f"DEBUG: TickerMonitor.run() called for {self.ticker}")

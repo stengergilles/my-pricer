@@ -3,12 +3,16 @@ from .base_indicator import Indicator
 
 class MACDIndicator(Indicator):
 
+
+
+
     @staticmethod
     def get_search_space():
         return {
-            "fast_period": [12],
-            "slow_period": [26],
-            "signal_period": [9],
+            # Wider spread between fast and slow, still relatively short for intraday
+            "fast_period": [3, 5, 8], 
+            "slow_period": [10, 15, 21], # Ensure slow > fast
+            "signal_period": [3, 5, 7],     
             "column": ["Close"],
         }
 
