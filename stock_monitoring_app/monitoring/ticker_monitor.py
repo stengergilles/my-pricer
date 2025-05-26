@@ -1,8 +1,10 @@
+
 import os
 import glob
 import json
 import time
 import pandas as pd
+import numpy as np # Import numpy
 from typing import Optional, List, Dict
 
 from stock_monitoring_app.strategies.base_strategy import BaseStrategy
@@ -174,15 +176,21 @@ class TickerMonitor:
 
         # Process the full DataFrame fetched for the period.
         # Indicators within the strategy will use the necessary historical window from this DataFrame.
+
         # Pass a copy to strategy.run() to prevent unintended modifications to the original DataFrame.
         strategy = BaseStrategy(indicator_configs=self._indicator_configs)
         signals_df = strategy.run(latest_data_df.copy())
 
+        # Initialize price and signal to defaults before conditional assignment
+        price = None
+        signal = "HOLD"
+        actioned_signals = {}
+
         if signals_df is not None and not signals_df.empty:
             # Extract signal, price, and actioned_signals from the *last row* of the processed DataFrame
             last_signal_row = signals_df.iloc[-1]
-            signal = last_signal_row.get('Strategy_Signal', "HOLD")
-            price = last_signal_row.get('Close', None)
+            signal = last_signal_row.get('Strategy_Signal', "HOLD") # Re-assign if available
+            price = last_signal_row.get('Close', None) # Re-assign if available
 
             # Using pd.isna() to robustly check for None, np.nan, pd.NA
             if pd.isna(price) or price == 0:
@@ -200,26 +208,28 @@ class TickerMonitor:
             
 
 
+
+
             self.current_price = price # Update current_price with the latest valid price
 
 
-            actioned_signals = {
-                col: last_signal_row[col]
-                for col in last_signal_row.index 
-                if col != 'Strategy_Signal' and (pd.notna(last_signal_row[col]) is True)
-            }
-        else: # This else corresponds to: if signals_df is not None and not signals_df.empty:
-            signal = "HOLD" # Corrected: single assignment, removed duplicate
-            price = None
             actioned_signals = {}
-        quantity = self.quantity
+            for col in last_signal_row.index:
+                if col != 'Strategy_Signal':
+                    value = last_signal_row[col]
+                    if value is pd.NA:
+                        actioned_signals[col] = None  # Serialize pd.NA as None
         position_before = self.position_value
         position_type_before = self.position_type
         order = None
         timestamp = pd.Timestamp.now(tz='UTC').isoformat()
 
+
         # Stop-loss logic
-        if self.position_type in ("long", "short") and self.entry_trade_price and price:
+        # Ensure price is not None before attempting comparisons for stop-loss
+        if price is not None and self.position_type in ("long", "short") and self.entry_trade_price:
+            # price is now guaranteed to be a float here due to earlier conversion if signals_df was valid,
+            # or this block is skipped if price is None.
             if self.position_type == "long":
                 threshold_price = self.entry_trade_price * self.stop_loss_threshold
                 stop_loss_triggered = price < threshold_price
@@ -235,10 +245,11 @@ class TickerMonitor:
                     "action": action,
                     "ticker": self.ticker,
                     "price": price,
+
                     "quantity": quantity,
                     "position_value": 0.0,
                     "timestamp": timestamp,
-                    "actioned_signals": {**actioned_signals, "stop_loss_triggered": True}
+                    "actioned_signals": {**actioned_signals, "stop_loss_triggered": bool(True)} # Ensure Python bool
                 }
                 self.position_value = 0.0
                 self.quantity = 0
