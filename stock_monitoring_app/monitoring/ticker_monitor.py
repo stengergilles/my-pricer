@@ -55,9 +55,9 @@ class TickerMonitor:
             )
         self.monitor_interval_seconds = monitor_interval_value
 
+
         self._indicator_configs = None
         self.position_value = 0.0
-        self._forced_entry_done = False
         self.opening_date_str = None
 
         self.position_type = "none"
@@ -78,10 +78,9 @@ class TickerMonitor:
         self.equity_at_trade_open: Optional[float] = None 
         
         self.current_price: Optional[float] = None # Latest market price
-        # self.position_value (existing) remains market value of current asset holding (price * quantity)
-        # self._initial_position_bias (existing) for forced entry
 
-        self._initial_position_bias: str = "long" # Default to long    
+        # self.position_value (existing) remains market value of current asset holding (price * quantity)
+
     def _resolve_indicator_class(self, module_name: str, class_name: str):
         import importlib
         try:
@@ -129,19 +128,9 @@ class TickerMonitor:
             files.sort(key=os.path.getmtime, reverse=True)
 
             latest_metrics_path = files[0]
+
             with open(latest_metrics_path, "r") as f:
                 metrics_data = json.load(f)
-
-            # Determine initial position bias based on backtest PNL
-            backtest_net_profit = metrics_data.get("net_profit", 0) # Default to 0 if not found
-            # Define a threshold for "significantly negative" if desired, e.g., < -self.entry_price * 0.01
-            # For simplicity, let's just use negative PNL for now.
-            if backtest_net_profit < 0:
-                self._initial_position_bias = "short"
-                print(f"INFO [{self.process_name}]: Backtest PNL was {backtest_net_profit}. Setting initial position bias to SHORT.")
-            else:
-                self._initial_position_bias = "long" # Default or positive PNL
-                print(f"INFO [{self.process_name}]: Backtest PNL was {backtest_net_profit}. Setting initial position bias to LONG.")
 
             loaded_raw_configs = metrics_data.get("indicator_configurations", [])
             resolved_configs = []
@@ -523,65 +512,12 @@ class TickerMonitor:
                 "current_position_type": self.position_type,                "actioned_signals": current_actioned_signals
             }
             self.trade_order_queue.put(info_order)
+
+
             # Typically, INFO orders are not stored in the same way as trade executions.
             # If _store_forwardtest_result is desired for INFO, uncomment the next line:
             # self._store_forwardtest_result(info_order)
             
-
-    def _force_initial_position(self):        
-        if self._forced_entry_done or self.initial_capital_allocation <= 0: # Check initial_capital_allocation
-            return
-        if self.position_type != "none": # Already in a position (e.g., if run manually after normal trading started)
-            print(f"INFO [{self.process_name}]: Already in position {self.position_type}, skipping forced initial position.")
-            self._forced_entry_done = True # Mark as done to prevent re-attempts
-            return
-        
-        latest_data_df = self._fetch_latest_data()
-
-        if latest_data_df is None or latest_data_df.empty:
-            print(f"WARN [{self.process_name}]: Cannot force initial position, no latest data.")
-            return
-
-        price = latest_data_df.iloc[-1]["Close"]
-        if pd.isna(price) or price <= 0:
-            print(f"WARN [{self.process_name}]: Cannot force initial position, invalid latest price: {price}")
-            return
-        
-        self.current_price = float(price) # Ensure current_price is set
-
-        # Set equity before this trade. At this point, self.current_value is initial_capital_allocation.
-        self.equity_at_trade_open = self.current_value 
-        
-        # Calculate quantity based on initial capital allocation
-        quantity_to_open = self.initial_capital_allocation / self.current_price
-        
-        action_type = "BUY" if self._initial_position_bias == "long" else "SELL"
-        
-
-        self.position_type = self._initial_position_bias        
-        self.entry_trade_price = self.current_price
-        self.quantity = quantity_to_open        
-        self.position_value = self.quantity * self.current_price # Market value of the assets traded        if not self.opening_date_str: # Set opening date if not already set by a regular trade            self.opening_date_str = pd.Timestamp.now(tz='UTC').strftime("%Y%m%d_%H%M%S")
-
-        order = {
-            "action": action_type,            
-            "ticker": self.ticker,
-            "price": self.current_price, # Use the validated and set self.current_price
-            "quantity": self.quantity,
-            "asset_value_traded": self.position_value,
-            "equity_before_trade": self.equity_at_trade_open, # Equity before this specific trade
-            "timestamp": pd.Timestamp.now(tz='UTC').isoformat(),
-            "actioned_signals": {"forced_entry": True, "initial_bias": self._initial_position_bias}
-        }
-        
-        self.trade_order_queue.put(order)
-        self._store_forwardtest_result(order)
-        print(f"INFO [{self.process_name}]: Forced initial {action_type} ({self._initial_position_bias} bias) at market price {self.current_price:.2f} | "
-              f"Quantity: {self.quantity:.4f} | Asset Value: ${self.position_value:.2f} | "
-              f"Equity Before: ${self.equity_at_trade_open:.2f}")
-
-        self._forced_entry_done = True
-
 
     def run(self):
         print(f"DEBUG: TickerMonitor.run() called for {self.ticker}")
@@ -604,16 +540,6 @@ class TickerMonitor:
         # Set running to true only if config load was successful and we intend to proceed
         self._running = True
 
-        # Attempt to force initial position
-        try:
-            self._force_initial_position()        
-        except Exception as e: # Catches exceptions from _fetch_latest_data within _force_initial_position
-            print(f"CRITICAL [{self.process_name}]: Failed to set initial position for {self.ticker} due to: {e}. Monitor stopping.")
-            self._running = False
-            return # Stop the monitor        # If _force_initial_position itself had logic to set self._running = False (e.g., if it's extended later)
-        if not self._running:
-            print(f"INFO [{self.process_name}]: Monitor startup for {self.ticker} was aborted before main loop.")
-            return
 
         print(f"INFO [{self.process_name}]: Monitor loop started. Interval: {self.monitor_interval_seconds}s.")
         while self._running:
