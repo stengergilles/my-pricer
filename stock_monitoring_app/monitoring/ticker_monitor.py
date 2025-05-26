@@ -6,64 +6,51 @@ import pandas as pd
 from typing import Optional, List, Dict
 
 from stock_monitoring_app.strategies.base_strategy import BaseStrategy
+from stock_monitoring_app.utils.notification import send_notification
 
-BACKTEST_SCOPE_PRESETS = {                        "intraday": {"period": "1d", "interval": "1m"},                                             "short": {"period": "1w", "interval": "15m"},                                               "long": {"period": "1mo", "interval": "1d"}                                             }
-
-# Dictionary to convert time intervals to seconds
-time_intervals = {
-    '1s': 1,
-    '5s': 5,
-    '10s': 10,
-    '30s': 30,
-    '1m': 60,
-    '5m': 300,
-    '15m': 900,
-    '30m': 1800,
-    '1h': 3600,
-    '2h': 7200,
-    '1d': 86400,
-    '7d': 604800,
-    '30d': 2592000,
-    '1month': 2592000,  # Approximation: 30 days
-    '1year': 31536000    # Approximation: 365 days
+BACKTEST_SCOPE_PRESETS = {
+    "intraday": {"period": "1d", "interval": "1m"},
+    "short": {"period": "1w", "interval": "15m"},
+    "long": {"period": "1mo", "interval": "1d"}
 }
 
-# Function to convert interval to seconds
+time_intervals = {
+    '1s': 1, '5s': 5, '10s': 10, '30s': 30,
+    '1m': 60, '5m': 300, '15m': 900, '30m': 1800,
+    '1h': 3600, '2h': 7200, '1d': 86400, '7d': 604800,
+    '30d': 2592000, '1month': 2592000, '1year': 31536000
+}
+
 def convert_to_seconds(interval):
     return time_intervals.get(interval, "Invalid interval")
 
 class TickerMonitor:
-    def __init__(
-        self,
-        ticker,
-        trade_order_queue,
-        entry_price,
-        process_name="Monitor",
-        backtest_scope="intraday",
-        leverage=1
-    ):
+
+    def __init__(self, ticker, trade_order_queue, entry_price, process_name="Monitor", backtest_scope="intraday", leverage=1,stop_loss=0.05):
         self.ticker = ticker
         self.trade_order_queue = trade_order_queue
         self.entry_price = entry_price
         self.process_name = process_name
-
+        self.quantity = 0
+        self.leverage = leverage
         self._running = False
         self._is_active_position = False
-        from stock_monitoring_app.monitoring.ticker_monitor import BACKTEST_SCOPE_PRESETS,convert_to_seconds
+
         if backtest_scope not in BACKTEST_SCOPE_PRESETS:
             raise ValueError(f"Unknown backtest_scope '{backtest_scope}'. Choose from {list(BACKTEST_SCOPE_PRESETS.keys())}")
         self.backtest_scope = backtest_scope
         self._period = BACKTEST_SCOPE_PRESETS[backtest_scope]["period"]
         self._interval = BACKTEST_SCOPE_PRESETS[backtest_scope]["interval"]
         self.monitor_interval_seconds = convert_to_seconds(self._interval)
+
         self._indicator_configs = None
+        self.position_value = 0.0
+        self._forced_entry_done = False
+        self.opening_date_str = None
 
-        # For position management in dollars
-        self.position_value = 0.0  # USD value of current position
-        self._forced_entry_done = False  # Track if forced entry was executed
-
-        # Track opening date for filename
-        self.opening_date_str = None  # Will be set when a position is opened
+        self.position_type = "none"
+        self.entry_trade_price = None
+        self.stop_loss_threshold = 1 - stop_loss
 
     def _resolve_indicator_class(self, module_name: str, class_name: str):
         import importlib
@@ -171,142 +158,208 @@ class TickerMonitor:
     def _process_data_and_decide(self, latest_data_df):
         print(f"INFO [{self.process_name}]: Processing data for {self.ticker}...")
 
-
         if self._indicator_configs is None:
-            print(f"WARN [{self.process_name}]: No indicator configs available, skipping decision.")            
+            print(f"WARN [{self.process_name}]: No indicator configs available, skipping decision.")
             return
 
-        DEFAULT_POSITION_VALUE = 1000.0  # Define unconditionally here
         latest_row = latest_data_df.iloc[[-1]]
-
         strategy = BaseStrategy(indicator_configs=self._indicator_configs)
         signals_df = strategy.run(latest_row)
 
         if signals_df is not None and not signals_df.empty:
             signal = signals_df.iloc[0].get('Strategy_Signal', "HOLD")
             price = signals_df.iloc[0].get('Close', None)
-
             if price is None or price == 0:
                 print(f"WARN [{self.process_name}]: No valid price for trade signal; skipping order emission.")
                 return
-            # DEFAULT_POSITION_VALUE = 1000.0 # Removed from conditional block
-            quantity = 0.0
-            actioned_signals = {}
-            for col in signals_df.columns:
-                if col != 'Strategy_Signal' and pd.notna(signals_df.iloc[0][col]):
-                    actioned_signals[col] = signals_df.iloc[0][col]
+            if self.initial_deposit:
+                self.delta = (price - self.current_price)/self.current_price
+                price_variation=self.initial_deposit*(self.delta/100)*self.leverage
+                self.current_value = self.initial_deposit + price_variation
+            self.current_price = price
+            actioned_signals = {
+                col: signals_df.iloc[0][col]
+                for col in signals_df.columns if col != 'Strategy_Signal' and pd.notna(signals_df.iloc[0][col])
+            }
         else:
             signal = "HOLD"
             price = None
-            quantity = 0.0
             actioned_signals = {}
-
+        quantity = self.quantity
         position_before = self.position_value
+        position_type_before = self.position_type
+        order = None
+        timestamp = pd.Timestamp.now(tz='UTC').isoformat()
 
+        # Stop-loss logic
+        if self.position_type in ("long", "short") and self.entry_trade_price and price:
+            if self.position_type == "long":
+                threshold_price = self.entry_trade_price * self.stop_loss_threshold
+                stop_loss_triggered = price < threshold_price
+            else:
+                threshold_price = self.entry_trade_price / self.stop_loss_threshold
+                stop_loss_triggered = price > threshold_price
 
+            if stop_loss_triggered:
+                print(f"INFO [{self.process_name}]: Stop-loss triggered. Closing {self.position_type} position.")
+                action = "SELL" if self.position_type == "long" else "BUY"
+                quantity = self.quantity
+                order = {
+                    "action": action,
+                    "ticker": self.ticker,
+                    "price": price,
+                    "quantity": quantity,
+                    "position_value": 0.0,
+                    "timestamp": timestamp,
+                    "actioned_signals": {**actioned_signals, "stop_loss_triggered": True}
+                }
+                self.position_value = 0.0
+                aelf.quantity = 0
+                self.position_type = "none"
+                self.entry_trade_price = None
+                self.trade_order_queue.put(order)
+                self._store_forwardtest_result(order)
+                return
+        # Signal-based trade logic
         if signal == "BUY":
-            if price is not None and price > 0:
-                if self.position_value == 0:
-                    self.position_value = DEFAULT_POSITION_VALUE
-                quantity = float(self.position_value) / float(price)
-            else:
-                quantity = 0.0
-                # This case should ideally not be reached due to earlier checks, but good for robustness
-                print(f"WARN [{self.process_name}]: Invalid price ({price}) for BUY signal. Setting quantity to 0.")
+            if self.position_type == "none":
+                quantity = self.quantity
+                self.position_value = quantity * price
+                self.position_type = "long"
+                self.entry_trade_price = price
+                order = {
+                    "action": "BUY",
+                    "ticker": self.ticker,
+                    "price": price,
+                    "quantity": quantity,
+                    "position_value": self.position_value,
+                    "timestamp": timestamp,
+                    "actioned_signals": actioned_signals
+                }
+            elif self.position_type == "short":
+                quantity = self.quantity
+                self.position_value = 0.0
+                self.position_type = "none"
+                self.entry_trade_price = None
+                order = {
+                    "action": "BUY",
+                    "ticker": self.ticker,
+                    "price": price,
+                    "quantity": quantity,
+                    "position_value": 0.0,
+                    "timestamp": timestamp,
+                    "actioned_signals": actioned_signals
+                }
+
         elif signal == "SELL":
-            if self.position_value > 0:
-                if price is not None and price > 0:
-                    quantity = float(self.position_value) / float(price)
-                else:
-                    quantity = 0.0
-                    # This case should ideally not be reached
-                    print(f"WARN [{self.process_name}]: Invalid price ({price}) for SELL signal. Setting quantity to 0.")
-            else:
-                quantity = 0.0
-            self.position_value = 0.0
-        else:
-            quantity = float(self.position_value) / float(price) if price else 0.0
+            if self.position_type == "none":
+                quantity = self.quantity
+                self.position_value = quantity * price
+                self.position_type = "short"
+                self.entry_trade_price = price
+                order = {
+                    "action": "SELL",
+                    "ticker": self.ticker,
+                    "price": price,
+                    "quantity": quantity,
+                    "position_value": self.position_value,
+                    "timestamp": timestamp,
+                    "actioned_signals": actioned_signals
+                }
+            elif self.position_type == "long":
+                quantity = self.quantity
+                self.position_value = 0.0
+                self.position_type = "none"
+                self.entry_trade_price = None
+                order = {
+                    "action": "SELL",
+                    "ticker": self.ticker,
+                    "price": price,
+                    "quantity": quantity,
+                    "position_value": 0.0,
+                    "timestamp": timestamp,
+                    "actioned_signals": actioned_signals
+                }
 
-        print(f"INFO [{self.process_name}]: Signal for {self.ticker}: {signal} | Price: {price} | Position $ before: {position_before} | after: {self.position_value} | Quantity: {quantity}")
-
-        if signal != "HOLD":
-            order = {
-                "action": signal,
-                "ticker": self.ticker,
-                "price": price,
-                "quantity": quantity,  # number of shares as float
-                "position_value": self.position_value,
-                "timestamp": pd.Timestamp.now(tz='UTC').isoformat(),
-                "actioned_signals": actioned_signals,
-            }
+        if order:
+            print(f"INFO [{self.process_name}]: Signal {signal} | Price: {price} | From {position_type_before} to {self.position_type} | Position $: {position_before} -> {self.position_value} | Quantity: {order['quantity']}")
             self.trade_order_queue.put(order)
-            self._store_forwardtest_result(order)  # Store in forwardtest_output
-
+            self._store_forwardtest_result(order)
+        else:
+            order = {
+                "action": "INFO",
+                "ticker": self.ticker,
+                "price": self.current_price,
+                "quantity": self.quantity,
+                "position_value": self.current_value,
+                "timestamp": timestamp,
+                "actioned_signals": {}
+            }
+            print(f"INFO [{self.process_name}]: No position change for signal {signal}. Holding current position at ${self.current_value} Market Price ${self.current_price}")
+        self.trade_order_queue.put(order)
+        self._store_forwardtest_result(order)
+        if order["action"]=="SELL" or order["action"]=="BUY":
+            send_notification(f"Trade Order {order['action']}:{order['ticker']}",f"${order['price']}, ${order['position_value']}")
+            
     def _force_initial_position(self):
         if self._forced_entry_done or self.entry_price <= 0 or self.position_value > 0:
             return
         latest_data_df = self._fetch_latest_data()
         if latest_data_df is not None and not latest_data_df.empty:
             price = latest_data_df.iloc[-1]["Close"]
-            self.position_value = self.entry_price
             quantity = float(self.entry_price) / float(price)
-            # Set the opening date string here on first forced entry
+            self.current_value = quantity * price
+            self.initial_deposit = self.current_value
+            self.current_price = price
+            self.quantity = quantity
+            self.position_value = quantity * price
+            self.position_type = "long"
+            self.entry_trade_price = price
             self.opening_date_str = pd.Timestamp.now(tz='UTC').strftime("%Y%m%d_%H%M%S")
             order = {
                 "action": "BUY",
                 "ticker": self.ticker,
                 "price": price,
-                "quantity": quantity,  # number of shares as float
+                "quantity": quantity,
                 "position_value": self.position_value,
                 "timestamp": pd.Timestamp.now(tz='UTC').isoformat(),
                 "actioned_signals": {"forced_entry": True}
             }
             self.trade_order_queue.put(order)
-            self._store_forwardtest_result(order)  # Store in forwardtest_output
+            self._store_forwardtest_result(order)
+            send_notification(f"Trade Order {order['action']}:{order['ticker']}",f"${order['price']}, ${order['position_value']}")
             print(f"INFO [{self.process_name}]: Forced initial BUY at entry price {self.entry_price} (market price {price}) | Quantity: {quantity}")
             self._forced_entry_done = True
 
     def run(self):
         print(f"DEBUG: TickerMonitor.run() called for {self.ticker}")
         print(f"INFO [{self.process_name}]: Starting monitor for {self.ticker} with entry price {self.entry_price:.2f}...")
-        indicator_configs = self._load_optimized_config_from_disk()
-        self._indicator_configs = indicator_configs
+        self._indicator_configs = self._load_optimized_config_from_disk()
         self._running = True
 
-        # >>>> FORCE INITIAL POSITION IF NEEDED <<<<
         self._force_initial_position()
 
         print(f"INFO [{self.process_name}]: Monitor loop started. Interval: {self.monitor_interval_seconds}s.")
         while self._running:
             start_time = time.time()
             print(f"INFO [{self.process_name}]: Cycle started at {pd.Timestamp.now(tz='UTC')}.")
+
             try:
                 latest_data_df = self._fetch_latest_data()
                 if latest_data_df is not None and not latest_data_df.empty:
                     self._process_data_and_decide(latest_data_df)
-                    fetch_status = "OK"
-                else:
-                    print(f"WARN [{self.process_name}]: Skipping processing due to no data from fetch.")
-                    fetch_status = "No data"
             except Exception as e:
                 print(f"ERROR [{self.process_name}]: Exception during fetch or process: {e}")
-                fetch_status = f"Error: {e}"
 
             elapsed_time = time.time() - start_time
             sleep_duration = self.monitor_interval_seconds - elapsed_time
 
             if sleep_duration > 0:
-                print(f"INFO [{self.process_name}]: Cycle finished in {elapsed_time:.2f}s. Sleeping for {sleep_duration:.2f}s...")
-                for _ in range(int(sleep_duration)):
-                    if not self._running:
-                        break
-                    time.sleep(1)
-                if self._running and sleep_duration % 1 > 0:
-                    time.sleep(sleep_duration % 1)
-            else:
-                print(f"WARN [{self.process_name}]: Cycle took {elapsed_time:.2f}s, exceeding monitor interval of {self.monitor_interval_seconds}s.")
+                print(f"INFO [{self.process_name}]: Sleeping for {sleep_duration:.2f}s...")
+                time.sleep(sleep_duration)
 
         print(f"INFO [{self.process_name}]: Monitor loop stopped for {self.ticker}.")
 
     def stop(self):
         self._running = False
+

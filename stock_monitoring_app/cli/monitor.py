@@ -38,7 +38,7 @@ def print_indicator_summary(indicator_configs):
         params = conf.get("params")
         print(f"- {getattr(cls, '__name__', str(cls))} | Params: {params}")
 
-def monitor_worker(ticker, entry_price, order_queue, status_queue, scope):
+def monitor_worker(ticker, entry_price, order_queue, status_queue, scope,leverage,stop_loss):
     import traceback
 
     try:
@@ -48,6 +48,8 @@ def monitor_worker(ticker, entry_price, order_queue, status_queue, scope):
             entry_price=entry_price,
             process_name=f"CLI-Monitor-{ticker}",
             backtest_scope=scope,
+            leverage=leverage,
+            stop_loss=stop_loss
         )
 
         # Optionally load indicator configs for CLI summary, but actual logic should always use run()
@@ -76,6 +78,8 @@ def main():
     parser = argparse.ArgumentParser(description="Start a real-time ticker monitor.")
     parser.add_argument("ticker", help="Ticker symbol (e.g., AAPL, BTC)")
     parser.add_argument("--entry", type=float, default=100.0, help="Entry price (default: 100.0)")
+    parser.add_argument("--leverage",type=float,default=1.0,help="Position Leverage (default: 1.0)")
+    parser.add_argument("--stop_loss",type=float,default=0.05,help=" (default: 0.05)")
     parser.add_argument(
         "--scope",
         type=str,
@@ -94,7 +98,7 @@ def main():
     status_queue = multiprocessing.Queue()
     monitor_proc = multiprocessing.Process(
         target=monitor_worker,
-        args=(ticker, entry_price, order_queue, status_queue, scope),
+        args=(ticker, entry_price, order_queue, status_queue, scope,args.leverage,args.stop_loss),
         daemon=True,
     )
 
@@ -120,7 +124,8 @@ def main():
                     continue
 
             try:
-                msg = status_queue.get(timeout=monitor_interval)
+#                msg = status_queue.get(timeout=monitor_interval)
+                msg = status_queue.get_nowait()
                 if msg["type"] == "fetch_status":
                     print(f"[Fetch status] {msg['data']} | Last good: {msg['last_good']}")
                 elif msg["type"] == "exception":
