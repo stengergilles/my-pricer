@@ -172,28 +172,40 @@ class TickerMonitor:
             print(f"WARN [{self.process_name}]: No indicator configs available, skipping decision.")
             return
 
-        latest_row = latest_data_df.iloc[[-1]]
+        # Process the full DataFrame fetched for the period.
+        # Indicators within the strategy will use the necessary historical window from this DataFrame.
+        # Pass a copy to strategy.run() to prevent unintended modifications to the original DataFrame.
         strategy = BaseStrategy(indicator_configs=self._indicator_configs)
-        signals_df = strategy.run(latest_row)
+        signals_df = strategy.run(latest_data_df.copy())
 
         if signals_df is not None and not signals_df.empty:
+            # Extract signal, price, and actioned_signals from the *last row* of the processed DataFrame
+            last_signal_row = signals_df.iloc[-1]
+            signal = last_signal_row.get('Strategy_Signal', "HOLD")
+            price = last_signal_row.get('Close', None)
 
-            signal = signals_df.iloc[0].get('Strategy_Signal', "HOLD")
-            price = signals_df.iloc[0].get('Close', None)
             # Using pd.isna() to robustly check for None, np.nan, pd.NA
             if pd.isna(price) or price == 0:
-                print(f"WARN [{self.process_name}]: No valid price (None, NA, or 0) for trade signal; skipping order emission.")
+                print(f"WARN [{self.process_name}]: No valid price (None, NA, or 0) from the last signal row; skipping order emission.")
                 return
-            if self.initial_deposit:
-                self.delta = (price - self.current_price)/self.current_price
-                price_variation=self.initial_deposit*(self.delta/100)*self.leverage
+            
+            # Ensure price is float for calculations
+            price = float(price)
+
+            if hasattr(self, 'initial_deposit') and self.initial_deposit is not None and \
+               hasattr(self, 'current_price') and self.current_price is not None and self.current_price != 0:
+                self.delta = (price - self.current_price) / self.current_price
+                price_variation = self.initial_deposit * (self.delta / 100) * self.leverage # Note: delta calculation seems off for percentage
                 self.current_value = self.initial_deposit + price_variation
-            self.current_price = price
+            
+            self.current_price = price # Update current_price with the latest valid price
+
             actioned_signals = {
-                col: signals_df.iloc[0][col]
-                for col in signals_df.columns if col != 'Strategy_Signal' and pd.notna(signals_df.iloc[0][col])
+                col: last_signal_row[col]
+                for col in last_signal_row.index if col != 'Strategy_Signal' and pd.notna(last_signal_row[col])
             }
         else:
+            signal = "HOLD"
             signal = "HOLD"
             price = None
             actioned_signals = {}

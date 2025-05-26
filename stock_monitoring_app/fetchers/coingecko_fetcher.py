@@ -78,13 +78,29 @@ class CoinGeckoFetcher(Fetcher):
         cg_days = period_map_cg[period.lower()]
 
         # API endpoint: /coins/{id}/market_chart
+
         api_url = f"{self.API_BASE_URL}/coins/{coin_id}/market_chart"
         
         params = {
             'vs_currency': vs_currency,
-            'days': cg_days,
-            'interval': 'daily' # Request daily data
+            'days': cg_days
+            # 'interval' parameter will be set conditionally below
         }
+
+        # Determine CoinGecko interval parameter based on cg_days.
+        # For short periods (<= 90 days), omitting 'interval' lets CoinGecko provide
+        # finer granularity (e.g., hourly for free API, potentially minutes for Pro).
+        # For longer periods (> 90 days or 'max'), explicitly request 'daily'.
+        if isinstance(cg_days, str) and cg_days == "max":
+            params['interval'] = 'daily'
+        elif isinstance(cg_days, int) and cg_days > 90:
+            params['interval'] = 'daily'
+        else:
+            # For cg_days <= 90 (e.g., for periods like "1d", "1w", "1mo", "3mo"),
+            # do not set params['interval']. CoinGecko will automatically select
+            # a more granular interval (e.g., hourly for its free/standard API tier).
+            pass
+
         if self.api_key: # Include API key if provided (for Pro features, higher rate limits)
             # CoinGecko API key might be passed as a header or query parameter depending on plan.
             # For demo/public it's often x_cg_demo_api_key, for pro x_cg_pro_api_key
