@@ -564,7 +564,8 @@ class TickerMonitor:
         self.position_value = self.quantity * self.current_price # Market value of the assets traded        if not self.opening_date_str: # Set opening date if not already set by a regular trade            self.opening_date_str = pd.Timestamp.now(tz='UTC').strftime("%Y%m%d_%H%M%S")
 
         order = {
-            "action": action_type,            "ticker": self.ticker,
+            "action": action_type,            
+            "ticker": self.ticker,
             "price": self.current_price, # Use the validated and set self.current_price
             "quantity": self.quantity,
             "asset_value_traded": self.position_value,
