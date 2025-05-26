@@ -198,15 +198,18 @@ class TickerMonitor:
                 price_variation = self.initial_deposit * (self.delta / 100) * self.leverage # Note: delta calculation seems off for percentage
                 self.current_value = self.initial_deposit + price_variation
             
+
+
             self.current_price = price # Update current_price with the latest valid price
+
 
             actioned_signals = {
                 col: last_signal_row[col]
-                for col in last_signal_row.index if col != 'Strategy_Signal' and pd.notna(last_signal_row[col])
+                for col in last_signal_row.index 
+                if col != 'Strategy_Signal' and (pd.notna(last_signal_row[col]) is True)
             }
-        else:
-            signal = "HOLD"
-            signal = "HOLD"
+        else: # This else corresponds to: if signals_df is not None and not signals_df.empty:
+            signal = "HOLD" # Corrected: single assignment, removed duplicate
             price = None
             actioned_signals = {}
         quantity = self.quantity
