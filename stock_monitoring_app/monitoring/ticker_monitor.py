@@ -327,7 +327,6 @@ class TickerMonitor:
             }
             self.trade_order_queue.put(order)
             self._store_forwardtest_result(order)
-            send_notification(f"Trade Order {order['action']}:{order['ticker']}",f"${order['price']}, ${order['position_value']}")
             print(f"INFO [{self.process_name}]: Forced initial BUY at entry price {self.entry_price} (market price {price}) | Quantity: {quantity}")
             self._forced_entry_done = True
 
