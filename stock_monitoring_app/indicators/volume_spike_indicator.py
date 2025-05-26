@@ -27,9 +27,17 @@ class VolumeSpikeIndicator(Indicator):
             spike_multiplier: The factor by which current volume must exceed average volume to be a spike.
             volume_col: Name of the volume column.
         """
+
         super().__init__(df)
         self.data = df  # Ensure `data` is initialized
         self.window = window
+
+        # Check if DataFrame has enough data for the given window.
+        if len(self.df) < self.window:
+            raise ValueError(
+                f"Insufficient data for {self.__class__.__name__} (window: {self.window}): "
+                f"{len(self.df)} rows provided, requires at least {self.window} rows."
+            )
         self.spike_multiplier = spike_multiplier
         self.volume_col = volume_col
         self.signal_orientations: dict[str, str] = {} # Initialize, will remain empty for this indicator

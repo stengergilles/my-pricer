@@ -287,31 +287,23 @@ class BackTest:
                 search_space = indicator_class.get_search_space()
                 param_search_space_defined = True
 
+
             if param_search_space_defined and search_space:
                 import itertools
                 param_names = list(search_space.keys())
                 param_value_lists = [search_space[k] for k in param_names]
 
                 for combination in itertools.product(*param_value_lists):
-                    current_trial_params = dict(zip(param_names, combination))
-                    # Always add 'column': 'Close' if not set and 'Close' is expected
+                    current_trial_params = dict(zip(param_names, combination))                    # Always add 'column': 'Close' if not set and 'Close' is expected
                     if 'column' in param_names and 'column' not in current_trial_params:
                         current_trial_params['column'] = 'Close'
 
                     trial_run_configs = []
                     for i_conf, conf_item in enumerate(initial_discovered_configs):
                         if i_conf == idx_tuned:
-                            trial_run_configs.append({'type': indicator_class, 'params': current_trial_params})
+                            trial_run_configs.append({'type': indicator_class, 'params': current_trial_params})                
                         else:
                             trial_run_configs.append(conf_item)
-                    trial_strategy = BaseStrategy(indicator_configs=trial_run_configs)
-                    trial_results = trial_strategy.run(data.copy())
-                    current_pnl = self._calculate_placeholder_pnl(trial_results)
-                    if current_pnl > best_pnl_for_current_type:
-                        best_pnl_for_current_type = current_pnl
-                        best_params_for_current_type = current_trial_params
-            else:
-                print(f"      No get_search_space() defined for {indicator_class.__name__}. Using default params.")
 
             print(f"      Selected best PNL for {indicator_class.__name__}: {best_pnl_for_current_type} with params: {best_params_for_current_type}")
             final_optimized_configs.append({'type': indicator_class, 'params': best_params_for_current_type})
@@ -354,10 +346,21 @@ class BackTest:
 
         print(f"Running backtest for {self.ticker} with {len(self.current_indicator_configs)} configured indicator(s).")
 
+
         self.strategy = BaseStrategy(indicator_configs=self.current_indicator_configs)
         
-        # Generate signals using the strategy
-        signal_generation_results = self.strategy.run(self.historical_data.copy()) 
+        try:
+            # Generate signals using the strategy
+            print(f"INFO: Running strategy for {self.ticker} with indicators: "
+                  f"{[f'{c["type"].__name__}({c.get("params")})' for c in self.current_indicator_configs]}")
+            signal_generation_results = self.strategy.run(self.historical_data.copy())
+        except Exception as e:
+            print(f"ERROR: Strategy execution failed for {self.ticker} during backtest. "
+                  "This may be due to an error in one of the configured indicators.")
+            print(f"       Final indicator configurations attempted: {self.current_indicator_configs}")
+            print(f"       Original error: {type(e).__name__}: {e}")
+            # Re-raise the exception to halt the backtest as the main strategy run failed.
+            raise
 
         if signal_generation_results is None or signal_generation_results.empty:
             print(f"Backtest for {self.ticker} did not produce signals. Check strategy and indicator logic.")

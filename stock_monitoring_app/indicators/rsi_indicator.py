@@ -30,18 +30,23 @@ class RSIIndicator(Indicator):
             rsi_overbought: The RSI level above which an asset is considered overbought.
         """
 
+
         super().__init__(df)
         self.period = period
 
-        self.column = column
-        self.rsi_oversold = rsi_oversold
-        self.rsi_overbought = rsi_overbought
-        
-        if self.column not in self.df.columns:
-            raise ValueError(f"Column '{self.column}' not found in DataFrame for RSI calculation.")
+        # Check if DataFrame has enough data for the given period, plus one for Wilder smoothing.
+        if len(self.df) < self.period + 1:
+            raise ValueError(
+                f"Insufficient data for {self.__class__.__name__} (period: {self.period}): "
+                f"{len(self.df)} rows provided, requires at least {self.period + 1} rows "
+                f"to ensure at least one Wilder smoothing step."
 
-        # Define and register signal column names and their orientations
-        self.oversold_signal_col = f'RSI_Oversold_Signal_{self.period}'
+            )
+
+        self.column = column
+        self.rsi_oversold = rsi_oversold         # Initialize rsi_oversold
+        self.rsi_overbought = rsi_overbought     # Initialize rsi_overbought
+        self.oversold_signal_col = f'RSI_Oversold_Signal_{self.period}' # Define oversold_signal_col
         self.overbought_signal_col = f'RSI_Overbought_Signal_{self.period}'
         self.signal_orientations[self.oversold_signal_col] = 'buy'  # Buying when oversold
         self.signal_orientations[self.overbought_signal_col] = 'sell' # Selling when overbought
@@ -52,7 +57,9 @@ class RSIIndicator(Indicator):
         and 'RSI_Overbought_Signal' columns to the DataFrame.
         """
         close = self.df[self.column]
+
         delta = close.diff()
+        delta = pd.to_numeric(delta, errors='coerce') # Ensure delta is numeric
 
         gain = delta.where(delta > 0, 0.0)
         loss = -delta.where(delta < 0, 0.0)

@@ -28,8 +28,16 @@ class MAIndicator(Indicator):
             ma_type: 'sma' for Simple, 'ema' for Exponential.
             column: Which column to calculate MA on.
         """
+
         super().__init__(df)
         self.window = window
+
+        # Check if DataFrame has enough data for the given window.
+        if len(self.df) < self.window:
+            raise ValueError(
+                f"Insufficient data for {self.__class__.__name__} (window: {self.window}): "
+                f"{len(self.df)} rows provided, requires at least {self.window} rows."
+            )
         self.ma_type = ma_type.lower()
         self.column = column
 

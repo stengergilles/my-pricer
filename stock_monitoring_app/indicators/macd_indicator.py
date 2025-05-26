@@ -29,9 +29,18 @@ class MACDIndicator(Indicator):
             signal_period: Period for the signal EMA.
             column: The DataFrame column to use for calculation (typically 'Close').
         """
+
         super().__init__(df)
         self.fast_period = fast_period
         self.slow_period = slow_period
+        
+        # Check if DataFrame has enough data for the slow_period (longest EMA).
+        if len(self.df) < self.slow_period:
+            raise ValueError(
+                f"Insufficient data for {self.__class__.__name__} (slow_period: {self.slow_period}): "
+                f"{len(self.df)} rows provided, requires at least {self.slow_period} rows."
+            )
+        
         self.signal_period = signal_period
         self.column = column
 

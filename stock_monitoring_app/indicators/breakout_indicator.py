@@ -27,8 +27,17 @@ class BreakoutIndicator(Indicator):
             low_col: Name of the low price column.
             close_col: Name of the close price column.
         """
+
         super().__init__(df)
         self.window = window
+
+        # Rolling max/min needs 'window' periods for first value, then shift(1).
+        # So, to get at least one comparable value, len(df) >= window + 1.
+        if len(self.df) < self.window + 1:
+            raise ValueError(
+                f"Insufficient data for {self.__class__.__name__} (window: {self.window}): "
+                f"{len(self.df)} rows provided, requires at least {self.window + 1} rows."
+            )
         self.high_col = high_col
 
         self.low_col = low_col

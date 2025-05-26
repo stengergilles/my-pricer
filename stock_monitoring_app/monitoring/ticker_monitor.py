@@ -38,10 +38,20 @@ class TickerMonitor:
 
         if backtest_scope not in BACKTEST_SCOPE_PRESETS:
             raise ValueError(f"Unknown backtest_scope '{backtest_scope}'. Choose from {list(BACKTEST_SCOPE_PRESETS.keys())}")
+
         self.backtest_scope = backtest_scope
         self._period = BACKTEST_SCOPE_PRESETS[backtest_scope]["period"]
         self._interval = BACKTEST_SCOPE_PRESETS[backtest_scope]["interval"]
-        self.monitor_interval_seconds = convert_to_seconds(self._interval)
+        
+        monitor_interval_value = convert_to_seconds(self._interval)
+        if not isinstance(monitor_interval_value, int):
+            # This should not happen if _interval from BACKTEST_SCOPE_PRESETS is always valid.
+            # Adding this check for type safety and to inform the type checker.
+            raise TypeError(
+                f"Failed to convert interval '{self._interval}' to a valid integer of seconds. "
+                f"Got: {monitor_interval_value}"
+            )
+        self.monitor_interval_seconds = monitor_interval_value
 
         self._indicator_configs = None
         self.position_value = 0.0
@@ -167,10 +177,12 @@ class TickerMonitor:
         signals_df = strategy.run(latest_row)
 
         if signals_df is not None and not signals_df.empty:
+
             signal = signals_df.iloc[0].get('Strategy_Signal', "HOLD")
             price = signals_df.iloc[0].get('Close', None)
-            if price is None or price == 0:
-                print(f"WARN [{self.process_name}]: No valid price for trade signal; skipping order emission.")
+            # Using pd.isna() to robustly check for None, np.nan, pd.NA
+            if pd.isna(price) or price == 0:
+                print(f"WARN [{self.process_name}]: No valid price (None, NA, or 0) for trade signal; skipping order emission.")
                 return
             if self.initial_deposit:
                 self.delta = (price - self.current_price)/self.current_price
@@ -214,7 +226,7 @@ class TickerMonitor:
                     "actioned_signals": {**actioned_signals, "stop_loss_triggered": True}
                 }
                 self.position_value = 0.0
-                aelf.quantity = 0
+                self.quantity = 0
                 self.position_type = "none"
                 self.entry_trade_price = None
                 self.trade_order_queue.put(order)
@@ -224,18 +236,19 @@ class TickerMonitor:
         if signal == "BUY":
             if self.position_type == "none":
                 quantity = self.quantity
-                self.position_value = quantity * price
-                self.position_type = "long"
-                self.entry_trade_price = price
-                order = {
-                    "action": "BUY",
-                    "ticker": self.ticker,
-                    "price": price,
-                    "quantity": quantity,
-                    "position_value": self.position_value,
-                    "timestamp": timestamp,
-                    "actioned_signals": actioned_signals
-                }
+                if not price is None:
+                    self.position_value = float(quantity) * float(price)
+                    self.position_type = "long"
+                    self.entry_trade_price = price
+                    order = {
+                        "action": "BUY",
+                        "ticker": self.ticker,
+                        "price": price,
+                        "quantity": quantity,
+                        "position_value": self.position_value,
+                        "timestamp": timestamp,
+                        "actioned_signals": actioned_signals
+                    }
             elif self.position_type == "short":
                 quantity = self.quantity
                 self.position_value = 0.0
@@ -254,18 +267,19 @@ class TickerMonitor:
         elif signal == "SELL":
             if self.position_type == "none":
                 quantity = self.quantity
-                self.position_value = quantity * price
-                self.position_type = "short"
-                self.entry_trade_price = price
-                order = {
-                    "action": "SELL",
-                    "ticker": self.ticker,
-                    "price": price,
-                    "quantity": quantity,
-                    "position_value": self.position_value,
-                    "timestamp": timestamp,
-                    "actioned_signals": actioned_signals
-                }
+                if not price is None:
+                    self.position_value = float(quantity) * float(price)
+                    self.position_type = "short"
+                    self.entry_trade_price = price
+                    order = {
+                        "action": "SELL",
+                        "ticker": self.ticker,
+                        "price": price,
+                        "quantity": quantity,
+                        "position_value": self.position_value,
+                        "timestamp": timestamp,
+                        "actioned_signals": actioned_signals
+                    }
             elif self.position_type == "long":
                 quantity = self.quantity
                 self.position_value = 0.0
@@ -328,15 +342,40 @@ class TickerMonitor:
             self.trade_order_queue.put(order)
             self._store_forwardtest_result(order)
             print(f"INFO [{self.process_name}]: Forced initial BUY at entry price {self.entry_price} (market price {price}) | Quantity: {quantity}")
+
             self._forced_entry_done = True
 
     def run(self):
         print(f"DEBUG: TickerMonitor.run() called for {self.ticker}")
         print(f"INFO [{self.process_name}]: Starting monitor for {self.ticker} with entry price {self.entry_price:.2f}...")
-        self._indicator_configs = self._load_optimized_config_from_disk()
+
+        # Attempt to load/generate indicator configurations
+        try:
+            self._indicator_configs = self._load_optimized_config_from_disk()
+            if self._indicator_configs is None:
+                print(f"CRITICAL [{self.process_name}]: Failed to load or generate indicator configurations for {self.ticker}. Monitor stopping.")
+                self._running = False # Ensure consistent state
+                return # Stop the monitor
+        except Exception as e:
+            # This catches exceptions from _load_optimized_config_from_disk if it doesn't handle them (e.g. unexpected errors),
+            # or if _run_backtest() within it raises something not caught by _load_optimized_config_from_disk's own try-except.
+            print(f"CRITICAL [{self.process_name}]: Unhandled exception during indicator configuration loading for {self.ticker}: {e}. Monitor stopping.")
+            self._running = False
+            return
+
+        # Set running to true only if config load was successful and we intend to proceed
         self._running = True
 
-        self._force_initial_position()
+        # Attempt to force initial position
+        try:
+            self._force_initial_position()        
+        except Exception as e: # Catches exceptions from _fetch_latest_data within _force_initial_position
+            print(f"CRITICAL [{self.process_name}]: Failed to set initial position for {self.ticker} due to: {e}. Monitor stopping.")
+            self._running = False
+            return # Stop the monitor        # If _force_initial_position itself had logic to set self._running = False (e.g., if it's extended later)
+        if not self._running:
+            print(f"INFO [{self.process_name}]: Monitor startup for {self.ticker} was aborted before main loop.")
+            return
 
         print(f"INFO [{self.process_name}]: Monitor loop started. Interval: {self.monitor_interval_seconds}s.")
         while self._running:
@@ -344,20 +383,33 @@ class TickerMonitor:
             print(f"INFO [{self.process_name}]: Cycle started at {pd.Timestamp.now(tz='UTC')}.")
 
             try:
-                latest_data_df = self._fetch_latest_data()
+                latest_data_df = self._fetch_latest_data() # This can raise if fetcher.fetch_data fails
                 if latest_data_df is not None and not latest_data_df.empty:
                     self._process_data_and_decide(latest_data_df)
-            except Exception as e:
-                print(f"ERROR [{self.process_name}]: Exception during fetch or process: {e}")
+                # If latest_data_df is None or empty, _fetch_latest_data might have returned an empty DataFrame                # after printing a warning (this is fine). The critical part is if _fetch_latest_data *raises* an exception.
+            except Exception as e: # Catches exceptions from _fetch_latest_data or _process_data_and_decide
+                print(f"ERROR [{self.process_name}]: Unhandled exception during monitoring cycle for {self.ticker}: {e}. Monitor stopping.")
+                self._running = False # Signal to stop; loop will terminate
+            
+            if not self._running: # If an error above set _running to False, break immediately
+                break
 
             elapsed_time = time.time() - start_time
             sleep_duration = self.monitor_interval_seconds - elapsed_time
 
             if sleep_duration > 0:
                 print(f"INFO [{self.process_name}]: Sleeping for {sleep_duration:.2f}s...")
+                # Check self._running again before a potentially long sleep,
+                # in case stop() was called from another thread.
+                if not self._running:
+                    break
                 time.sleep(sleep_duration)
-
+            
+            if not self._running: # Check after sleep or if sleep_duration was <=0
+                break        
         print(f"INFO [{self.process_name}]: Monitor loop stopped for {self.ticker}.")
+
+   
 
     def stop(self):
         self._running = False
