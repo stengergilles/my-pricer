@@ -112,7 +112,8 @@ class MonitorController(EventDispatcher): # Use the directly imported EventDispa
 
     def start(self):
         if self.process is None or not self.process.is_alive(): # Ensure colon is present
-            if launch_ticker_monitor_process is None:                self.logs.append(f"[PARENT_ERROR] Cannot start {self.ticker}: launcher missing.")
+            if launch_ticker_monitor_process is None:                
+                self.logs.append(f"[PARENT_ERROR] Cannot start {self.ticker}: launcher missing.")
                 self.status_text = "ERROR"
                 self.last_error_message_internal = "Process launcher missing."
                 return
@@ -137,7 +138,8 @@ class MonitorController(EventDispatcher): # Use the directly imported EventDispa
             self._update_display_properties()
 
 
-    def stop(self):        if self.process and self.process.is_alive():
+    def stop(self):        
+        if self.process and self.process.is_alive():
             try:
                 self.process.terminate()
                 self.process.join(timeout=5)
@@ -151,7 +153,9 @@ class MonitorController(EventDispatcher): # Use the directly imported EventDispa
         self.status_text = "STOPPED"
         self.is_running = False
         self.logs.append(f"[PARENT] Stopped monitor for {self.ticker}")
-        self._update_display_properties()    def poll(self):
+        self._update_display_properties()    
+        
+    def poll(self):
         if not self.parent_conn:
             return False
         
@@ -180,7 +184,8 @@ class MonitorController(EventDispatcher): # Use the directly imported EventDispa
                 if mtype == "stdout" or mtype == "stderr":
 
                     prefix = "[CHILD_STDOUT]" if mtype == "stdout" else "[CHILD_STDERR]"
-                    output_data = str(data).rstrip('\n')                    self.stdout_log.append(f"{prefix} {output_data}")
+                    output_data = str(data).rstrip('\n')                    
+                    self.stdout_log.append(f"{prefix} {output_data}")
                     log_entry = f"{prefix} {output_data}"
                     if any(kw in output_data.upper() for kw in ["CRITICAL", "EXCEPTION", "ERROR [", "FAILED", "GIVING UP"]):
                         if self.status_text != "ERROR":
@@ -245,10 +250,26 @@ class MonitorController(EventDispatcher): # Use the directly imported EventDispa
                     try: self.display_equity_internal = float(equity_val)
                     except: pass
                 log_parts.append(f"EQ:{self.display_equity_internal:,.2f}")
+
                 log_entry = f"[CHILD_MSG] {' | '.join(log_parts)}"
                 # SIGS part ommitted for brevity, can be added if needed
             
-            elif log_entry is None:                log_entry = f"[PARENT_UNHANDLED_MSG] {str(raw_msg)[:100]}"            if log_entry: self.logs.append(log_entry)
+            elif log_entry is None:
+                # This block is reached if raw_msg wasn't a known "type" or "action" message.
+                # Since log_entry was initialized to None at the start of the poll loop iteration,
+                # and not set by the preceding conditions, it will be None here.
+                log_entry = f"[PARENT_UNHANDLED_MSG] {str(raw_msg)[:100]}"
+            
+            # This 'if' block should be at the same indentation level as the initial 
+
+            # 'if isinstance(raw_msg, dict) and "type" in raw_msg:'
+            # It appends log_entry if it was set by any of the above conditions.
+            if log_entry:
+                self.logs.append(log_entry)
+            
+            # These pruning lines should be outside the 'if log_entry:' block, 
+            # but still inside the 'while self.parent_conn.poll():' loop.
+            # They execute after each message is processed.
             self.logs = self.logs[-100:] # Prune main logs
             self.stdout_log = self.stdout_log[-200:] # Prune stdout logs
 
@@ -301,7 +322,9 @@ class MonitorWidget(BoxLayout):
         self.ticker_label.bind(size=self.ticker_label.setter('text_size'))
         self.status_label = Label(text=f"Status: {monitor_controller.status_text}", size_hint_x=0.4, halign='left', valign='middle')
         self.status_label.bind(size=self.status_label.setter('text_size'))
-        self.scope_label = Label(text=f"Scope: {monitor_controller.scope}", size_hint_x=0.3, halign='left', valign='middle')        self.scope_label.bind(size=self.scope_label.setter('text_size'))        top_row.add_widget(self.ticker_label)
+        self.scope_label = Label(text=f"Scope: {monitor_controller.scope}", size_hint_x=0.3, halign='left', valign='middle')        
+        self.scope_label.bind(size=self.scope_label.setter('text_size'))        
+        top_row.add_widget(self.ticker_label)
         top_row.add_widget(self.status_label)
         top_row.add_widget(self.scope_label)
         self.add_widget(top_row)
@@ -326,9 +349,12 @@ class MonitorWidget(BoxLayout):
         button_row = BoxLayout(orientation='horizontal', size_hint_y=0.4, spacing=10)
         self.start_button = Button(text="Start", on_press=self.start_monitor, disabled=monitor_controller.is_running)
         self.stop_button = Button(text="Stop", on_press=self.stop_monitor, disabled=not monitor_controller.is_running)
-        self.output_button = Button(text="Output", on_press=self.show_output)        self.delete_button = Button(text="Delete", on_press=self.delete_monitor)        button_row.add_widget(self.start_button)
+        self.output_button = Button(text="Output", on_press=self.show_output)        
+        self.delete_button = Button(text="Delete", on_press=self.delete_monitor)        
+        button_row.add_widget(self.start_button)
         button_row.add_widget(self.stop_button)
-        button_row.add_widget(self.output_button)        button_row.add_widget(self.delete_button)
+        button_row.add_widget(self.output_button)        
+        button_row.add_widget(self.delete_button)
         self.add_widget(button_row)
 
         # Initial update
