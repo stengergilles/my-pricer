@@ -1,10 +1,19 @@
+
+
 import argparse
 import multiprocessing
 import time
-from queue import Empty
+import sys # Import the sys module
+# queue.Empty is not needed as we'll use pipe.poll() and non-blocking recv()
+# from queue import Empty # No longer needed
 
-from stock_monitoring_app.monitoring.ticker_monitor import TickerMonitor
-from stock_monitoring_app.monitoring.ticker_monitor import BACKTEST_SCOPE_PRESETS
+# TickerMonitor class itself is not directly instantiated here anymore
+# from stock_monitoring_app.monitoring.ticker_monitor import TickerMonitor 
+from stock_monitoring_app.monitoring.ticker_monitor import BACKTEST_SCOPE_PRESETS # Still needed for interval
+from stock_monitoring_app.utils.process_manager import launch_ticker_monitor_process # Import the unified launcher
+
+# For type hinting if desired, TickerMonitor can be imported if needed for type checks on config data
+# For example: from stock_monitoring_app.monitoring.ticker_monitor import TickerMonitor
 
 def parse_interval_to_seconds(interval):
     """Convert interval strings like '1m', '15m', '1d', '1s', '2h' to seconds."""
@@ -36,44 +45,13 @@ def print_indicator_summary(indicator_configs):
     for conf in indicator_configs:
         cls = conf.get("type")
         params = conf.get("params")
-        print(f"- {getattr(cls, '__name__', str(cls))} | Params: {params}")
 
-def monitor_worker(ticker, entry_price, order_queue, status_queue, scope,leverage,stop_loss):
-    import traceback
+        print(f"- {getattr(cls, '__name__', str(cls))} | Params: {params if params else '{}'}") # Handle empty params
 
-    try:
-        monitor = TickerMonitor(
-            ticker=ticker,
-            trade_order_queue=order_queue,
-            entry_price=entry_price,
-            process_name=f"CLI-Monitor-{ticker}",
-            backtest_scope=scope,
-            leverage=leverage,
-            stop_loss=stop_loss
-        )
-
-        # Optionally load indicator configs for CLI summary, but actual logic should always use run()
-        indicator_configs = monitor._load_optimized_config_from_disk()
-        status_queue.put({"type": "indicators", "data": indicator_configs})
-
-        # The key fix: Use monitor.run() so configs and main loop are handled correctly
-        monitor.run()
-
-    except Exception as e:
-        import traceback
-        tb = traceback.format_exc().strip().splitlines()
-        error_line = ""
-        for line in reversed(tb):
-            if line.strip().startswith('File '):
-                error_line = line
-                break
-        exception_type = type(e).__name__
-        msg = str(e) or f"[{exception_type}]"
-        status_queue.put({"type": "exception", "error": f"{msg} ({error_line.strip()})"})
-    finally:
-        status_queue.put({"type": "stopped"})
+# monitor_worker is now centralized in process_manager.py
 
 def main():
+    available_scopes = list(BACKTEST_SCOPE_PRESETS.keys())
     available_scopes = list(BACKTEST_SCOPE_PRESETS.keys())
     parser = argparse.ArgumentParser(description="Start a real-time ticker monitor.")
     parser.add_argument("ticker", help="Ticker symbol (e.g., AAPL, BTC)")
@@ -92,80 +70,101 @@ def main():
     ticker = args.ticker
     entry_price = args.entry
     scope = args.scope
-    monitor_interval = parse_interval_to_seconds(BACKTEST_SCOPE_PRESETS[scope]['interval'])
 
-    order_queue = multiprocessing.Queue()
-    status_queue = multiprocessing.Queue()
-    monitor_proc = multiprocessing.Process(
-        target=monitor_worker,
-        args=(ticker, entry_price, order_queue, status_queue, scope,args.leverage,args.stop_loss),
-        daemon=True,
+    monitor_interval = parse_interval_to_seconds(BACKTEST_SCOPE_PRESETS[scope]['interval']) # For user info
+
+    if launch_ticker_monitor_process is None:
+        print("CLI CRITICAL ERROR: launch_ticker_monitor_process not available. Exiting.", file=sys.stderr)
+        return
+
+    monitor_proc, parent_conn = launch_ticker_monitor_process(
+        ticker=ticker,
+        entry_price=entry_price,
+        scope=scope,
+        leverage=args.leverage,
+        stop_loss=args.stop_loss
     )
 
-    print(f"Starting monitor for {ticker} (scope: {scope}, interval: {monitor_interval}s)...\n")
+    if not monitor_proc or not parent_conn:
+        print(f"CLI Error: Failed to start monitor process for {ticker}. Exiting.")
+        return
 
-    monitor_proc.start()
-    indicator_configs = None
+    print(f"Starting monitor for {ticker} (scope: {scope}, PID: {monitor_proc.pid})...\n")
+    
+    indicator_configs_printed = False
+    monitor_running = True
 
     try:
-        while True:
-            # Print indicators at start
-            if indicator_configs is None:
+        while monitor_running and monitor_proc.is_alive():
+            if parent_conn.poll(timeout=0.1): # Poll with a short timeout
                 try:
-                    msg = status_queue.get(timeout=5)
-                    if msg["type"] == "indicators":
-                        indicator_configs = msg["data"]
-                        print_indicator_summary(indicator_configs)
-                    continue
-                except Empty:
-                    if not monitor_proc.is_alive():
-                        print("CLI Error: Monitor process exited unexpectedly (no status messages in queue).")
-                        break
+                    msg = parent_conn.recv()
+                except (EOFError, OSError) as e:
+                    print(f"CLI Error: Pipe connection to monitor {ticker} lost: {e}")
+                    monitor_running = False
+                    break
+
+                # Ensure message is for this CLI's monitor instance (though less critical for single CLI monitor)
+                msg_ticker = msg.get("ticker", ticker) if isinstance(msg, dict) else ticker
+                if msg_ticker != ticker:
+                    print(f"CLI Warning: Received message for {msg_ticker} on {ticker}'s pipe. Ignoring.")
                     continue
 
-            try:
-#                msg = status_queue.get(timeout=monitor_interval)
-                msg = status_queue.get_nowait()
-                if msg["type"] == "fetch_status":
-                    print(f"[Fetch status] {msg['data']} | Last good: {msg['last_good']}")
-                elif msg["type"] == "exception":
-                    print(f"\n>>> Monitor Exception: {msg['error']}")
-                elif msg["type"] == "stopped":
-                    print("Monitor stopped.")
-                    break
-            except Empty:
-                if not monitor_proc.is_alive():
-                    print("CLI Error: Monitor process exited unexpectedly (no status messages in queue).")
-                    break
-                # If process is alive, this is just a timeout—continue waiting.
+                if isinstance(msg, dict) and "type" in msg: # System messages from process_manager
+                    mtype = msg["type"]
+                    data = msg.get("data", "")
 
-            # Print trade orders
-            while True:
-                try:
-                    order = order_queue.get_nowait()
-                    if order.get("action") != "HOLD":
-                        print(f"[TRADE ORDER] {order}")
-                except Empty:
-                    break
+                    if mtype == "stdout" or mtype == "stderr":
+                        print(f"[{mtype.upper()}-{msg.get('pid','P')}] {data.strip()}")
+                    elif mtype == "error": # Worker-level critical errors
+                        print(f"[WORKER_ERROR-{msg.get('pid','P')}] {data.strip()}")
+                        # Consider if CLI should exit on certain worker errors
+                    elif mtype == "indicators_loaded":
+                        if not indicator_configs_printed:
+                            print_indicator_summary(data) # data is the indicator_configs list
+                            indicator_configs_printed = True
+                    elif mtype == "worker_stopped":
+                        print(f"Monitor worker process for {ticker} (PID: {msg.get('pid','N/A')}) has stopped.")
+                        monitor_running = False # Signal to exit main CLI loop
+                    # else: unhandled system message type
+                
+                elif isinstance(msg, dict) and "action" in msg: # Messages from TickerMonitor
+                    action = msg.get("action", "UNKNOWN_TM_MSG").upper()
+                    # For CLI, print all TickerMonitor messages, or filter as desired
+                    # Example: only print BUY/SELL/STOP_LOSS_CLOSE or INFO with errors
+                    if action not in ["INFO"] or "error" in str(msg.get("status_reason","")).lower():                        # Basic print of the dict, or format it nicely
+                        print(f"[MONITOR_MSG] {msg}")
+                    # If you want more detailed CLI output for INFOs, add here.
+                
+                else: # Unexpected message format
+                    print(f"[CLI_UNEXPECTED_MSG] Type: {type(msg)}, Content: {str(msg)[:200]}")
+            
+            # If no message, just loop. The timeout in poll() prevents busy-waiting.
+            # Check if process died without sending "worker_stopped"
+            if not monitor_proc.is_alive() and monitor_running:
+                print(f"CLI Error: Monitor process for {ticker} (PID: {monitor_proc.pid}) exited unexpectedly.")
+                monitor_running = False                
+                break
+            
+            time.sleep(0.05) # Small sleep to prevent tight loop if poll timeout is very short
 
     except KeyboardInterrupt:
-        print("\nReceived Ctrl+C. Stopping monitor...")
-        monitor_proc.terminate()
-        monitor_proc.join(timeout=10)
-        print("Monitor terminated.")
-    except Exception as e:
-        import traceback
-        tb = traceback.format_exc().strip().splitlines()
-        error_line = ""
-        for line in reversed(tb):
-            if line.strip().startswith('File '):
-                error_line = line
-                break
-        exception_type = type(e).__name__
-        msg = str(e) or f"[{exception_type}]"
-        print(f"CLI Error: {msg} ({error_line.strip()})")
+        print(f"\nReceived Ctrl+C. Stopping monitor {ticker} (PID: {monitor_proc.pid})...")
         if monitor_proc.is_alive():
             monitor_proc.terminate()
+            monitor_proc.join(timeout=5)
+            if monitor_proc.is_alive():
+                monitor_proc.kill()
+                monitor_proc.join(timeout=2)
+        print(f"Monitor {ticker} terminated.")
+    except Exception as e:
+        import traceback
+        tb_str = traceback.format_exc()
+        print(f"CLI Unhandled Exception: {e}\n{tb_str}")
+
+        if monitor_proc and monitor_proc.is_alive():            
+            monitor_proc.terminate()
+            monitor_proc.join(timeout=5)
             monitor_proc.join(timeout=10)
 
 if __name__ == "__main__":

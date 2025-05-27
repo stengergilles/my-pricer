@@ -347,12 +347,15 @@ class TickerMonitor:
         
         if signal == "BUY":
             if self.position_type == "none":
+
                 # Open NEW LONG position
                 self.equity_at_trade_open = self.current_value # Capture equity before this trade
                 if self.current_price is None or self.current_price == 0: # Should not happen due to earlier check
                      print(f"WARN [{self.process_name}]: Cannot open BUY position, current price is invalid: {self.current_price}")                     
                      return
+                print(f"DEBUG_QTY_CALC [{self.process_name}]: BUY New Long. Initial Capital: {self.initial_capital_allocation}, Current Price: {self.current_price}")
                 self.quantity = self.initial_capital_allocation / self.current_price # Use initial capital for consistent trade size
+                print(f"DEBUG_QTY_CALC [{self.process_name}]: BUY New Long. Calculated Quantity: {self.quantity}")
                 self.position_type = "long"
                 self.entry_trade_price = self.current_price
                 self.position_value = self.quantity * self.current_price # Market value of assets bought
@@ -380,14 +383,17 @@ class TickerMonitor:
                 
                 print(f"INFO [{self.process_name}]: Closing SHORT for reversal. Trade P&L: {realized_pnl_closing_short:.2f}. New Total Equity: {self.current_value:.2f}")
                 
+
                 # 2. Open NEW LONG position
                 self.equity_at_trade_open = self.current_value # Capture equity before new long trade
                 if self.current_price is None or self.current_price == 0:
                      print(f"WARN [{self.process_name}]: Cannot open BUY (reversal) position, current price is invalid: {self.current_price}")
                      # Note: position state might be inconsistent if we return here after closing short
                      return
-                self.quantity = self.initial_capital_allocation / self.current_price
-                self.position_type = "long"                
+                print(f"DEBUG_QTY_CALC [{self.process_name}]: BUY Reversal to Long. Initial Capital: {self.initial_capital_allocation}, Current Price: {self.current_price}")
+                self.quantity = self.initial_capital_allocation / self.current_price                
+                print(f"DEBUG_QTY_CALC [{self.process_name}]: BUY Reversal to Long. Calculated Quantity: {self.quantity}")
+                self.position_type = "long"
                 self.entry_trade_price = self.current_price
                 self.position_value = self.quantity * self.current_price
 
@@ -406,12 +412,15 @@ class TickerMonitor:
 
         elif signal == "SELL":
             if self.position_type == "none":
+
                 # Open NEW SHORT position
                 self.equity_at_trade_open = self.current_value
                 if self.current_price is None or self.current_price == 0:
                      print(f"WARN [{self.process_name}]: Cannot open SELL position, current price is invalid: {self.current_price}")
                      return
+                print(f"DEBUG_QTY_CALC [{self.process_name}]: SELL New Short. Initial Capital: {self.initial_capital_allocation}, Current Price: {self.current_price}")                
                 self.quantity = self.initial_capital_allocation / self.current_price
+                print(f"DEBUG_QTY_CALC [{self.process_name}]: SELL New Short. Calculated Quantity: {self.quantity}")                
                 self.position_type = "short"
                 self.entry_trade_price = self.current_price
                 self.position_value = self.quantity * self.current_price # Market value of assets shorted (absolute)
@@ -438,12 +447,15 @@ class TickerMonitor:
                 
                 print(f"INFO [{self.process_name}]: Closing LONG for reversal. Trade P&L: {realized_pnl_closing_long:.2f}. New Total Equity: {self.current_value:.2f}")
 
+
                 # 2. Open NEW SHORT position
                 self.equity_at_trade_open = self.current_value # Capture equity before new short trade
                 if self.current_price is None or self.current_price == 0:
                      print(f"WARN [{self.process_name}]: Cannot open SELL (reversal) position, current price is invalid: {self.current_price}")
                      return # Position state might be inconsistent if we return here
+                print(f"DEBUG_QTY_CALC [{self.process_name}]: SELL Reversal to Short. Initial Capital: {self.initial_capital_allocation}, Current Price: {self.current_price}")
                 self.quantity = self.initial_capital_allocation / self.current_price
+                print(f"DEBUG_QTY_CALC [{self.process_name}]: SELL Reversal to Short. Calculated Quantity: {self.quantity}")
                 self.position_type = "short"
                 self.entry_trade_price = self.current_price
                 self.position_value = self.quantity * self.current_price
@@ -496,10 +508,13 @@ class TickerMonitor:
 
             log_equity_value = f"${self.current_value:.2f}" if self.current_value is not None else "N/A"
             log_asset_value = f"${self.position_value:.2f}" if self.position_value is not None else "N/A"
+
             log_market_price = f"${self.current_price:.2f}" if self.current_price is not None else "N/A"
 
             print(f"INFO [{self.process_name}]: {info_status_reason} | Ticker: {self.ticker} | Market Price: {log_market_price} | "
                   f"Asset Value: {log_asset_value} | Total Equity: {log_equity_value}")
+            
+            print(f"DEBUG_INFO_MSG_PREP [{self.process_name}]: Preparing INFO. Current Qty: {self.quantity}, PosType: {self.position_type}, Current Equity: {self.current_value}, Current Price: {self.current_price}")
 
             info_order = {
                 "action": "INFO",
@@ -509,7 +524,10 @@ class TickerMonitor:
                 "current_market_price": self.current_price,
                 "asset_value_held": self.position_value,
                 "total_equity": self.current_value,
-                "current_position_type": self.position_type,                "actioned_signals": current_actioned_signals
+
+                "current_position_type": self.position_type,
+                "current_quantity": self.quantity, # Added current quantity
+                "actioned_signals": current_actioned_signals
             }
             self.trade_order_queue.put(info_order)
 
