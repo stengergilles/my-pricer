@@ -178,20 +178,29 @@ class MonitorController(EventDispatcher): # Use the directly imported EventDispa
                 mtype = raw_msg["type"]
                 data = raw_msg.get("data", "")
                 if mtype == "stdout" or mtype == "stderr":
+
                     prefix = "[CHILD_STDOUT]" if mtype == "stdout" else "[CHILD_STDERR]"
                     output_data = str(data).rstrip('\n')                    self.stdout_log.append(f"{prefix} {output_data}")
                     log_entry = f"{prefix} {output_data}"
                     if any(kw in output_data.upper() for kw in ["CRITICAL", "EXCEPTION", "ERROR [", "FAILED", "GIVING UP"]):
-                        if self.status_text != "ERROR": self.status_text = "ERROR"; self.last_error_message_internal = output_data.split('\n')[0]
+                        if self.status_text != "ERROR":
+                            self.status_text = "ERROR"
+                            self.last_error_message_internal = output_data.split('\n')[0]
                 elif mtype == "error":
                     log_entry = f"[CHILD_WORKER_ERROR] {str(data)}"
-                    if self.status_text != "ERROR": self.status_text = "ERROR"; self.last_error_message_internal = str(data).split('\n')[0]
+                    if self.status_text != "ERROR":
+                        self.status_text = "ERROR"
+                        self.last_error_message_internal = str(data).split('\n')[0]
                 elif mtype == "indicators_loaded":
                     log_entry = f"[PARENT_INFO] Indicators loaded for {self.ticker}."
                 elif mtype == "worker_stopped":
                     log_entry = f"[PARENT_INFO] Worker for {self.ticker} stopped (PID: {raw_msg.get('pid','N/A')})."
-                    if self.status_text == "RUNNING": self.status_text = "ERROR"; self.last_error_message_internal = "Worker stopped unexpectedly."                    else: self.status_text = "STOPPED"
-                    self.is_running = False
+                    if self.status_text == "RUNNING":
+                        self.status_text = "ERROR"
+                        self.last_error_message_internal = "Worker stopped unexpectedly."
+                    else:
+                        self.status_text = "STOPPED"
+                    self.is_running = False # Worker has stopped, so it's not running
             
             elif isinstance(raw_msg, dict) and "action" in raw_msg:
                 action = raw_msg.get("action", "UNKNOWN_TM_MSG").upper()
@@ -218,9 +227,13 @@ class MonitorController(EventDispatcher): # Use the directly imported EventDispa
                 
                 if new_potential_size is not None: self.display_position_size_internal = new_potential_size
 
+
                 if action == "INFO":
-                    status_reason = str(raw_msg.get("status_reason", "")).upper()                    if any(kw in status_reason for kw in ["FAIL", "ERROR", "CRITICAL", "INVALID"]):
-                        if self.status_text != "ERROR": self.status_text = "ERROR"; self.last_error_message_internal = raw_msg.get("status_reason", "Err from INFO")
+                    status_reason = str(raw_msg.get("status_reason", "")).upper()
+                    if any(kw in status_reason for kw in ["FAIL", "ERROR", "CRITICAL", "INVALID"]):
+                        if self.status_text != "ERROR":
+                            self.status_text = "ERROR"
+                            self.last_error_message_internal = raw_msg.get("status_reason", "Err from INFO")
 
                 log_parts = [f"TS:{pd.Timestamp(self.last_update_ts_internal).strftime('%H:%M:%S') if self.last_update_ts_internal else 'N/A'}", f"ACT:{action}"]
                 if self.display_price_internal is not None: log_parts.append(f"PX:{self.display_price_internal:,.2f}")
@@ -239,9 +252,11 @@ class MonitorController(EventDispatcher): # Use the directly imported EventDispa
             self.logs = self.logs[-100:] # Prune main logs
             self.stdout_log = self.stdout_log[-200:] # Prune stdout logs
 
+
         if self.status_text == "RUNNING" and self.process and not self.process.is_alive():
             if self.status_text != "ERROR":
-                self.status_text = "ERROR"; self.last_error_message_internal = "Process terminated unexpectedly."
+                self.status_text = "ERROR"
+                self.last_error_message_internal = "Process terminated unexpectedly."
             self.logs.append(f"[PARENT] Monitor {self.ticker} died.")
             self.is_running = False
             updated_state_this_poll = True
