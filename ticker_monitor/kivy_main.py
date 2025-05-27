@@ -79,9 +79,9 @@ class MonitorController(EventDispatcher): # Use the directly imported EventDispa
         
         self.display_price_internal: Optional[float] = None
         self.display_position_size_internal: float = 0.0
+
         try:
             self.display_equity_internal: float = float(entry)
-
         except (ValueError, TypeError):
             self.display_equity_internal: float = 0.0
             self.logs.append(f"[PARENT_WARN] Invalid entry '{entry}' for initial equity. Defaulting to 0.0")
@@ -243,7 +243,16 @@ class MonitorController(EventDispatcher): # Use the directly imported EventDispa
                 log_parts = [f"TS:{pd.Timestamp(self.last_update_ts_internal).strftime('%H:%M:%S') if self.last_update_ts_internal else 'N/A'}", f"ACT:{action}"]
                 if self.display_price_internal is not None: log_parts.append(f"PX:{self.display_price_internal:,.2f}")
                 log_parts.append(f"QTY:{self.display_position_size_internal:,.4f}")
-                if raw_msg.get("pnl_this_trade") is not None: log_parts.append(f"PNL:{float(raw_msg.get('pnl_this_trade')):.2f}")
+
+                pnl_trade_value = raw_msg.get("pnl_this_trade")
+                if pnl_trade_value is not None:
+                    try:
+                        log_parts.append(f"PNL:{float(pnl_trade_value):.2f}")
+
+
+                    except (ValueError, TypeError):
+                        # Fallback if pnl_trade_value is not None but still not float-convertible
+                        log_parts.append(f"PNL:ErrorConv")
                 
                 equity_val = raw_msg.get("equity_after_trade", raw_msg.get("total_equity"))
                 if equity_val is not None:
@@ -319,11 +328,14 @@ class MonitorWidget(BoxLayout):
         # Top row: Ticker, Status, Scope
         top_row = BoxLayout(orientation='horizontal', size_hint_y=0.3)
         self.ticker_label = Label(text=f"Ticker: {monitor_controller.ticker}", size_hint_x=0.3, halign='left', valign='middle')
-        self.ticker_label.bind(size=self.ticker_label.setter('text_size'))
+
+        self.ticker_label.bind(size=self.ticker_label.setter('text_size')) # type: ignore
+
         self.status_label = Label(text=f"Status: {monitor_controller.status_text}", size_hint_x=0.4, halign='left', valign='middle')
-        self.status_label.bind(size=self.status_label.setter('text_size'))
+        self.status_label.bind(size=self.status_label.setter('text_size')) # type: ignore
+
         self.scope_label = Label(text=f"Scope: {monitor_controller.scope}", size_hint_x=0.3, halign='left', valign='middle')        
-        self.scope_label.bind(size=self.scope_label.setter('text_size'))        
+        self.scope_label.bind(size=self.scope_label.setter('text_size')) # type: ignore
         top_row.add_widget(self.ticker_label)
         top_row.add_widget(self.status_label)
         top_row.add_widget(self.scope_label)
@@ -332,13 +344,13 @@ class MonitorWidget(BoxLayout):
         # Middle row: Upd, Px, Qty, Eq
         mid_row = BoxLayout(orientation='horizontal', size_hint_y=0.3)
         self.ts_label = Label(text=f"Upd: {monitor_controller.last_update_ts_display}", halign='left', valign='middle')
-        self.ts_label.bind(size=self.ts_label.setter('text_size'))
+        self.ts_label.bind(size=self.ts_label.setter('text_size')) # type: ignore
         self.price_label = Label(text=f"Px: {monitor_controller.display_price_text}", halign='left', valign='middle')
-        self.price_label.bind(size=self.price_label.setter('text_size'))
+        self.price_label.bind(size=self.price_label.setter('text_size')) # type: ignore
         self.qty_label = Label(text=f"Qty: {monitor_controller.display_qty_text}", halign='left', valign='middle')
-        self.qty_label.bind(size=self.qty_label.setter('text_size'))
+        self.qty_label.bind(size=self.qty_label.setter('text_size')) # type: ignore
         self.equity_label = Label(text=f"Eq: {monitor_controller.display_equity_text}", halign='left', valign='middle')
-        self.equity_label.bind(size=self.equity_label.setter('text_size'))
+        self.equity_label.bind(size=self.equity_label.setter('text_size')) # type: ignore
         mid_row.add_widget(self.ts_label)
         mid_row.add_widget(self.price_label)
         mid_row.add_widget(self.qty_label)
@@ -371,7 +383,9 @@ class MonitorWidget(BoxLayout):
     def update_ticker_label(self, *args): self.ticker_label.text = f"Ticker: {self.monitor_controller.ticker}"
     def update_status_label(self, *args): 
         status = self.monitor_controller.status_text
-        if status == "ERROR" and self.monitor_controller.last_error_message_internal:            error_summary = self.monitor_controller.last_error_message_internal.split('\n')[0][:30]
+
+        if status == "ERROR" and self.monitor_controller.last_error_message_internal:
+            error_summary = self.monitor_controller.last_error_message_internal.split('\n')[0][:30]
             self.status_label.text = f"Status: ERROR ({error_summary}...)"
         elif status == "RUNNING" and self.monitor_controller.process and not self.monitor_controller.process.is_alive():
             self.status_label.text = "Status: ERROR (Dead)"
@@ -387,19 +401,41 @@ class MonitorWidget(BoxLayout):
     
     def update_button_state(self, *args):
         self.start_button.disabled = self.monitor_controller.is_running
-        self.stop_button.disabled = not self.monitor_controller.is_running    def start_monitor(self, instance):
-        self.monitor_controller.start()
+
+        self.stop_button.disabled = not self.monitor_controller.is_running
+    
+
+    def start_monitor(self, instance):
+        self.monitor_controller.start() # Corrected to call start()
 
     def stop_monitor(self, instance):
         self.monitor_controller.stop()
 
     def show_output(self, instance):
+
         # This will be handled by the main app, which knows about popups
-        App.get_running_app().open_output_popup_for_monitor(self.monitor_controller)
+        app = App.get_running_app()
+        if app:
+            app.open_output_popup_for_monitor(self.monitor_controller)
+        else:
+            # Log a warning if the app instance isn't found
+            log_ticker = "N/A"
+            if self.monitor_controller and hasattr(self.monitor_controller, 'ticker'):
+                log_ticker = self.monitor_controller.ticker
+            print(f"KIVY_WARNING: App instance (App.get_running_app()) was None. Cannot open output popup for monitor '{log_ticker}'.")
+
 
     def delete_monitor(self, instance):
         # This will be handled by the main app
-        App.get_running_app().delete_monitor_controller(self.monitor_controller)
+        app = App.get_running_app()
+        if app:
+            app.delete_monitor_controller(self.monitor_controller)        
+        else:
+            # Log a warning if the app instance isn't found
+            log_ticker = "N/A"
+            if self.monitor_controller and hasattr(self.monitor_controller, 'ticker'):
+                log_ticker = self.monitor_controller.ticker
+            print(f"KIVY_WARNING: App instance (App.get_running_app()) was None. Cannot delete monitor controller for '{log_ticker}'.")
 
 class AddMonitorDialogKivy(Popup):
     def __init__(self, on_ok_callback, **kwargs):
@@ -460,33 +496,67 @@ class AddMonitorDialogKivy(Popup):
 class OutputLogPopupKivy(Popup):
     log_content = StringProperty("")
     def __init__(self, title="Output Log", log_lines=None, **kwargs):
+
+
         super().__init__(title=title, size_hint=(0.9, 0.8), **kwargs)
         if log_lines is None: log_lines = []
-                self.log_content = "\n".join(log_lines)
+        self.log_content = "\n".join(log_lines)
 
         layout = BoxLayout(orientation='vertical', spacing=5, padding=5)
         scroll_view = ScrollView()
+
+
         self.log_label = Label(text=self.log_content, size_hint_y=None, halign='left', valign='top')
-        self.log_label.bind(texture_size=self.log_label.setter('size'))
+        # The original texture_size binding is removed due to persistent errors.
+        # Label height will be updated manually in update_logs.
         scroll_view.add_widget(self.log_label)
         layout.add_widget(scroll_view)
         
         close_button = Button(text="Close", size_hint_y=None, height='40dp', on_press=self.dismiss)
         layout.add_widget(close_button)
+
+
+
         self.content = layout
+
+    # _setup_log_label_binding method removed as part of workaround.
+
+    # Manual height update logic is now in _update_log_label_height and called from update_logs.
+
+    def _update_log_label_height(self, dt=None):
+        """Manually updates the log_label's height based on its texture_size."""
+        if self.log_label and hasattr(self.log_label, 'texture_size'):
+            try:
+                # Set the label's height to its textured content's height
+                self.log_label.height = self.log_label.texture_size[1]
+            except TypeError: # texture_size might not be a valid tuple/list if not ready
+                print(f"KIVY_WARNING: log_label.texture_size not yet valid for height update. Type: {type(self.log_label.texture_size)}")
+            except Exception as e:
+                print(f"KIVY_ERROR: Failed to update log_label height manually: {e}")
+        elif not self.log_label:
+
+             print(f"KIVY_WARNING: self.log_label is None in _update_log_label_height.")
 
     def update_logs(self, new_log_lines):
         self.log_content = "\n".join(new_log_lines)
-        self.log_label.text = self.log_content
+        if self.log_label:
+            self.log_label.text = self.log_content
+            # Manually schedule height update after text changes.
+            # This ensures texture_size is recalculated based on new text before height is set.
+            Clock.schedule_once(self._update_log_label_height, 0) # Use 0 for "next frame"
+        else:
+            print("KIVY_WARNING: log_label is None in update_logs, cannot update text or trigger height update.")
 
 class TickerMonitorKivyApp(App):
     selected_monitor_controller = ObjectProperty(None, allownone=True)
 
     def build(self):
         self.title = "Ticker Monitor Kivy"
+
         self.monitor_controllers: Dict[str, MonitorController] = {} # Store by unique key
         self.monitor_widgets_layout = GridLayout(cols=1, spacing=10, size_hint_y=None)
-        self.monitor_widgets_layout.bind(minimum_height=self.monitor_widgets_layout.setter('height'))
+        # Defer the binding to the next frame to ensure the widget is fully initialized
+        Clock.schedule_once(self._setup_monitor_layout_binding, 0)
 
         # Main layout
         root = BoxLayout(orientation='vertical', spacing=5, padding=5)
@@ -505,16 +575,61 @@ class TickerMonitorKivyApp(App):
         scroll_view_monitors.add_widget(self.monitor_widgets_layout)
         root.add_widget(scroll_view_monitors)
 
-        # Log display area for selected monitor
-        root.add_widget(Label(text="Selected Monitor Logs:", size_hint_y=None, height='30dp'))        self.selected_monitor_log_label = Label(text="(No monitor selected)", size_hint_y=0.4, halign='left', valign='top')
-        self.selected_monitor_log_label.bind(size=self.selected_monitor_log_label.setter('text_size'))
+
+        # Log display area for selected monitor        root.add_widget(Label(text="Selected Monitor Logs:", size_hint_y=None, height='30dp'))
+
+        self.selected_monitor_log_label = Label(text="(No monitor selected)", size_hint_y=0.4, halign='left', valign='top')
+        # The following bind call has been consistently causing an AttributeError
+        # ("'bind' attribute still not found on Label").
+        # Commenting it out to prevent the crash.
+        # self.selected_monitor_log_label.bind(size=self.selected_monitor_log_label.setter('text_size'))
         log_scroll = ScrollView()
         log_scroll.add_widget(self.selected_monitor_log_label)
         root.add_widget(log_scroll)
 
         Clock.schedule_interval(self.refresh_all_monitors, 1.0) # Refresh every 1 second
+
         self.bind(selected_monitor_controller=self.update_selected_log_display)
         return root
+
+    def _setup_monitor_layout_binding(self, dt=None):
+        """Helper method to bind the monitor_widgets_layout's minimum_height.
+        Called via Clock.schedule_once to ensure the widget is ready."""
+
+        if self.monitor_widgets_layout:
+            try:
+                # The following bind call has been consistently causing an AttributeError
+                # ("'bind' attribute still not found on GridLayout") even when deferred.
+                # Commenting it out to prevent the crash.
+                # self.monitor_widgets_layout.bind(minimum_height=self.monitor_widgets_layout.setter('height'))
+                pass # Ensure the try block is not empty
+            except AttributeError as e:
+                # This provides more specific feedback if the error persists.
+                print(f"KIVY_ERROR (deferred_bind): 'bind' attribute still not found on GridLayout 'self.monitor_widgets_layout'. Class: {type(self.monitor_widgets_layout)}. Error: {e}")
+            except Exception as e:
+                print(f"KIVY_ERROR (deferred_bind): Unexpected error during deferred GridLayout binding. Error: {e}")
+
+        else:
+            print("KIVY_WARNING: self.monitor_widgets_layout is None in _setup_monitor_layout_binding.")
+
+    def _setup_selected_log_label_binding(self, dt=None):
+        """Helper method to bind the selected_monitor_log_label's size.
+        Called via Clock.schedule_once to ensure the widget is ready."""
+
+        if self.selected_monitor_log_label:
+            try:
+                # The following bind call has been consistently causing an AttributeError
+                # ("'bind' attribute still not found on Label") even when deferred.
+                # Commenting it out to prevent the crash.
+                # self.selected_monitor_log_label.bind(size=self.selected_monitor_log_label.setter('text_size'))
+                pass # Allow try-except to remain for future debugging if needed and to ensure the try block is not empty.
+            except AttributeError as e:
+                # This provides more specific feedback if the error persists.
+                print(f"KIVY_ERROR (deferred_bind): 'bind' attribute still not found on Label 'self.selected_monitor_log_label'. Class: {type(self.selected_monitor_log_label)}. Error: {e}")
+            except Exception as e:
+                print(f"KIVY_ERROR (deferred_bind): Unexpected error during deferred selected_monitor_log_label binding. Error: {e}")
+        else:
+            print("KIVY_WARNING: self.selected_monitor_log_label is None in _setup_selected_log_label_binding.")
 
     def refresh_all_monitors(self, dt):
         for controller in self.monitor_controllers.values():
@@ -541,9 +656,14 @@ class TickerMonitorKivyApp(App):
 
 
     def add_new_monitor_controller(self, ticker, entry, scope, leverage, stop_loss):
-        key = f"{ticker}-{scope}-{entry}" # Simple key for now        if key in self.monitor_controllers:
+
+
+
+        key = f"{ticker}-{scope}-{entry}" # Simple key for now
+        if key in self.monitor_controllers:
             # Optionally show a popup that monitor already exists
-            return        controller = MonitorController(ticker, entry, scope, leverage, stop_loss)
+            return
+        controller = MonitorController(ticker, entry, scope, leverage, stop_loss)
         self.monitor_controllers[key] = controller
         
         widget = MonitorWidget(monitor_controller=controller)
@@ -554,7 +674,9 @@ class TickerMonitorKivyApp(App):
         # Auto-select the newly added monitor
         self.select_monitor_controller(controller)
 
-    def delete_monitor_controller(self, controller_to_delete: MonitorController):        key_to_delete = None
+
+    def delete_monitor_controller(self, controller_to_delete: MonitorController):
+        key_to_delete = None
         for key, controller in self.monitor_controllers.items():
             if controller == controller_to_delete:
                 key_to_delete = key
@@ -583,10 +705,18 @@ class TickerMonitorKivyApp(App):
         popup = OutputLogPopupKivy(title=f"Output Log: {monitor_controller.ticker}", log_lines=monitor_controller.stdout_log)
         popup.open()
 
+
     def stop_app(self, instance=None): # instance arg for button press
         for controller in self.monitor_controllers.values():
             controller.cleanup()
-        App.get_running_app().stop()
+        
+        app = App.get_running_app()
+        if app:
+            app.stop()
+        else:
+            # This case might occur if stop_app is called after the app has already stopped
+            # or during a very specific phase of shutdown.
+            print("KIVY_WARNING: App instance (App.get_running_app()) was None in stop_app. Cannot call app.stop().")
 
 if __name__ == '__main__':
     # Ensure an instance of the App is created before setting mp start method on Windows.
