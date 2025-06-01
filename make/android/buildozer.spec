@@ -37,7 +37,7 @@ version = 0.1
 
 # (list) Application requirements
 # comma separated e.g. requirements = sqlite3,kivy
-requirements = python3,kivy,pandas,numpy,requests
+requirements = python3==3.10.6,pyjnius==1.6.1,kivy,pandas,numpy,requests
 
 # (str) Custom source folders for requirements
 # Sets custom source for any requirements with recipes
@@ -119,10 +119,10 @@ fullscreen = 1
 #android.private_storage = True
 
 # (str) Android NDK directory (if empty, it will be automatically downloaded.)
-android.ndk_path = /home/android-sdk/ndk/26.1.10909125
+#android.ndk_path = /home/gstenger/Tools/android-sdk/ndk/26.1.10909125/ 
 
 # (str) Android SDK directory (if empty, it will be automatically downloaded.)
-android.sdk_path = /home/android-sdk
+#android.sdk_path = /home/gstenger/Tools/android-sdk
 
 # (str) ANT directory (if empty, it will be automatically downloaded.)
 #android.ant_path =
@@ -130,7 +130,7 @@ android.sdk_path = /home/android-sdk
 # (bool) If True, then skip trying to update the Android sdk
 # This can be useful to avoid excess Internet downloads or save time
 # when an update is due and you just want to test/build your package
-android.skip_update = True
+android.skip_update = False
 
 # (bool) If True, then automatically accept SDK license
 # agreements. This is intended for automation only. If set to False,
