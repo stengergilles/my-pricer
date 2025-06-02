@@ -30,8 +30,8 @@ public class MainActivity extends ImGuiKeyboardHelper {
     public boolean onKeyUp(int keyCode, KeyEvent event) {
         // Handle back button
         if (keyCode == KeyEvent.KEYCODE_BACK) {
-            // Let the native code handle it first
-            nativeOnKeyUp(keyCode, event.getMetaState());
+            // Let the native code handle it first using ImGuiJNI
+            ImGuiJNI.onKeyEvent(keyCode, KeyEvent.ACTION_UP, event.getMetaState());
             
             // If we're still here, handle it normally
             return super.onKeyUp(keyCode, event);
