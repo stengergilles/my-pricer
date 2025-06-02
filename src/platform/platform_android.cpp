@@ -147,7 +147,10 @@ bool PlatformAndroid::platformInit() {
 }
 
 void PlatformAndroid::platformNewFrame() {
+    // Call ImGui_ImplAndroid_NewFrame but don't call ImGui::NewFrame() here
+    // ImGui::NewFrame() is called in Application::renderFrame()
     ImGui_ImplAndroid_NewFrame();
+    
     // Note: Don't call ImGui::NewFrame() here, it's called in Application::renderFrame()
 }
 

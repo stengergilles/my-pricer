@@ -109,6 +109,24 @@ bool ImGui_ImplAndroid_Init(ANativeWindow* window) {
     // Initialize OpenGL ES
     __android_log_print(ANDROID_LOG_INFO, "ImGuiApp", "OpenGL version: %s", glGetString(GL_VERSION));
     
+    // Create font texture - THIS IS THE KEY ADDITION
+    unsigned char* pixels;
+    int width, height;
+    io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
+    __android_log_print(ANDROID_LOG_INFO, "ImGuiApp", "Created font texture: %dx%d", width, height);
+    
+    // Upload texture to graphics system
+    GLuint font_texture;
+    glGenTextures(1, &font_texture);
+    glBindTexture(GL_TEXTURE_2D, font_texture);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+    
+    // Store our identifier
+    io.Fonts->TexID = (ImTextureID)(intptr_t)font_texture;
+    __android_log_print(ANDROID_LOG_INFO, "ImGuiApp", "Font texture uploaded with ID: %p", io.Fonts->TexID);
+    
     g_Initialized = true;
     __android_log_print(ANDROID_LOG_INFO, "ImGuiApp", "ImGui_ImplAndroid_Init completed successfully");
     return true;
@@ -135,10 +153,23 @@ void ImGui_ImplAndroid_Shutdown() {
 }
 
 void ImGui_ImplAndroid_NewFrame() {
-    if (!g_Initialized)
+    if (!g_Initialized) {
+        __android_log_print(ANDROID_LOG_ERROR, "ImGuiApp", "ImGui_ImplAndroid_NewFrame called before initialization");
         return;
+    }
+    
+    // Make sure the correct context is current
+    if (eglMakeCurrent(g_EglDisplay, g_EglSurface, g_EglSurface, g_EglContext) != EGL_TRUE) {
+        __android_log_print(ANDROID_LOG_ERROR, "ImGuiApp", "Failed to make context current in NewFrame: %d", eglGetError());
+        return;
+    }
     
     ImGuiIO& io = ImGui::GetIO();
+    
+    // Setup display size (every frame to accommodate for window resizing)
+    int32_t windowWidth = ANativeWindow_getWidth(g_Window);
+    int32_t windowHeight = ANativeWindow_getHeight(g_Window);
+    io.DisplaySize = ImVec2((float)windowWidth, (float)windowHeight);
     
     // Setup time step using a simpler approach without timespec
     static double g_Time = 0.0;
@@ -146,8 +177,28 @@ void ImGui_ImplAndroid_NewFrame() {
     io.DeltaTime = g_Time > 0.0 ? (float)(current_time - g_Time) : (float)(1.0f / 60.0f);
     g_Time = current_time;
     
-    // Start the Dear ImGui frame
-    ImGui::NewFrame();
+    // Verify that the font atlas is built
+    if (!io.Fonts->IsBuilt()) {
+        __android_log_print(ANDROID_LOG_INFO, "ImGuiApp", "Font atlas not built, rebuilding...");
+        
+        // Create font texture
+        unsigned char* pixels;
+        int width, height;
+        io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
+        __android_log_print(ANDROID_LOG_INFO, "ImGuiApp", "Created font texture: %dx%d", width, height);
+        
+        // Upload texture to graphics system
+        GLuint font_texture;
+        glGenTextures(1, &font_texture);
+        glBindTexture(GL_TEXTURE_2D, font_texture);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+        
+        // Store our identifier
+        io.Fonts->TexID = (ImTextureID)(intptr_t)font_texture;
+        __android_log_print(ANDROID_LOG_INFO, "ImGuiApp", "Font texture uploaded with ID: %p", io.Fonts->TexID);
+    }
 }
 
 void ImGui_ImplAndroid_RenderDrawData(ImDrawData* draw_data) {
