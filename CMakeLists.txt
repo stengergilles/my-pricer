@@ -35,6 +35,9 @@ set(IMGUI_SOURCES
 # Platform-specific source files and libraries
 if(ANDROID)
     # Android-specific setup
+    # Use libstdc++ instead of libc++
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libstdc++")
+    
     set(PLATFORM_SOURCES
         src/platform/platform_android.cpp
         src/platform/android/android_native_app_glue.c
