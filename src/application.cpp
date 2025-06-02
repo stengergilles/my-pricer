@@ -94,9 +94,25 @@ void Application::renderImGui()
     
     // Add an input text field
     static char inputBuffer[256] = "";
-    ImGui::Text("Enter some text:");
-    if (ImGui::InputText("##input", inputBuffer, IM_ARRAYSIZE(inputBuffer))) {
-        // This code runs when the input text changes
+    ImGui::Text("Enter some text (tap to show keyboard):");
+    
+    // Check if the input text is active/focused
+    bool wasActive = ImGui::IsItemActive();
+    
+    if (ImGui::InputText("##input", inputBuffer, IM_ARRAYSIZE(inputBuffer), 
+                         ImGuiInputTextFlags_EnterReturnsTrue)) {
+        // This code runs when Enter is pressed
+        // You can handle the input submission here
+    }
+    
+    // Check if the input text became active
+    bool isActive = ImGui::IsItemActive();
+    if (!wasActive && isActive) {
+        // Input text was just activated - show keyboard
+        #ifdef __ANDROID__
+        // Call Java method to show keyboard
+        // This is handled by the MainActivity's toggleSoftKeyboard method
+        #endif
     }
     
     ImGui::SameLine();
