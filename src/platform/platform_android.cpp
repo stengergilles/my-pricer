@@ -3,6 +3,8 @@
 #include <android/input.h>
 #include <android/looper.h>  // For ALooper_pollAll
 #include <android/log.h>     // Added for Android logging
+#include <android/asset_manager.h>
+#include <android/asset_manager_jni.h>
 #include "imgui.h"
 #include "../include/platform/platform_android.h"
 
@@ -82,7 +84,17 @@ bool PlatformAndroid::platformInit() {
     io.IniFilename = nullptr;
     
     // Set display metrics
-    float xdpi = AConfiguration_getScreenDensity(app->config);
+    // Use a safer approach to get screen density
+    float xdpi = 160.0f; // Default density
+    if (app->config) {
+        // Try to get the screen density if available
+        #ifdef AConfiguration_getScreenDensity
+        xdpi = AConfiguration_getScreenDensity(app->config);
+        #else
+        // Fallback to a reasonable default if the function is not available
+        __android_log_print(ANDROID_LOG_INFO, "ImGuiApp", "AConfiguration_getScreenDensity not available, using default density");
+        #endif
+    }
     float scale = xdpi / 160.0f;
     io.FontGlobalScale = scale;
     
