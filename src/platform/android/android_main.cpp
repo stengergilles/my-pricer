@@ -9,7 +9,6 @@
 
 // Global application instance
 static PlatformAndroid* g_app = nullptr;
-static bool g_windowInitialized = false;
 
 // Process Android command events
 static void handle_cmd(android_app* app, int32_t cmd) {
@@ -17,14 +16,14 @@ static void handle_cmd(android_app* app, int32_t cmd) {
         case APP_CMD_INIT_WINDOW:
             // Window is being shown, initialize
             if (app->window != nullptr) {
-                LOGI("Window initialized, setting up application");
-                g_windowInitialized = true;
+                LOGI("Window initialized with pointer: %p", app->window);
+            } else {
+                LOGE("APP_CMD_INIT_WINDOW received but window is NULL");
             }
             break;
         case APP_CMD_TERM_WINDOW:
             // Window is being hidden or closed
             LOGI("Window terminated");
-            g_windowInitialized = false;
             if (g_app) {
                 g_app->platformShutdown();
             }
@@ -76,7 +75,8 @@ void android_main(struct android_app* app) {
         android_poll_source* source;
         
         // Process events - use -1 timeout to block until events are available
-        while ((ALooper_pollAll(0, nullptr, &events, (void**)&source)) >= 0) {
+        // This is critical to ensure we process the window creation event
+        while ((ALooper_pollAll(-1, nullptr, &events, (void**)&source)) >= 0) {
             if (source != nullptr) {
                 source->process(app, source);
             }
@@ -90,12 +90,18 @@ void android_main(struct android_app* app) {
                 }
                 return;
             }
+            
+            // Check if window is now available
+            if (app->window != nullptr && !appInitialized) {
+                LOGI("Window pointer detected: %p", app->window);
+                break;
+            }
         }
         
-        // Check if window is initialized
-        if (g_windowInitialized && app->window != nullptr) {
+        // Check if window is available directly
+        if (app->window != nullptr) {
             if (!appInitialized) {
-                LOGI("Window is ready, initializing platform");
+                LOGI("Window is available, initializing platform with window: %p", app->window);
                 // Set the Android app pointer
                 g_app->setAndroidApp(app);
                 
@@ -105,6 +111,7 @@ void android_main(struct android_app* app) {
                     LOGI("Platform initialized successfully, starting application");
                     appInitialized = true;
                     Application::getInstance()->run();
+                    break; // Exit the loop after application run completes
                 } else {
                     LOGE("Platform initialization failed, will retry");
                     waitCount++;
@@ -116,17 +123,19 @@ void android_main(struct android_app* app) {
             }
         } else {
             // Wait for window to be initialized
-            LOGI("Waiting for window initialization...");
+            LOGI("Waiting for window pointer (currently NULL)");
             struct timespec ts;
             ts.tv_sec = 0;
             ts.tv_nsec = 100 * 1000000; // 100ms
             nanosleep(&ts, NULL);
+            
+            waitCount++;
+            if (waitCount > 50) { // Allow more time for window initialization
+                LOGE("Window initialization timeout, exiting");
+                break;
+            }
         }
-        
-        // Sleep a bit to avoid busy waiting
-        struct timespec ts;
-        ts.tv_sec = 0;
-        ts.tv_nsec = 16 * 1000000; // 16ms ~= 60fps
-        nanosleep(&ts, NULL);
     }
+    
+    LOGI("Exiting android_main");
 }
