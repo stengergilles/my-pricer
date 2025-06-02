@@ -63,21 +63,30 @@ void* PlatformAndroid::getAndroidApp() {
 
 bool PlatformAndroid::platformInit() {
     struct android_app* app = (struct android_app*)m_androidApp;
-    if (!app) return false;
+    if (!app) {
+        __android_log_print(ANDROID_LOG_ERROR, "ImGuiApp", "No Android app in platformInit");
+        return false;
+    }
     
+    __android_log_print(ANDROID_LOG_INFO, "ImGuiApp", "Creating ImGui context");
     ImGui::CreateContext();
     
     // Configure ImGui style
     ImGuiIO& io = ImGui::GetIO();
-    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;  // Enable keyboard navigation
-    io.IniFilename = nullptr;  // Disable .ini file
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+    io.IniFilename = nullptr;
     
     // Set display metrics
     float xdpi = AConfiguration_getScreenDensity(app->config);
     float scale = xdpi / 160.0f;
     io.FontGlobalScale = scale;
     
-    return true;
+    // Initialize ImGui for Android
+    __android_log_print(ANDROID_LOG_INFO, "ImGuiApp", "Initializing ImGui for Android");
+    bool success = ImGui_ImplAndroid_Init(app->window);
+    __android_log_print(ANDROID_LOG_INFO, "ImGuiApp", "ImGui Android init result: %s", success ? "SUCCESS" : "FAILED");
+    
+    return success;
 }
 
 void PlatformAndroid::platformNewFrame() {
@@ -86,6 +95,17 @@ void PlatformAndroid::platformNewFrame() {
 }
 
 void PlatformAndroid::platformRender() {
+    // Begin ImGui frame
+    ImGui::NewFrame();
+    
+    // Create a simple ImGui window
+    ImGui::Begin("Hello, Android!");
+    ImGui::Text("This is an ImGui window on Android");
+    ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 
+                1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+    ImGui::End();
+    
+    // Render ImGui
     ImGui::Render();
     ImGui_ImplAndroid_RenderDrawData(ImGui::GetDrawData());
 }

@@ -4,7 +4,7 @@
 #include <android/log.h>
 #include <GLES3/gl3.h>
 #include <EGL/egl.h>
-#include <time.h>  // Added for timespec and clock_gettime
+#include <math.h>  // For sin function
 #include "imgui.h"
 
 // Simple implementation of ImGui_ImplAndroid functions
@@ -18,15 +18,27 @@ static ANativeWindow* g_Window = NULL;
 static bool g_Initialized = false;
 
 bool ImGui_ImplAndroid_Init(ANativeWindow* window) {
+    __android_log_print(ANDROID_LOG_INFO, "ImGuiApp", "ImGui_ImplAndroid_Init called with window: %p", window);
+    
     g_Window = window;
+    if (!window) {
+        __android_log_print(ANDROID_LOG_ERROR, "ImGuiApp", "Null window passed to ImGui_ImplAndroid_Init");
+        return false;
+    }
     
     // Initialize EGL
+    __android_log_print(ANDROID_LOG_INFO, "ImGuiApp", "Getting EGL display");
     g_EglDisplay = eglGetDisplay(EGL_DEFAULT_DISPLAY);
-    if (g_EglDisplay == EGL_NO_DISPLAY)
+    if (g_EglDisplay == EGL_NO_DISPLAY) {
+        __android_log_print(ANDROID_LOG_ERROR, "ImGuiApp", "Failed to get EGL display");
         return false;
+    }
     
-    if (eglInitialize(g_EglDisplay, 0, 0) != EGL_TRUE)
+    __android_log_print(ANDROID_LOG_INFO, "ImGuiApp", "Initializing EGL");
+    if (eglInitialize(g_EglDisplay, 0, 0) != EGL_TRUE) {
+        __android_log_print(ANDROID_LOG_ERROR, "ImGuiApp", "Failed to initialize EGL: %d", eglGetError());
         return false;
+    }
     
     // Configure EGL
     EGLint attribs[] = {
@@ -41,38 +53,54 @@ bool ImGui_ImplAndroid_Init(ANativeWindow* window) {
         EGL_NONE
     };
     
+    __android_log_print(ANDROID_LOG_INFO, "ImGuiApp", "Choosing EGL config");
     EGLConfig config;
     EGLint numConfigs;
-    if (eglChooseConfig(g_EglDisplay, attribs, &config, 1, &numConfigs) != EGL_TRUE)
+    if (eglChooseConfig(g_EglDisplay, attribs, &config, 1, &numConfigs) != EGL_TRUE) {
+        __android_log_print(ANDROID_LOG_ERROR, "ImGuiApp", "Failed to choose EGL config: %d", eglGetError());
         return false;
+    }
     
     // Create surface
+    __android_log_print(ANDROID_LOG_INFO, "ImGuiApp", "Creating window surface");
     g_EglSurface = eglCreateWindowSurface(g_EglDisplay, config, g_Window, NULL);
-    if (g_EglSurface == EGL_NO_SURFACE)
+    if (g_EglSurface == EGL_NO_SURFACE) {
+        __android_log_print(ANDROID_LOG_ERROR, "ImGuiApp", "Failed to create EGL surface: %d", eglGetError());
         return false;
+    }
     
     // Create context
+    __android_log_print(ANDROID_LOG_INFO, "ImGuiApp", "Creating EGL context");
     EGLint contextAttribs[] = {
         EGL_CONTEXT_CLIENT_VERSION, 3,
         EGL_NONE
     };
     g_EglContext = eglCreateContext(g_EglDisplay, config, EGL_NO_CONTEXT, contextAttribs);
-    if (g_EglContext == EGL_NO_CONTEXT)
+    if (g_EglContext == EGL_NO_CONTEXT) {
+        __android_log_print(ANDROID_LOG_ERROR, "ImGuiApp", "Failed to create EGL context: %d", eglGetError());
         return false;
+    }
     
-    if (eglMakeCurrent(g_EglDisplay, g_EglSurface, g_EglSurface, g_EglContext) != EGL_TRUE)
+    __android_log_print(ANDROID_LOG_INFO, "ImGuiApp", "Making EGL context current");
+    if (eglMakeCurrent(g_EglDisplay, g_EglSurface, g_EglSurface, g_EglContext) != EGL_TRUE) {
+        __android_log_print(ANDROID_LOG_ERROR, "ImGuiApp", "Failed to make EGL context current: %d", eglGetError());
         return false;
-    
-    // Setup ImGui context
-    ImGui::CreateContext();
-    ImGuiIO& io = ImGui::GetIO();
+    }
     
     // Setup display size
     int32_t width = ANativeWindow_getWidth(g_Window);
     int32_t height = ANativeWindow_getHeight(g_Window);
+    __android_log_print(ANDROID_LOG_INFO, "ImGuiApp", "Window size: %dx%d", width, height);
+    
+    // Setup ImGui context
+    ImGuiIO& io = ImGui::GetIO();
     io.DisplaySize = ImVec2((float)width, (float)height);
     
+    // Initialize OpenGL ES
+    __android_log_print(ANDROID_LOG_INFO, "ImGuiApp", "OpenGL version: %s", glGetString(GL_VERSION));
+    
     g_Initialized = true;
+    __android_log_print(ANDROID_LOG_INFO, "ImGuiApp", "ImGui_ImplAndroid_Init completed successfully");
     return true;
 }
 
@@ -113,20 +141,61 @@ void ImGui_ImplAndroid_NewFrame() {
 }
 
 void ImGui_ImplAndroid_RenderDrawData(ImDrawData* draw_data) {
-    if (!g_Initialized)
+    if (!g_Initialized) {
+        __android_log_print(ANDROID_LOG_ERROR, "ImGuiApp", "Trying to render with uninitialized ImGui");
         return;
+    }
     
-    // Rendering
-    ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
-    glViewport(0, 0, (int)ImGui::GetIO().DisplaySize.x, (int)ImGui::GetIO().DisplaySize.y);
-    glClearColor(clear_color.x, clear_color.y, clear_color.z, clear_color.w);
+    __android_log_print(ANDROID_LOG_INFO, "ImGuiApp", "Rendering frame");
+    
+    // Make sure the correct context is current
+    if (eglMakeCurrent(g_EglDisplay, g_EglSurface, g_EglSurface, g_EglContext) != EGL_TRUE) {
+        __android_log_print(ANDROID_LOG_ERROR, "ImGuiApp", "Failed to make context current for rendering: %d", eglGetError());
+        return;
+    }
+    
+    // Get the current viewport size
+    ImGuiIO& io = ImGui::GetIO();
+    int width = (int)io.DisplaySize.x;
+    int height = (int)io.DisplaySize.y;
+    
+    // Clear the screen with a gradient
+    glViewport(0, 0, width, height);
+    glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
     
-    // Render ImGui (this is a simplified version - you should use proper rendering)
-    // In a real implementation, you would use ImGui_ImplOpenGL3_RenderDrawData(draw_data)
+    // Draw a simple test pattern
+    static float time = 0.0f;
+    time += io.DeltaTime;
+    
+    // Draw a moving red square
+    int squareSize = height / 4;
+    int x = (int)(width/2 + sin(time) * (width/4 - squareSize/2)) - squareSize/2;
+    int y = height/2 - squareSize/2;
+    
+    glEnable(GL_SCISSOR_TEST);
+    glScissor(x, y, squareSize, squareSize);
+    glClearColor(1.0f, 0.0f, 0.0f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+    
+    // Draw a blue square in the corner
+    glScissor(0, 0, squareSize/2, squareSize/2);
+    glClearColor(0.0f, 0.0f, 1.0f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+    glDisable(GL_SCISSOR_TEST);
+    
+    // If we have draw data, we would render ImGui here
+    if (draw_data) {
+        // In a real implementation, you would render ImGui draw data here
+        __android_log_print(ANDROID_LOG_INFO, "ImGuiApp", "ImGui draw data available: %d cmd lists", draw_data->CmdListsCount);
+    } else {
+        __android_log_print(ANDROID_LOG_WARN, "ImGuiApp", "No ImGui draw data available");
+    }
     
     // Swap buffers
-    eglSwapBuffers(g_EglDisplay, g_EglSurface);
+    if (eglSwapBuffers(g_EglDisplay, g_EglSurface) != EGL_TRUE) {
+        __android_log_print(ANDROID_LOG_ERROR, "ImGuiApp", "Failed to swap buffers: %d", eglGetError());
+    }
 }
 
 bool ImGui_ImplAndroid_HandleInputEvent(const AInputEvent* event) {

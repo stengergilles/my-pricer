@@ -18,7 +18,8 @@ static void handle_cmd(android_app* app, int32_t cmd) {
             if (app->window != nullptr) {
                 if (g_app) {
                     g_app->setAndroidApp(app);
-                    g_app->platformInit();
+                    bool success = g_app->platformInit();
+                    LOGI("Platform init result: %s", success ? "SUCCESS" : "FAILED");
                 }
             }
             break;
@@ -27,6 +28,14 @@ static void handle_cmd(android_app* app, int32_t cmd) {
             if (g_app) {
                 g_app->platformShutdown();
             }
+            break;
+        case APP_CMD_GAINED_FOCUS:
+            // App gained focus, start rendering
+            LOGI("App gained focus");
+            break;
+        case APP_CMD_LOST_FOCUS:
+            // App lost focus, stop rendering
+            LOGI("App lost focus");
             break;
         default:
             break;
@@ -57,13 +66,14 @@ void android_main(struct android_app* app) {
     g_app->setAndroidApp(app);
     
     // Main loop
+    int frameCount = 0;
     while (1) {
         // Read all pending events
         int events;
         android_poll_source* source;
         
-        // If not animating, block until events arrive
-        while ((ALooper_pollAll(-1, nullptr, &events, (void**)&source)) >= 0) {
+        // Process events without blocking
+        while ((ALooper_pollAll(0, nullptr, &events, (void**)&source)) >= 0) {
             // Process event
             if (source != nullptr) {
                 source->process(app, source);
@@ -78,7 +88,11 @@ void android_main(struct android_app* app) {
         
         // Render a frame
         if (g_app && app->window != nullptr) {
+            if (frameCount % 60 == 0) { // Log every 60 frames to avoid spam
+                LOGI("Rendering frame %d", frameCount);
+            }
             g_app->renderFrame();
+            frameCount++;
         }
     }
     
