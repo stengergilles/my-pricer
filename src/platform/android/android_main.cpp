@@ -17,9 +17,16 @@ static void handle_cmd(android_app* app, int32_t cmd) {
             // Window is being shown, initialize
             if (app->window != nullptr) {
                 if (g_app) {
+                    LOGI("Window initialized, setting up application");
                     g_app->setAndroidApp(app);
                     bool success = g_app->platformInit();
                     LOGI("Platform init result: %s", success ? "SUCCESS" : "FAILED");
+                    
+                    // Start the application main loop now that we have a valid window
+                    if (success) {
+                        LOGI("Starting application main loop");
+                        Application::getInstance()->run();
+                    }
                 }
             }
             break;
@@ -92,15 +99,8 @@ void android_main(struct android_app* app) {
                 LOGI("Rendering frame %d", frameCount);
             }
             
-            // Don't call renderFrame directly, use the Application's run method
-            // which properly sets up the ImGui frame context
-            if (frameCount == 0) {
-                // Start the application main loop on first frame
-                LOGI("Starting application main loop");
-                Application::getInstance()->run();
-                // If we get here, the application has exited its main loop
-                return;
-            }
+            // Don't start the application here anymore
+            // The application will be started in handle_cmd when the window is ready
             
             frameCount++;
         }

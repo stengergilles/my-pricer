@@ -75,6 +75,11 @@ bool PlatformAndroid::platformInit() {
         return false;
     }
     
+    if (!app->window) {
+        __android_log_print(ANDROID_LOG_ERROR, "ImGuiApp", "No window available in platformInit");
+        return false;
+    }
+    
     __android_log_print(ANDROID_LOG_INFO, "ImGuiApp", "Creating ImGui context");
     ImGui::CreateContext();
     

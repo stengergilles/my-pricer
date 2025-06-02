@@ -30,14 +30,17 @@ bool ImGui_ImplAndroid_Init(ANativeWindow* window) {
     __android_log_print(ANDROID_LOG_INFO, "ImGuiApp", "Getting EGL display");
     g_EglDisplay = eglGetDisplay(EGL_DEFAULT_DISPLAY);
     if (g_EglDisplay == EGL_NO_DISPLAY) {
-        __android_log_print(ANDROID_LOG_ERROR, "ImGuiApp", "Failed to get EGL display");
+        __android_log_print(ANDROID_LOG_ERROR, "ImGuiApp", "Failed to get EGL display: %d", eglGetError());
         return false;
     }
     
     __android_log_print(ANDROID_LOG_INFO, "ImGuiApp", "Initializing EGL");
-    if (eglInitialize(g_EglDisplay, 0, 0) != EGL_TRUE) {
+    EGLint major, minor;
+    if (eglInitialize(g_EglDisplay, &major, &minor) != EGL_TRUE) {
         __android_log_print(ANDROID_LOG_ERROR, "ImGuiApp", "Failed to initialize EGL: %d", eglGetError());
         return false;
+    }
+    __android_log_print(ANDROID_LOG_INFO, "ImGuiApp", "EGL initialized: version %d.%d", major, minor);
     }
     
     // Configure EGL
@@ -146,7 +149,7 @@ void ImGui_ImplAndroid_RenderDrawData(ImDrawData* draw_data) {
         return;
     }
     
-    __android_log_print(ANDROID_LOG_INFO, "ImGuiApp", "Rendering frame");
+    __android_log_print(ANDROID_LOG_INFO, "ImGuiApp", "Rendering frame with draw_data: %p", draw_data);
     
     // Make sure the correct context is current
     if (eglMakeCurrent(g_EglDisplay, g_EglSurface, g_EglSurface, g_EglContext) != EGL_TRUE) {
@@ -158,6 +161,7 @@ void ImGui_ImplAndroid_RenderDrawData(ImDrawData* draw_data) {
     ImGuiIO& io = ImGui::GetIO();
     int width = (int)io.DisplaySize.x;
     int height = (int)io.DisplaySize.y;
+    __android_log_print(ANDROID_LOG_INFO, "ImGuiApp", "Viewport size: %dx%d", width, height);
     
     // Clear the screen with a gradient
     glViewport(0, 0, width, height);
@@ -187,7 +191,8 @@ void ImGui_ImplAndroid_RenderDrawData(ImDrawData* draw_data) {
     // If we have draw data, we would render ImGui here
     if (draw_data) {
         // In a real implementation, you would render ImGui draw data here
-        __android_log_print(ANDROID_LOG_INFO, "ImGuiApp", "ImGui draw data available: %d cmd lists", draw_data->CmdListsCount);
+        __android_log_print(ANDROID_LOG_INFO, "ImGuiApp", "ImGui draw data available: %d cmd lists, %d vertices, %d indices", 
+                           draw_data->CmdListsCount, draw_data->TotalVtxCount, draw_data->TotalIdxCount);
     } else {
         __android_log_print(ANDROID_LOG_WARN, "ImGuiApp", "No ImGui draw data available");
     }
@@ -195,6 +200,8 @@ void ImGui_ImplAndroid_RenderDrawData(ImDrawData* draw_data) {
     // Swap buffers
     if (eglSwapBuffers(g_EglDisplay, g_EglSurface) != EGL_TRUE) {
         __android_log_print(ANDROID_LOG_ERROR, "ImGuiApp", "Failed to swap buffers: %d", eglGetError());
+    } else {
+        __android_log_print(ANDROID_LOG_INFO, "ImGuiApp", "Successfully swapped buffers");
     }
 }
 
