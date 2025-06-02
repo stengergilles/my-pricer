@@ -67,7 +67,12 @@ static void handle_cmd(android_app* app, int32_t cmd) {
             if (g_app && g_initialized && g_savedWindow != nullptr) {
                 // Force a re-initialization to handle the new orientation
                 g_app->platformShutdown();
-                g_app->initWithWindow(g_savedWindow);
+                bool success = g_app->initWithWindow(g_savedWindow);
+                if (success) {
+                    LOGI("Successfully reinitialized after orientation change");
+                } else {
+                    LOGE("Failed to reinitialize after orientation change");
+                }
             }
             break;
         case APP_CMD_LOST_FOCUS:

@@ -113,6 +113,14 @@ bool PlatformAndroid::initWithWindow(ANativeWindow* window) {
     float scale = xdpi / 160.0f;
     io.FontGlobalScale = scale;
     
+    // Get window dimensions to handle orientation
+    if (m_window) {
+        int32_t width = ANativeWindow_getWidth(m_window);
+        int32_t height = ANativeWindow_getHeight(m_window);
+        io.DisplaySize = ImVec2((float)width, (float)height);
+        LOGI("Window dimensions: %d x %d", width, height);
+    }
+    
     // Initialize ImGui for Android with the direct window pointer
     LOGI("Initializing ImGui for Android with window: %p", m_window);
     bool success = ImGui_ImplAndroid_Init(m_window);
