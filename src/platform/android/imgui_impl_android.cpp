@@ -4,6 +4,7 @@
 #include <android/log.h>
 #include <GLES3/gl3.h>
 #include <EGL/egl.h>
+#include <time.h>  // Added for timespec and clock_gettime
 #include "imgui.h"
 
 // Simple implementation of ImGui_ImplAndroid functions
@@ -101,11 +102,9 @@ void ImGui_ImplAndroid_NewFrame() {
     
     ImGuiIO& io = ImGui::GetIO();
     
-    // Setup time step
+    // Setup time step using a simpler approach without timespec
     static double g_Time = 0.0;
-    struct timespec now;
-    clock_gettime(CLOCK_MONOTONIC, &now);
-    double current_time = now.tv_sec + now.tv_nsec / 1000000000.0;
+    double current_time = (double)ImGui::GetTime();  // Use ImGui's built-in time function
     io.DeltaTime = g_Time > 0.0 ? (float)(current_time - g_Time) : (float)(1.0f / 60.0f);
     g_Time = current_time;
     
