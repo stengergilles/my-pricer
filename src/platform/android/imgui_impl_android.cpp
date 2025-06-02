@@ -27,7 +27,7 @@ static GLint g_AttribLocationColor = 0;
 static GLuint g_VboHandle = 0;
 static GLuint g_ElementsHandle = 0;
 
-// Shader source code
+// Simple vertex shader that preserves positions
 static const char* g_VertexShaderSource = 
     "uniform mat4 ProjMtx;\n"
     "attribute vec2 Position;\n"
@@ -239,6 +239,9 @@ bool ImGui_ImplAndroid_Init(ANativeWindow* window)
     ImGuiIO& io = ImGui::GetIO();
     io.DisplaySize = ImVec2((float)windowWidth, (float)windowHeight);
     
+    // Configure ImGui for Android
+    io.ConfigFlags |= ImGuiConfigFlags_IsTouchScreen;
+    
     // Load DroidSans.ttf font
     io.Fonts->AddFontFromFileTTF("/system/fonts/DroidSans.ttf", 16.0f);
     
@@ -310,10 +313,7 @@ void ImGui_ImplAndroid_NewFrame()
     // Setup display size (every frame to accommodate for window resizing)
     int32_t windowWidth = ANativeWindow_getWidth(g_Window);
     int32_t windowHeight = ANativeWindow_getHeight(g_Window);
-    
-    // Set display size and framebuffer scale
     io.DisplaySize = ImVec2((float)windowWidth, (float)windowHeight);
-    io.DisplayFramebufferScale = ImVec2(1.0f, 1.0f);
     
     // Setup time step
     static double g_Time = 0.0;
@@ -338,8 +338,8 @@ void ImGui_ImplAndroid_RenderDrawData(ImDrawData* draw_data)
         return;
     
     // Avoid rendering when minimized
-    int fb_width = (int)(draw_data->DisplaySize.x * draw_data->FramebufferScale.x);
-    int fb_height = (int)(draw_data->DisplaySize.y * draw_data->FramebufferScale.y);
+    int fb_width = (int)(draw_data->DisplaySize.x);
+    int fb_height = (int)(draw_data->DisplaySize.y);
     if (fb_width <= 0 || fb_height <= 0)
         return;
     
@@ -354,16 +354,23 @@ void ImGui_ImplAndroid_RenderDrawData(ImDrawData* draw_data)
     
     // Setup viewport
     glViewport(0, 0, fb_width, fb_height);
-    glClearColor(0.0f, 0.0f, 0.0f, 1.0f); // Black background
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
     
-    // Setup orthographic projection matrix
-    const float ortho_projection[4][4] =
+    // Setup orthographic projection matrix for Android
+    // This is the key fix for the orientation issue
+    float L = 0.0f;
+    float R = draw_data->DisplaySize.x;
+    float T = 0.0f;
+    float B = draw_data->DisplaySize.y;
+    
+    // This projection matrix works for Android's coordinate system
+    float ortho_projection[4][4] =
     {
-        { 2.0f/draw_data->DisplaySize.x, 0.0f,                   0.0f, 0.0f },
-        { 0.0f,                  2.0f/-draw_data->DisplaySize.y, 0.0f, 0.0f },
-        { 0.0f,                  0.0f,                  -1.0f, 0.0f },
-        {-1.0f,                  1.0f,                   0.0f, 1.0f },
+        { 2.0f/(R-L),   0.0f,           0.0f,       0.0f },
+        { 0.0f,         2.0f/(T-B),     0.0f,       0.0f },
+        { 0.0f,         0.0f,           -1.0f,      0.0f },
+        { (L+R)/(L-R),  (T+B)/(B-T),    0.0f,       1.0f },
     };
     
     glUseProgram(g_ShaderHandle);
@@ -402,16 +409,23 @@ void ImGui_ImplAndroid_RenderDrawData(ImDrawData* draw_data)
             }
             else
             {
-                // Apply scissor/clipping rectangle
+                // Apply scissor/clipping rectangle - fixed for Android
                 int clip_x = (int)(pcmd->ClipRect.x);
-                int clip_y = (int)(pcmd->ClipRect.y);
+                int clip_y = (int)(fb_height - pcmd->ClipRect.w);
                 int clip_w = (int)(pcmd->ClipRect.z - pcmd->ClipRect.x);
                 int clip_h = (int)(pcmd->ClipRect.w - pcmd->ClipRect.y);
-                glScissor(clip_x, fb_height - clip_y - clip_h, clip_w, clip_h);
+                
+                // Ensure scissor rectangle is valid
+                if (clip_x < 0) clip_x = 0;
+                if (clip_y < 0) clip_y = 0;
+                if (clip_w < 0) clip_w = 0;
+                if (clip_h < 0) clip_h = 0;
+                
+                glScissor(clip_x, clip_y, clip_w, clip_h);
                 
                 // Bind texture, Draw
                 glBindTexture(GL_TEXTURE_2D, (GLuint)(intptr_t)pcmd->TextureId);
-                glDrawElements(GL_TRIANGLES, (GLsizei)pcmd->ElemCount, GL_UNSIGNED_SHORT, (void*)(intptr_t)(idx_offset * sizeof(ImDrawIdx)));
+                glDrawElements(GL_TRIANGLES, (GLsizei)pcmd->ElemCount, sizeof(ImDrawIdx) == 2 ? GL_UNSIGNED_SHORT : GL_UNSIGNED_INT, (void*)(intptr_t)(idx_offset * sizeof(ImDrawIdx)));
             }
             idx_offset += pcmd->ElemCount;
         }

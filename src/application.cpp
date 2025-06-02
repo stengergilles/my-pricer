@@ -92,9 +92,12 @@ void Application::renderImGui()
     ImGui::Text("Welcome to Dear ImGui!");
     ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "This is a cross-platform application.");
     
+    static int clickCount = 0;
     if (ImGui::Button("Click me!")) {
-        // Button action
+        clickCount++;
     }
+    
+    ImGui::Text("Button clicked %d times", clickCount);
     
     ImGui::End();
 }
