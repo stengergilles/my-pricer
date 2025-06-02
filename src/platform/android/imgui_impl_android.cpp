@@ -249,8 +249,7 @@ bool ImGui_ImplAndroid_Init(ANativeWindow* window)
         return false;
     }
     
-    // Setup ImGui context with the window dimensions
-    ImGuiIO& io = ImGui::GetIO();
+    // Update ImGui context with the window dimensions
     io.DisplaySize = ImVec2((float)windowWidth, (float)windowHeight);
     
     // Configure ImGui for Android
