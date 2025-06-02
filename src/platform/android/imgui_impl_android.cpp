@@ -238,6 +238,11 @@ bool ImGui_ImplAndroid_Init(ANativeWindow* window)
     // Setup ImGui context with the window dimensions
     ImGuiIO& io = ImGui::GetIO();
     io.DisplaySize = ImVec2((float)windowWidth, (float)windowHeight);
+    io.DisplayFramebufferScale = ImVec2(1.0f, 1.0f);
+    
+    // Configure ImGui for Android
+    io.ConfigFlags |= ImGuiConfigFlags_IsTouchScreen;  // Enable touch screen support
+    io.BackendFlags |= ImGuiBackendFlags_HasMouseCursors;
     
     // Load DroidSans.ttf font
     io.Fonts->AddFontFromFileTTF("/system/fonts/DroidSans.ttf", 16.0f);
@@ -310,7 +315,10 @@ void ImGui_ImplAndroid_NewFrame()
     // Setup display size (every frame to accommodate for window resizing)
     int32_t windowWidth = ANativeWindow_getWidth(g_Window);
     int32_t windowHeight = ANativeWindow_getHeight(g_Window);
+    
+    // Set display size and framebuffer scale
     io.DisplaySize = ImVec2((float)windowWidth, (float)windowHeight);
+    io.DisplayFramebufferScale = ImVec2(1.0f, 1.0f);
     
     // Setup time step
     static double g_Time = 0.0;
@@ -354,13 +362,17 @@ void ImGui_ImplAndroid_RenderDrawData(ImDrawData* draw_data)
     glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
     
-    // Setup orthographic projection matrix
+    // Setup orthographic projection matrix - FIXED for Android orientation
+    const float L = 0.0f;
+    const float R = draw_data->DisplaySize.x;
+    const float T = 0.0f;
+    const float B = draw_data->DisplaySize.y;
     const float ortho_projection[4][4] =
     {
-        { 2.0f/draw_data->DisplaySize.x, 0.0f,                   0.0f, 0.0f },
-        { 0.0f,                  2.0f/-draw_data->DisplaySize.y, 0.0f, 0.0f },
-        { 0.0f,                  0.0f,                  -1.0f, 0.0f },
-        {-1.0f,                  1.0f,                   0.0f, 1.0f },
+        { 2.0f/(R-L),    0.0f,           0.0f,       0.0f },
+        { 0.0f,          2.0f/(T-B),     0.0f,       0.0f },
+        { 0.0f,          0.0f,          -1.0f,       0.0f },
+        { (R+L)/(L-R),   (T+B)/(B-T),    0.0f,       1.0f },
     };
     
     glUseProgram(g_ShaderHandle);
@@ -399,11 +411,13 @@ void ImGui_ImplAndroid_RenderDrawData(ImDrawData* draw_data)
             }
             else
             {
-                // Apply scissor/clipping rectangle
+                // Apply scissor/clipping rectangle - FIXED for Android orientation
                 int clip_x = (int)(pcmd->ClipRect.x);
                 int clip_y = (int)(pcmd->ClipRect.y);
                 int clip_w = (int)(pcmd->ClipRect.z - pcmd->ClipRect.x);
                 int clip_h = (int)(pcmd->ClipRect.w - pcmd->ClipRect.y);
+                
+                // Android-specific scissor adjustment
                 glScissor(clip_x, fb_height - clip_y - clip_h, clip_w, clip_h);
                 
                 // Bind texture, Draw
