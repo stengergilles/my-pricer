@@ -419,22 +419,20 @@ void ImGui_ImplAndroid_RenderDrawData(ImDrawData* draw_data)
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
     
-    // Check if we need to swap width/height for orientation
-    bool isPortrait = fb_height > fb_width;
-    
     // Setup orthographic projection matrix
-    float L = draw_data->DisplayPos.x;
-    float R = draw_data->DisplayPos.x + draw_data->DisplaySize.x;
-    float T = draw_data->DisplayPos.y;
-    float B = draw_data->DisplayPos.y + draw_data->DisplaySize.y;
+    // For Android, we need to flip the Y axis
+    float L = 0.0f;
+    float R = draw_data->DisplaySize.x;
+    float T = 0.0f;
+    float B = draw_data->DisplaySize.y;
     
-    // Adjust projection matrix based on orientation
+    // This projection matrix works for Android's coordinate system
     float ortho_projection[4][4] =
     {
         { 2.0f/(R-L),   0.0f,         0.0f,   0.0f },
-        { 0.0f,         2.0f/(T-B),   0.0f,   0.0f },
+        { 0.0f,         2.0f/(B-T),   0.0f,   0.0f },  // Note: B-T instead of T-B to flip Y axis
         { 0.0f,         0.0f,        -1.0f,   0.0f },
-        { (R+L)/(L-R),  (T+B)/(B-T),  0.0f,   1.0f },
+        { (R+L)/(L-R),  (T+B)/(T-B),  0.0f,   1.0f },  // Note: T-B instead of B-T to flip Y axis
     };
     
     glUseProgram(g_ShaderHandle);
@@ -473,10 +471,9 @@ void ImGui_ImplAndroid_RenderDrawData(ImDrawData* draw_data)
             }
             else
             {
-                // Apply scissor/clipping rectangle
-                // The scissor rect coordinates are in framebuffer coordinates (0,0 = bottom-left corner)
+                // Apply scissor/clipping rectangle - adjusted for Android
                 int scissor_x = (int)(pcmd->ClipRect.x);
-                int scissor_y = (int)(fb_height - pcmd->ClipRect.w);
+                int scissor_y = (int)(fb_height - pcmd->ClipRect.w);  // Flip Y for OpenGL
                 int scissor_w = (int)(pcmd->ClipRect.z - pcmd->ClipRect.x);
                 int scissor_h = (int)(pcmd->ClipRect.w - pcmd->ClipRect.y);
                 

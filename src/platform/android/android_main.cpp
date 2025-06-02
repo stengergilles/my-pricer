@@ -58,6 +58,15 @@ static void handle_cmd(android_app* app, int32_t cmd) {
                 }
             }
             break;
+        case APP_CMD_CONFIG_CHANGED:
+            // Configuration changed (e.g., orientation)
+            LOGI("Configuration changed (possibly orientation)");
+            if (g_app && g_initialized && g_savedWindow != nullptr) {
+                // Force a re-initialization to handle the new orientation
+                g_app->platformShutdown();
+                g_app->initWithWindow(g_savedWindow);
+            }
+            break;
         case APP_CMD_LOST_FOCUS:
             // App lost focus, stop rendering
             LOGI("App lost focus");
