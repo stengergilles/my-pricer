@@ -42,7 +42,7 @@ Java_com_example_imguihelloworld_ImGuiKeyboardHelper_nativeOnKeyDown(JNIEnv *env
     
     if (imguiKey != -1) {
         ImGuiIO& io = ImGui::GetIO();
-        io.AddKeyEvent(imguiKey, true);
+        io.AddKeyEvent((ImGuiKey)imguiKey, true);
         
         // Handle modifiers
         io.AddKeyEvent(ImGuiKey_ModShift, (meta_state & AMETA_SHIFT_ON) != 0);
@@ -83,7 +83,7 @@ Java_com_example_imguihelloworld_ImGuiKeyboardHelper_nativeOnKeyUp(JNIEnv *env, 
     
     if (imguiKey != -1) {
         ImGuiIO& io = ImGui::GetIO();
-        io.AddKeyEvent(imguiKey, false);
+        io.AddKeyEvent((ImGuiKey)imguiKey, false);
         
         // Update modifiers
         io.AddKeyEvent(ImGuiKey_ModShift, (meta_state & AMETA_SHIFT_ON) != 0);
@@ -165,9 +165,9 @@ Java_com_example_imguihelloworld_ImGuiJNI_onKeyEvent(JNIEnv *env, jclass clazz, 
         
         // Handle key down/up
         if (action == 0) { // ACTION_DOWN
-            io.AddKeyEvent(imguiKey, true);
+            io.AddKeyEvent((ImGuiKey)imguiKey, true);
         } else if (action == 1) { // ACTION_UP
-            io.AddKeyEvent(imguiKey, false);
+            io.AddKeyEvent((ImGuiKey)imguiKey, false);
         }
         
         // Handle modifiers

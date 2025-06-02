@@ -23,8 +23,8 @@ public:
     // Getters
     const std::string& getAppName() const { return m_appName; }
     
-    // Get platform instance
-    PlatformBase* getPlatform() { return dynamic_cast<PlatformBase*>(this); }
+    // Get platform instance - commented out to fix circular dependency
+    // PlatformBase* getPlatform() { return dynamic_cast<PlatformBase*>(this); }
     
     // Singleton access
     static Application* getInstance() { return s_instance; }
@@ -47,4 +47,4 @@ private:
     
     // Singleton instance
     static Application* s_instance;
-};;
+};

@@ -1,9 +1,9 @@
 #include <android/configuration.h>  // Added for AConfiguration_getScreenDensity
 #include <android/native_activity.h>
 #include <android/input.h>
+#include <android/native_app_glue.h>  // Added for android_poll_source
 #include "imgui.h"
 #include "../include/platform/platform_android.h"
-#include "../include/application.h"
 
 // ImGui Android implementation
 extern bool ImGui_ImplAndroid_Init(ANativeWindow* window);
@@ -12,11 +12,14 @@ extern void ImGui_ImplAndroid_NewFrame();
 extern void ImGui_ImplAndroid_RenderDrawData(ImDrawData* draw_data);
 extern bool ImGui_ImplAndroid_HandleInputEvent(const AInputEvent* input_event);
 
+// Forward declaration of helper function
+static AInputEvent* createTouchEvent(int32_t action, int32_t pointer_id, float x, float y);
+
 // Helper function to get the Android app instance
 static struct android_app* ImGui_ImplAndroid_GetApp() {
     // Implementation depends on how you store the android_app pointer
     // This is just a placeholder
-    return (struct android_app*)Application::getInstance()->getPlatform()->getAndroidApp();
+    return (struct android_app*)Application::getInstance();  // Modified to avoid getPlatform()
 }
 
 PlatformAndroid::PlatformAndroid(const std::string& title) 
@@ -89,23 +92,35 @@ void PlatformAndroid::platformShutdown() {
 
 // Touch handling functions
 bool handleTouchDown(int pointer_id, float x, float y) {
-    return ImGui_ImplAndroid_HandleInputEvent(createTouchEvent(AMOTION_EVENT_ACTION_DOWN, pointer_id, x, y));
+    AInputEvent* event = createTouchEvent(AMOTION_EVENT_ACTION_DOWN, pointer_id, x, y);
+    bool result = ImGui_ImplAndroid_HandleInputEvent(event);
+    // Free event if needed
+    return result;
 }
 
 bool handleTouchMove(int pointer_id, float x, float y) {
-    return ImGui_ImplAndroid_HandleInputEvent(createTouchEvent(AMOTION_EVENT_ACTION_MOVE, pointer_id, x, y));
+    AInputEvent* event = createTouchEvent(AMOTION_EVENT_ACTION_MOVE, pointer_id, x, y);
+    bool result = ImGui_ImplAndroid_HandleInputEvent(event);
+    // Free event if needed
+    return result;
 }
 
 bool handleTouchUp(int pointer_id, float x, float y) {
-    return ImGui_ImplAndroid_HandleInputEvent(createTouchEvent(AMOTION_EVENT_ACTION_UP, pointer_id, x, y));
+    AInputEvent* event = createTouchEvent(AMOTION_EVENT_ACTION_UP, pointer_id, x, y);
+    bool result = ImGui_ImplAndroid_HandleInputEvent(event);
+    // Free event if needed
+    return result;
 }
 
 bool handleTouchCancel(int pointer_id, float x, float y) {
-    return ImGui_ImplAndroid_HandleInputEvent(createTouchEvent(AMOTION_EVENT_ACTION_CANCEL, pointer_id, x, y));
+    AInputEvent* event = createTouchEvent(AMOTION_EVENT_ACTION_CANCEL, pointer_id, x, y);
+    bool result = ImGui_ImplAndroid_HandleInputEvent(event);
+    // Free event if needed
+    return result;
 }
 
 // Helper function to create touch events
-AInputEvent* createTouchEvent(int32_t action, int32_t pointer_id, float x, float y) {
+static AInputEvent* createTouchEvent(int32_t action, int32_t pointer_id, float x, float y) {
     // This is a placeholder - in a real implementation, you would use the Android NDK
     // to create proper input events. This is complex and requires more code than shown here.
     // For now, we'll return nullptr to indicate this needs proper implementation
