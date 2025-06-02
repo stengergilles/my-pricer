@@ -2,6 +2,10 @@
 #include "imgui.h"
 #include <iostream>
 
+#ifdef __ANDROID__
+#include "platform/android/keyboard_helper.h"
+#endif
+
 // Initialize static instance
 Application* Application::s_instance = nullptr;
 
@@ -110,8 +114,6 @@ void Application::renderImGui()
     if (!wasActive && isActive) {
         // Input text was just activated - show keyboard
         #ifdef __ANDROID__
-        // Include the header that declares the showKeyboard function
-        #include "platform/android/keyboard_helper.h"
         showKeyboard();
         #endif
     }
