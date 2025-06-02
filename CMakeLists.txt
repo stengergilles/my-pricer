@@ -35,8 +35,8 @@ set(IMGUI_SOURCES
 # Platform-specific source files and libraries
 if(ANDROID)
     # Android-specific setup
-    # Use libstdc++ instead of libc++
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libstdc++")
+    # Don't specify a C++ standard library explicitly
+    # Let the NDK use its default (libc++)
     
     set(PLATFORM_SOURCES
         src/platform/platform_android.cpp
