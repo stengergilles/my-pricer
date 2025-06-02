@@ -23,4 +23,5 @@ public:
 protected:
     // Changed from private to protected to allow access in derived classes
     void* m_androidApp;  // android_app* in actual implementation
+    ImGuiContext* m_imguiContext = nullptr;  // Store ImGui context pointer
 };

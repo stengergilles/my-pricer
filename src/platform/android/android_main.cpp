@@ -19,14 +19,10 @@ static void handle_cmd(android_app* app, int32_t cmd) {
                 if (g_app) {
                     LOGI("Window initialized, setting up application");
                     g_app->setAndroidApp(app);
+                    
+                    // Don't start the application here, just initialize the platform
                     bool success = g_app->platformInit();
                     LOGI("Platform init result: %s", success ? "SUCCESS" : "FAILED");
-                    
-                    // Start the application main loop now that we have a valid window
-                    if (success) {
-                        LOGI("Starting application main loop");
-                        Application::getInstance()->run();
-                    }
                 }
             }
             break;
@@ -79,9 +75,8 @@ void android_main(struct android_app* app) {
         int events;
         android_poll_source* source;
         
-        // Process events without blocking
+        // Process events
         while ((ALooper_pollAll(0, nullptr, &events, (void**)&source)) >= 0) {
-            // Process event
             if (source != nullptr) {
                 source->process(app, source);
             }
@@ -93,11 +88,22 @@ void android_main(struct android_app* app) {
             }
         }
         
-        // Render a frame
-        if (g_app && app->window != nullptr) {
-            if (frameCount % 60 == 0) { // Log every 60 frames to avoid spam
-                LOGI("Rendering frame %d", frameCount);
+        // If window is initialized, run the application
+        if (app->window != nullptr) {
+            static bool appStarted = false;
+            if (!appStarted) {
+                LOGI("Starting application main loop");
+                Application::getInstance()->run();
+                appStarted = true;
             }
+            
+            // If we're here, the application is running
+            // Just sleep a bit to avoid busy waiting
+            struct timespec ts;
+            ts.tv_sec = 0;
+            ts.tv_nsec = 16 * 1000000; // 16ms ~= 60fps
+            nanosleep(&ts, NULL);
+        }
             
             // Don't start the application here anymore
             // The application will be started in handle_cmd when the window is ready

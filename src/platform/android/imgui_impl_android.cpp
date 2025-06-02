@@ -162,39 +162,30 @@ void ImGui_ImplAndroid_RenderDrawData(ImDrawData* draw_data) {
     int height = (int)io.DisplaySize.y;
     __android_log_print(ANDROID_LOG_INFO, "ImGuiApp", "Viewport size: %dx%d", width, height);
     
-    // Clear the screen with a gradient
+    // Clear the screen with a bright color to verify rendering is working
     glViewport(0, 0, width, height);
-    glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
+    glClearColor(1.0f, 0.0f, 1.0f, 1.0f);  // Bright magenta for visibility
     glClear(GL_COLOR_BUFFER_BIT);
     
-    // Draw a simple test pattern
+    // Draw a simple test pattern with more visible colors
     static float time = 0.0f;
     time += io.DeltaTime;
     
-    // Draw a moving red square
-    int squareSize = height / 4;
+    // Draw a moving green square
+    int squareSize = height / 3;
     int x = (int)(width/2 + sin(time) * (width/4 - squareSize/2)) - squareSize/2;
     int y = height/2 - squareSize/2;
     
     glEnable(GL_SCISSOR_TEST);
     glScissor(x, y, squareSize, squareSize);
-    glClearColor(1.0f, 0.0f, 0.0f, 1.0f);
+    glClearColor(0.0f, 1.0f, 0.0f, 1.0f);  // Bright green
     glClear(GL_COLOR_BUFFER_BIT);
     
-    // Draw a blue square in the corner
+    // Draw a yellow square in the corner
     glScissor(0, 0, squareSize/2, squareSize/2);
-    glClearColor(0.0f, 0.0f, 1.0f, 1.0f);
+    glClearColor(1.0f, 1.0f, 0.0f, 1.0f);  // Bright yellow
     glClear(GL_COLOR_BUFFER_BIT);
     glDisable(GL_SCISSOR_TEST);
-    
-    // If we have draw data, we would render ImGui here
-    if (draw_data) {
-        // In a real implementation, you would render ImGui draw data here
-        __android_log_print(ANDROID_LOG_INFO, "ImGuiApp", "ImGui draw data available: %d cmd lists, %d vertices, %d indices", 
-                           draw_data->CmdListsCount, draw_data->TotalVtxCount, draw_data->TotalIdxCount);
-    } else {
-        __android_log_print(ANDROID_LOG_WARN, "ImGuiApp", "No ImGui draw data available");
-    }
     
     // Swap buffers
     if (eglSwapBuffers(g_EglDisplay, g_EglSurface) != EGL_TRUE) {

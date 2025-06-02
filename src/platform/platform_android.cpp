@@ -81,7 +81,11 @@ bool PlatformAndroid::platformInit() {
     }
     
     __android_log_print(ANDROID_LOG_INFO, "ImGuiApp", "Creating ImGui context");
-    ImGui::CreateContext();
+    m_imguiContext = ImGui::CreateContext();
+    if (!m_imguiContext) {
+        __android_log_print(ANDROID_LOG_ERROR, "ImGuiApp", "Failed to create ImGui context");
+        return false;
+    }
     
     // Configure ImGui style
     ImGuiIO& io = ImGui::GetIO();
@@ -141,8 +145,17 @@ bool PlatformAndroid::platformHandleEvents() {
 }
 
 void PlatformAndroid::platformShutdown() {
+    // First shut down ImGui Android implementation
     ImGui_ImplAndroid_Shutdown();
-    ImGui::DestroyContext();
+    
+    // Only destroy the ImGui context if it exists
+    if (m_imguiContext) {
+        ImGui::DestroyContext(m_imguiContext);
+        m_imguiContext = nullptr;
+    }
+    
+    // Reset the Android app pointer
+    m_androidApp = nullptr;
 }
 
 // Touch handling functions

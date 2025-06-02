@@ -68,6 +68,16 @@ void Application::run()
         // Render and present
         ImGui::Render();
         platformRender();
+        
+        // Add a small delay to avoid consuming too much CPU
+        // This is especially important for Android
+        #ifdef __ANDROID__
+        // Use a simple sleep for now - in a real app you might want to use a more sophisticated approach
+        struct timespec ts;
+        ts.tv_sec = 0;
+        ts.tv_nsec = 16 * 1000000; // 16ms ~= 60fps
+        nanosleep(&ts, NULL);
+        #endif
     }
 
     // Cleanup
