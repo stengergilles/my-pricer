@@ -1,9 +1,27 @@
 #include <android/configuration.h>  // Added for AConfiguration_getScreenDensity
 #include <android/native_activity.h>
 #include <android/input.h>
-#include <android/native_app_glue.h>  // Added for android_poll_source
+#include <android/looper.h>  // For ALooper_pollAll
 #include "imgui.h"
 #include "../include/platform/platform_android.h"
+
+// Forward declarations for Android NDK types
+struct android_app;
+struct android_poll_source {
+    int32_t id;
+    android_app* app;
+    void (*process)(android_app* app, android_poll_source* source);
+};
+
+// Forward declaration for android_app structure
+struct android_app {
+    void* userData;
+    void (*onAppCmd)(android_app* app, int32_t cmd);
+    int32_t (*onInputEvent)(android_app* app, AInputEvent* event);
+    struct ANativeActivity* activity;
+    struct AConfiguration* config;
+    // ... other fields not needed for this example
+};
 
 // ImGui Android implementation
 extern bool ImGui_ImplAndroid_Init(ANativeWindow* window);
