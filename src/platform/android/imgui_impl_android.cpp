@@ -7,6 +7,8 @@
 #include <math.h>
 #include "imgui.h"
 
+// Based on the official ImGui OpenGL3 backend with Android-specific modifications
+
 // Data
 static EGLDisplay g_EglDisplay = EGL_NO_DISPLAY;
 static EGLSurface g_EglSurface = EGL_NO_SURFACE;
@@ -21,20 +23,22 @@ static GLuint g_VertHandle = 0;
 static GLuint g_FragHandle = 0;
 static GLint g_AttribLocationTex = 0;
 static GLint g_AttribLocationProjMtx = 0;
-static GLint g_AttribLocationPosition = 0;
-static GLint g_AttribLocationUV = 0;
-static GLint g_AttribLocationColor = 0;
+static GLint g_AttribLocationVtxPos = 0;
+static GLint g_AttribLocationVtxUV = 0;
+static GLint g_AttribLocationVtxColor = 0;
 static GLuint g_VboHandle = 0;
 static GLuint g_ElementsHandle = 0;
 
-// Simple vertex shader that preserves positions
-static const char* g_VertexShaderSource = 
+// Shaders from the official ImGui OpenGL3 backend
+static const char* g_VertexShaderGlsl =
+    "#version 300 es\n"
+    "precision mediump float;\n"
+    "layout (location = 0) in vec2 Position;\n"
+    "layout (location = 1) in vec2 UV;\n"
+    "layout (location = 2) in vec4 Color;\n"
     "uniform mat4 ProjMtx;\n"
-    "attribute vec2 Position;\n"
-    "attribute vec2 UV;\n"
-    "attribute vec4 Color;\n"
-    "varying vec2 Frag_UV;\n"
-    "varying vec4 Frag_Color;\n"
+    "out vec2 Frag_UV;\n"
+    "out vec4 Frag_Color;\n"
     "void main()\n"
     "{\n"
     "    Frag_UV = UV;\n"
@@ -42,14 +46,16 @@ static const char* g_VertexShaderSource =
     "    gl_Position = ProjMtx * vec4(Position.xy, 0, 1);\n"
     "}\n";
 
-static const char* g_FragmentShaderSource = 
+static const char* g_FragmentShaderGlsl =
+    "#version 300 es\n"
     "precision mediump float;\n"
     "uniform sampler2D Texture;\n"
-    "varying vec2 Frag_UV;\n"
-    "varying vec4 Frag_Color;\n"
+    "in vec2 Frag_UV;\n"
+    "in vec4 Frag_Color;\n"
+    "layout (location = 0) out vec4 Out_Color;\n"
     "void main()\n"
     "{\n"
-    "    gl_FragColor = Frag_Color * texture2D(Texture, Frag_UV);\n"
+    "    Out_Color = Frag_Color * texture(Texture, Frag_UV.st);\n"
     "}\n";
 
 // Helper function to check shader compilation/linking errors
@@ -96,12 +102,12 @@ static bool CreateDeviceObjects()
 {
     // Create shaders
     g_VertHandle = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(g_VertHandle, 1, &g_VertexShaderSource, 0);
+    glShaderSource(g_VertHandle, 1, &g_VertexShaderGlsl, 0);
     glCompileShader(g_VertHandle);
     CheckShader(g_VertHandle, "vertex shader");
 
     g_FragHandle = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(g_FragHandle, 1, &g_FragmentShaderSource, 0);
+    glShaderSource(g_FragHandle, 1, &g_FragmentShaderGlsl, 0);
     glCompileShader(g_FragHandle);
     CheckShader(g_FragHandle, "fragment shader");
 
@@ -113,9 +119,9 @@ static bool CreateDeviceObjects()
 
     g_AttribLocationTex = glGetUniformLocation(g_ShaderHandle, "Texture");
     g_AttribLocationProjMtx = glGetUniformLocation(g_ShaderHandle, "ProjMtx");
-    g_AttribLocationPosition = glGetAttribLocation(g_ShaderHandle, "Position");
-    g_AttribLocationUV = glGetAttribLocation(g_ShaderHandle, "UV");
-    g_AttribLocationColor = glGetAttribLocation(g_ShaderHandle, "Color");
+    g_AttribLocationVtxPos = glGetAttribLocation(g_ShaderHandle, "Position");
+    g_AttribLocationVtxUV = glGetAttribLocation(g_ShaderHandle, "UV");
+    g_AttribLocationVtxColor = glGetAttribLocation(g_ShaderHandle, "Color");
 
     // Create buffers
     glGenBuffers(1, &g_VboHandle);
@@ -343,34 +349,50 @@ void ImGui_ImplAndroid_RenderDrawData(ImDrawData* draw_data)
     if (fb_width <= 0 || fb_height <= 0)
         return;
     
+    // Backup GL state
+    GLint last_active_texture; glGetIntegerv(GL_ACTIVE_TEXTURE, &last_active_texture);
+    glActiveTexture(GL_TEXTURE0);
+    GLint last_program; glGetIntegerv(GL_CURRENT_PROGRAM, &last_program);
+    GLint last_texture; glGetIntegerv(GL_TEXTURE_BINDING_2D, &last_texture);
+    GLint last_array_buffer; glGetIntegerv(GL_ARRAY_BUFFER_BINDING, &last_array_buffer);
+    GLint last_element_array_buffer; glGetIntegerv(GL_ELEMENT_ARRAY_BUFFER_BINDING, &last_element_array_buffer);
+    GLint last_vertex_array; glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &last_vertex_array);
+    GLint last_blend_src_rgb; glGetIntegerv(GL_BLEND_SRC_RGB, &last_blend_src_rgb);
+    GLint last_blend_dst_rgb; glGetIntegerv(GL_BLEND_DST_RGB, &last_blend_dst_rgb);
+    GLint last_blend_src_alpha; glGetIntegerv(GL_BLEND_SRC_ALPHA, &last_blend_src_alpha);
+    GLint last_blend_dst_alpha; glGetIntegerv(GL_BLEND_DST_ALPHA, &last_blend_dst_alpha);
+    GLint last_blend_equation_rgb; glGetIntegerv(GL_BLEND_EQUATION_RGB, &last_blend_equation_rgb);
+    GLint last_blend_equation_alpha; glGetIntegerv(GL_BLEND_EQUATION_ALPHA, &last_blend_equation_alpha);
+    GLint last_viewport[4]; glGetIntegerv(GL_VIEWPORT, last_viewport);
+    GLint last_scissor_box[4]; glGetIntegerv(GL_SCISSOR_BOX, last_scissor_box);
+    GLboolean last_enable_blend = glIsEnabled(GL_BLEND);
+    GLboolean last_enable_cull_face = glIsEnabled(GL_CULL_FACE);
+    GLboolean last_enable_depth_test = glIsEnabled(GL_DEPTH_TEST);
+    GLboolean last_enable_scissor_test = glIsEnabled(GL_SCISSOR_TEST);
+    
     // Setup render state
     glEnable(GL_BLEND);
     glBlendEquation(GL_FUNC_ADD);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
     glDisable(GL_CULL_FACE);
     glDisable(GL_DEPTH_TEST);
     glEnable(GL_SCISSOR_TEST);
-    glActiveTexture(GL_TEXTURE0);
     
     // Setup viewport
     glViewport(0, 0, fb_width, fb_height);
-    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT);
     
-    // Setup orthographic projection matrix for Android
-    // This is the key fix for the orientation issue
-    float L = 0.0f;
-    float R = draw_data->DisplaySize.x;
-    float T = 0.0f;
-    float B = draw_data->DisplaySize.y;
-    
-    // This projection matrix works for Android's coordinate system
-    float ortho_projection[4][4] =
+    // Setup orthographic projection matrix
+    // Our visible imgui space lies from draw_data->DisplayPos (top left) to draw_data->DisplayPos+data_data->DisplaySize (bottom right).
+    float L = draw_data->DisplayPos.x;
+    float R = draw_data->DisplayPos.x + draw_data->DisplaySize.x;
+    float T = draw_data->DisplayPos.y;
+    float B = draw_data->DisplayPos.y + draw_data->DisplaySize.y;
+    const float ortho_projection[4][4] =
     {
-        { 2.0f/(R-L),   0.0f,           0.0f,       0.0f },
-        { 0.0f,         2.0f/(T-B),     0.0f,       0.0f },
-        { 0.0f,         0.0f,           -1.0f,      0.0f },
-        { (L+R)/(L-R),  (T+B)/(B-T),    0.0f,       1.0f },
+        { 2.0f/(R-L),   0.0f,         0.0f,   0.0f },
+        { 0.0f,         2.0f/(T-B),   0.0f,   0.0f },
+        { 0.0f,         0.0f,        -1.0f,   0.0f },
+        { (R+L)/(L-R),  (T+B)/(B-T),  0.0f,   1.0f },
     };
     
     glUseProgram(g_ShaderHandle);
@@ -390,13 +412,13 @@ void ImGui_ImplAndroid_RenderDrawData(ImDrawData* draw_data)
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, (GLsizeiptr)cmd_list->IdxBuffer.Size * sizeof(ImDrawIdx), (const GLvoid*)cmd_list->IdxBuffer.Data, GL_STREAM_DRAW);
         
         // Setup attributes for ImDrawVert
-        glEnableVertexAttribArray(g_AttribLocationPosition);
-        glEnableVertexAttribArray(g_AttribLocationUV);
-        glEnableVertexAttribArray(g_AttribLocationColor);
+        glEnableVertexAttribArray(g_AttribLocationVtxPos);
+        glEnableVertexAttribArray(g_AttribLocationVtxUV);
+        glEnableVertexAttribArray(g_AttribLocationVtxColor);
         
-        glVertexAttribPointer(g_AttribLocationPosition, 2, GL_FLOAT, GL_FALSE, sizeof(ImDrawVert), (GLvoid*)offsetof(ImDrawVert, pos));
-        glVertexAttribPointer(g_AttribLocationUV, 2, GL_FLOAT, GL_FALSE, sizeof(ImDrawVert), (GLvoid*)offsetof(ImDrawVert, uv));
-        glVertexAttribPointer(g_AttribLocationColor, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(ImDrawVert), (GLvoid*)offsetof(ImDrawVert, col));
+        glVertexAttribPointer(g_AttribLocationVtxPos, 2, GL_FLOAT, GL_FALSE, sizeof(ImDrawVert), (GLvoid*)offsetof(ImDrawVert, pos));
+        glVertexAttribPointer(g_AttribLocationVtxUV, 2, GL_FLOAT, GL_FALSE, sizeof(ImDrawVert), (GLvoid*)offsetof(ImDrawVert, uv));
+        glVertexAttribPointer(g_AttribLocationVtxColor, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(ImDrawVert), (GLvoid*)offsetof(ImDrawVert, col));
         
         // Draw command lists
         int idx_offset = 0;
@@ -409,19 +431,20 @@ void ImGui_ImplAndroid_RenderDrawData(ImDrawData* draw_data)
             }
             else
             {
-                // Apply scissor/clipping rectangle - fixed for Android
-                int clip_x = (int)(pcmd->ClipRect.x);
-                int clip_y = (int)(fb_height - pcmd->ClipRect.w);
-                int clip_w = (int)(pcmd->ClipRect.z - pcmd->ClipRect.x);
-                int clip_h = (int)(pcmd->ClipRect.w - pcmd->ClipRect.y);
+                // Apply scissor/clipping rectangle
+                // The scissor rect coordinates are in framebuffer coordinates (0,0 = bottom-left corner)
+                int scissor_x = (int)(pcmd->ClipRect.x);
+                int scissor_y = (int)(fb_height - pcmd->ClipRect.w);
+                int scissor_w = (int)(pcmd->ClipRect.z - pcmd->ClipRect.x);
+                int scissor_h = (int)(pcmd->ClipRect.w - pcmd->ClipRect.y);
                 
                 // Ensure scissor rectangle is valid
-                if (clip_x < 0) clip_x = 0;
-                if (clip_y < 0) clip_y = 0;
-                if (clip_w < 0) clip_w = 0;
-                if (clip_h < 0) clip_h = 0;
+                if (scissor_x < 0) scissor_x = 0;
+                if (scissor_y < 0) scissor_y = 0;
+                if (scissor_w < 0) scissor_w = 0;
+                if (scissor_h < 0) scissor_h = 0;
                 
-                glScissor(clip_x, clip_y, clip_w, clip_h);
+                glScissor(scissor_x, scissor_y, scissor_w, scissor_h);
                 
                 // Bind texture, Draw
                 glBindTexture(GL_TEXTURE_2D, (GLuint)(intptr_t)pcmd->TextureId);
@@ -431,11 +454,19 @@ void ImGui_ImplAndroid_RenderDrawData(ImDrawData* draw_data)
         }
     }
     
-    // Restore modified state
-    glDisableVertexAttribArray(g_AttribLocationPosition);
-    glDisableVertexAttribArray(g_AttribLocationUV);
-    glDisableVertexAttribArray(g_AttribLocationColor);
-    glDisable(GL_SCISSOR_TEST);
+    // Restore modified GL state
+    glUseProgram(last_program);
+    glBindTexture(GL_TEXTURE_2D, last_texture);
+    glBindBuffer(GL_ARRAY_BUFFER, last_array_buffer);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, last_element_array_buffer);
+    glBlendEquationSeparate(last_blend_equation_rgb, last_blend_equation_alpha);
+    glBlendFuncSeparate(last_blend_src_rgb, last_blend_dst_rgb, last_blend_src_alpha, last_blend_dst_alpha);
+    if (last_enable_blend) glEnable(GL_BLEND); else glDisable(GL_BLEND);
+    if (last_enable_cull_face) glEnable(GL_CULL_FACE); else glDisable(GL_CULL_FACE);
+    if (last_enable_depth_test) glEnable(GL_DEPTH_TEST); else glDisable(GL_DEPTH_TEST);
+    if (last_enable_scissor_test) glEnable(GL_SCISSOR_TEST); else glDisable(GL_SCISSOR_TEST);
+    glViewport(last_viewport[0], last_viewport[1], (GLsizei)last_viewport[2], (GLsizei)last_viewport[3]);
+    glScissor(last_scissor_box[0], last_scissor_box[1], (GLsizei)last_scissor_box[2], (GLsizei)last_scissor_box[3]);
     
     // Swap buffers
     eglSwapBuffers(g_EglDisplay, g_EglSurface);
