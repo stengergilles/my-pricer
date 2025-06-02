@@ -72,24 +72,15 @@ void* PlatformAndroid::getAndroidApp() {
     return m_androidApp;
 }
 
-bool PlatformAndroid::platformInit() {
-    struct android_app* app = (struct android_app*)m_androidApp;
-    if (!app) {
-        LOGE("No Android app in platformInit");
-        return false;
-    }
-    
-    LOGI("Platform init with app: %p, window: %p", app, app->window);
-    
-    // Store the window pointer directly from the app structure
-    ANativeWindow* window = app->window;
-    
+bool PlatformAndroid::initWithWindow(ANativeWindow* window) {
     if (!window) {
-        LOGE("No window available in platformInit");
+        LOGE("Null window passed to initWithWindow");
         return false;
     }
     
-    LOGI("Using window pointer directly: %p", window);
+    // Store the window pointer directly
+    m_window = window;
+    LOGI("Window pointer stored directly: %p", m_window);
     
     LOGI("Creating ImGui context");
     // Don't create a new context if one already exists
@@ -109,7 +100,8 @@ bool PlatformAndroid::platformInit() {
     // Set display metrics
     // Use a safer approach to get screen density
     float xdpi = 160.0f; // Default density
-    if (app->config) {
+    struct android_app* app = (struct android_app*)m_androidApp;
+    if (app && app->config) {
         // Try to get the screen density if available
         #ifdef AConfiguration_getScreenDensity
         xdpi = AConfiguration_getScreenDensity(app->config);
@@ -122,11 +114,36 @@ bool PlatformAndroid::platformInit() {
     io.FontGlobalScale = scale;
     
     // Initialize ImGui for Android with the direct window pointer
-    LOGI("Initializing ImGui for Android with window: %p", window);
-    bool success = ImGui_ImplAndroid_Init(window);
+    LOGI("Initializing ImGui for Android with window: %p", m_window);
+    bool success = ImGui_ImplAndroid_Init(m_window);
     LOGI("ImGui Android init result: %s", success ? "SUCCESS" : "FAILED");
     
     return success;
+}
+
+bool PlatformAndroid::platformInit() {
+    struct android_app* app = (struct android_app*)m_androidApp;
+    if (!app) {
+        LOGE("No Android app in platformInit");
+        return false;
+    }
+    
+    LOGI("Platform init with app: %p, window: %p", app, app->window);
+    
+    // If we already have a stored window pointer, use that
+    if (m_window) {
+        LOGI("Using previously stored window pointer: %p", m_window);
+        return initWithWindow(m_window);
+    }
+    
+    // Otherwise try to get the window from the app
+    if (!app->window) {
+        LOGE("No window available in platformInit");
+        return false;
+    }
+    
+    // Store the window pointer and initialize
+    return initWithWindow(app->window);
 }
 
 void PlatformAndroid::platformNewFrame() {

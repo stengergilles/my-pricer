@@ -10,6 +10,7 @@
 // Global application instance
 static PlatformAndroid* g_app = nullptr;
 static bool g_initialized = false;
+static ANativeWindow* g_savedWindow = nullptr;
 
 // Process Android command events
 static void handle_cmd(android_app* app, int32_t cmd) {
@@ -18,23 +19,20 @@ static void handle_cmd(android_app* app, int32_t cmd) {
             // Window is being shown, initialize
             LOGI("APP_CMD_INIT_WINDOW received, window pointer: %p", app->window);
             if (app->window != nullptr) {
+                // Save the window pointer globally
+                g_savedWindow = app->window;
+                
                 if (g_app && !g_initialized) {
                     // Set the Android app pointer first
                     g_app->setAndroidApp(app);
                     
-                    // Add a small delay to ensure window is fully initialized
-                    struct timespec ts;
-                    ts.tv_sec = 0;
-                    ts.tv_nsec = 10 * 1000000; // 10ms delay
-                    nanosleep(&ts, NULL);
-                    
-                    // Initialize the platform
-                    bool success = g_app->platformInit();
+                    // Initialize directly with the window pointer
+                    bool success = g_app->initWithWindow(g_savedWindow);
                     if (success) {
-                        LOGI("Platform initialized successfully");
+                        LOGI("Platform initialized successfully with direct window pointer");
                         g_initialized = true;
                     } else {
-                        LOGE("Platform initialization failed, will retry");
+                        LOGE("Platform initialization failed with direct window pointer, will retry");
                     }
                 }
             }
@@ -42,6 +40,7 @@ static void handle_cmd(android_app* app, int32_t cmd) {
         case APP_CMD_TERM_WINDOW:
             // Window is being hidden or closed
             LOGI("Window terminated");
+            g_savedWindow = nullptr;
             if (g_app) {
                 g_app->platformShutdown();
                 g_initialized = false;
@@ -50,6 +49,14 @@ static void handle_cmd(android_app* app, int32_t cmd) {
         case APP_CMD_GAINED_FOCUS:
             // App gained focus, start rendering
             LOGI("App gained focus");
+            // Try to initialize if we haven't already
+            if (g_app && !g_initialized && g_savedWindow != nullptr) {
+                bool success = g_app->initWithWindow(g_savedWindow);
+                if (success) {
+                    LOGI("Platform initialized successfully on focus gain");
+                    g_initialized = true;
+                }
+            }
             break;
         case APP_CMD_LOST_FOCUS:
             // App lost focus, stop rendering
