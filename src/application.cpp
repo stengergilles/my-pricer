@@ -86,8 +86,17 @@ void Application::renderFrame()
 
 void Application::renderImGui()
 {
+    // Set ImGui style
+    ImGui::StyleColorsDark();
+    ImGui::GetStyle().ScaleAllSizes(2.0f); // Scale up UI for better touch interaction
+    
     // Create a window with a title bar
-    ImGui::Begin("My Android App");
+    ImGui::SetNextWindowPos(ImVec2(0, 0));
+    ImGui::SetNextWindowSize(ImGui::GetIO().DisplaySize);
+    ImGui::Begin("My Android App", nullptr, 
+        ImGuiWindowFlags_NoResize | 
+        ImGuiWindowFlags_NoMove | 
+        ImGuiWindowFlags_NoCollapse);
     
     // Add a label (text)
     ImGui::Text("Hello from ImGui on Android!");
@@ -102,7 +111,7 @@ void Application::renderImGui()
     
     // Add a button
     static int clickCount = 0;
-    if (ImGui::Button("Click Me!")) {
+    if (ImGui::Button("Click Me!", ImVec2(200, 60))) {
         clickCount++;
     }
     

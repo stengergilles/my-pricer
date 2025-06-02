@@ -237,15 +237,22 @@ bool ImGui_ImplAndroid_Init(ANativeWindow* window)
     
     // Setup ImGui context with the window dimensions
     ImGuiIO& io = ImGui::GetIO();
+    
+    // Set display size and framebuffer scale
     io.DisplaySize = ImVec2((float)windowWidth, (float)windowHeight);
     io.DisplayFramebufferScale = ImVec2(1.0f, 1.0f);
     
     // Configure ImGui for Android
-    io.ConfigFlags |= ImGuiConfigFlags_IsTouchScreen;  // Enable touch screen support
+    io.ConfigFlags |= ImGuiConfigFlags_IsTouchScreen;
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
     io.BackendFlags |= ImGuiBackendFlags_HasMouseCursors;
     
+    // Set backend capabilities
+    io.BackendPlatformName = "imgui_impl_android";
+    io.BackendRendererName = "imgui_impl_opengl3_es3";
+    
     // Load DroidSans.ttf font
-    io.Fonts->AddFontFromFileTTF("/system/fonts/DroidSans.ttf", 16.0f);
+    io.Fonts->AddFontFromFileTTF("/system/fonts/DroidSans.ttf", 24.0f); // Larger font for touch
     
     // Create OpenGL objects
     CreateDeviceObjects();
@@ -362,22 +369,21 @@ void ImGui_ImplAndroid_RenderDrawData(ImDrawData* draw_data)
     glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
     
-    // Setup orthographic projection matrix - FIXED for Android orientation
-    const float L = 0.0f;
-    const float R = draw_data->DisplaySize.x;
-    const float T = 0.0f;
-    const float B = draw_data->DisplaySize.y;
-    const float ortho_projection[4][4] =
-    {
-        { 2.0f/(R-L),    0.0f,           0.0f,       0.0f },
-        { 0.0f,          2.0f/(T-B),     0.0f,       0.0f },
-        { 0.0f,          0.0f,          -1.0f,       0.0f },
-        { (R+L)/(L-R),   (T+B)/(B-T),    0.0f,       1.0f },
+    // Setup orthographic projection matrix for Android
+    float L = 0.0f;
+    float R = draw_data->DisplaySize.x;
+    float B = draw_data->DisplaySize.y;
+    float T = 0.0f;
+    float mvp[4][4] = {
+        { 2.0f/(R-L),   0.0f,           0.0f,       0.0f },
+        { 0.0f,         2.0f/(T-B),     0.0f,       0.0f },
+        { 0.0f,         0.0f,           -1.0f,      0.0f },
+        { (R+L)/(L-R),  (T+B)/(B-T),    0.0f,       1.0f },
     };
     
     glUseProgram(g_ShaderHandle);
     glUniform1i(g_AttribLocationTex, 0);
-    glUniformMatrix4fv(g_AttribLocationProjMtx, 1, GL_FALSE, &ortho_projection[0][0]);
+    glUniformMatrix4fv(g_AttribLocationProjMtx, 1, GL_FALSE, &mvp[0][0]);
     
     // Render command lists
     for (int n = 0; n < draw_data->CmdListsCount; n++)
@@ -411,14 +417,14 @@ void ImGui_ImplAndroid_RenderDrawData(ImDrawData* draw_data)
             }
             else
             {
-                // Apply scissor/clipping rectangle - FIXED for Android orientation
+                // Apply scissor/clipping rectangle
+                // Note: The scissor coordinates are flipped in Y for OpenGL
                 int clip_x = (int)(pcmd->ClipRect.x);
-                int clip_y = (int)(pcmd->ClipRect.y);
+                int clip_y = (int)(fb_height - pcmd->ClipRect.w);
                 int clip_w = (int)(pcmd->ClipRect.z - pcmd->ClipRect.x);
                 int clip_h = (int)(pcmd->ClipRect.w - pcmd->ClipRect.y);
                 
-                // Android-specific scissor adjustment
-                glScissor(clip_x, fb_height - clip_y - clip_h, clip_w, clip_h);
+                glScissor(clip_x, clip_y, clip_w, clip_h);
                 
                 // Bind texture, Draw
                 glBindTexture(GL_TEXTURE_2D, (GLuint)(intptr_t)pcmd->TextureId);
