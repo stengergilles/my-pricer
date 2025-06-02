@@ -86,15 +86,34 @@ void Application::renderFrame()
 
 void Application::renderImGui()
 {
-    // Create a simple window
-    ImGui::Begin("Hello, ImGui!");
+    // Create a window with a title bar
+    ImGui::Begin("My Android App");
     
-    ImGui::Text("Welcome to Dear ImGui!");
-    ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "This is a cross-platform application.");
+    // Add a label (text)
+    ImGui::Text("Hello from ImGui on Android!");
     
-    if (ImGui::Button("Click me!")) {
-        // Button action
+    // Add some colored text
+    ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "This is a yellow text.");
+    
+    // Add some spacing
+    ImGui::Spacing();
+    ImGui::Separator();
+    ImGui::Spacing();
+    
+    // Add a button
+    static int clickCount = 0;
+    if (ImGui::Button("Click Me!")) {
+        clickCount++;
     }
     
+    // Display the click count
+    ImGui::SameLine();
+    ImGui::Text("Button clicked %d times", clickCount);
+    
+    // Add a slider
+    static float value = 0.5f;
+    ImGui::SliderFloat("Slider", &value, 0.0f, 1.0f);
+    
+    // End the window
     ImGui::End();
 }

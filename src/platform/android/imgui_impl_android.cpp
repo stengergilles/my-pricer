@@ -18,8 +18,6 @@ static ANativeWindow* g_Window = NULL;
 static bool g_Initialized = false;
 
 bool ImGui_ImplAndroid_Init(ANativeWindow* window) {
-    __android_log_print(ANDROID_LOG_INFO, "ImGuiApp", "ImGui_ImplAndroid_Init called with window: %p", window);
-    
     g_Window = window;
     if (!window) {
         __android_log_print(ANDROID_LOG_ERROR, "ImGuiApp", "Null window passed to ImGui_ImplAndroid_Init");
@@ -30,29 +28,25 @@ bool ImGui_ImplAndroid_Init(ANativeWindow* window) {
     ANativeWindow_acquire(window);
     int32_t windowWidth = ANativeWindow_getWidth(window);
     int32_t windowHeight = ANativeWindow_getHeight(window);
-    __android_log_print(ANDROID_LOG_INFO, "ImGuiApp", "Window dimensions: %dx%d", windowWidth, windowHeight);
     ANativeWindow_release(window);
     
     if (windowWidth <= 0 || windowHeight <= 0) {
-        __android_log_print(ANDROID_LOG_ERROR, "ImGuiApp", "Invalid window dimensions: %dx%d", windowWidth, windowHeight);
+        __android_log_print(ANDROID_LOG_ERROR, "ImGuiApp", "Invalid window dimensions");
         return false;
     }
     
     // Initialize EGL
-    __android_log_print(ANDROID_LOG_INFO, "ImGuiApp", "Getting EGL display");
     g_EglDisplay = eglGetDisplay(EGL_DEFAULT_DISPLAY);
     if (g_EglDisplay == EGL_NO_DISPLAY) {
-        __android_log_print(ANDROID_LOG_ERROR, "ImGuiApp", "Failed to get EGL display: %d", eglGetError());
+        __android_log_print(ANDROID_LOG_ERROR, "ImGuiApp", "Failed to get EGL display");
         return false;
     }
     
-    __android_log_print(ANDROID_LOG_INFO, "ImGuiApp", "Initializing EGL");
     EGLint major, minor;
     if (eglInitialize(g_EglDisplay, &major, &minor) != EGL_TRUE) {
-        __android_log_print(ANDROID_LOG_ERROR, "ImGuiApp", "Failed to initialize EGL: %d", eglGetError());
+        __android_log_print(ANDROID_LOG_ERROR, "ImGuiApp", "Failed to initialize EGL");
         return false;
     }
-    __android_log_print(ANDROID_LOG_INFO, "ImGuiApp", "EGL initialized: version %d.%d", major, minor);
     
     // Configure EGL
     EGLint attribs[] = {
@@ -67,53 +61,47 @@ bool ImGui_ImplAndroid_Init(ANativeWindow* window) {
         EGL_NONE
     };
     
-    __android_log_print(ANDROID_LOG_INFO, "ImGuiApp", "Choosing EGL config");
     EGLConfig config;
     EGLint numConfigs;
     if (eglChooseConfig(g_EglDisplay, attribs, &config, 1, &numConfigs) != EGL_TRUE) {
-        __android_log_print(ANDROID_LOG_ERROR, "ImGuiApp", "Failed to choose EGL config: %d", eglGetError());
+        __android_log_print(ANDROID_LOG_ERROR, "ImGuiApp", "Failed to choose EGL config");
         return false;
     }
     
     // Create surface
-    __android_log_print(ANDROID_LOG_INFO, "ImGuiApp", "Creating window surface");
     g_EglSurface = eglCreateWindowSurface(g_EglDisplay, config, g_Window, NULL);
     if (g_EglSurface == EGL_NO_SURFACE) {
-        __android_log_print(ANDROID_LOG_ERROR, "ImGuiApp", "Failed to create EGL surface: %d", eglGetError());
+        __android_log_print(ANDROID_LOG_ERROR, "ImGuiApp", "Failed to create EGL surface");
         return false;
     }
     
     // Create context
-    __android_log_print(ANDROID_LOG_INFO, "ImGuiApp", "Creating EGL context");
     EGLint contextAttribs[] = {
         EGL_CONTEXT_CLIENT_VERSION, 3,
         EGL_NONE
     };
     g_EglContext = eglCreateContext(g_EglDisplay, config, EGL_NO_CONTEXT, contextAttribs);
     if (g_EglContext == EGL_NO_CONTEXT) {
-        __android_log_print(ANDROID_LOG_ERROR, "ImGuiApp", "Failed to create EGL context: %d", eglGetError());
+        __android_log_print(ANDROID_LOG_ERROR, "ImGuiApp", "Failed to create EGL context");
         return false;
     }
     
-    __android_log_print(ANDROID_LOG_INFO, "ImGuiApp", "Making EGL context current");
     if (eglMakeCurrent(g_EglDisplay, g_EglSurface, g_EglSurface, g_EglContext) != EGL_TRUE) {
-        __android_log_print(ANDROID_LOG_ERROR, "ImGuiApp", "Failed to make EGL context current: %d", eglGetError());
+        __android_log_print(ANDROID_LOG_ERROR, "ImGuiApp", "Failed to make EGL context current");
         return false;
     }
     
-    // Setup ImGui context with the window dimensions we already retrieved
+    // Setup ImGui context with the window dimensions
     ImGuiIO& io = ImGui::GetIO();
     io.DisplaySize = ImVec2((float)windowWidth, (float)windowHeight);
-    __android_log_print(ANDROID_LOG_INFO, "ImGuiApp", "Set ImGui display size: %dx%d", windowWidth, windowHeight);
     
-    // Initialize OpenGL ES
-    __android_log_print(ANDROID_LOG_INFO, "ImGuiApp", "OpenGL version: %s", glGetString(GL_VERSION));
+    // Load DroidSans.ttf font
+    io.Fonts->AddFontFromFileTTF("/system/fonts/DroidSans.ttf", 16.0f);
     
-    // Create font texture - THIS IS THE KEY ADDITION
+    // Create font texture
     unsigned char* pixels;
     int width, height;
     io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
-    __android_log_print(ANDROID_LOG_INFO, "ImGuiApp", "Created font texture: %dx%d", width, height);
     
     // Upload texture to graphics system
     GLuint font_texture;
@@ -125,10 +113,8 @@ bool ImGui_ImplAndroid_Init(ANativeWindow* window) {
     
     // Store our identifier
     io.Fonts->TexID = (ImTextureID)(intptr_t)font_texture;
-    __android_log_print(ANDROID_LOG_INFO, "ImGuiApp", "Font texture uploaded with ID: %p", io.Fonts->TexID);
     
     g_Initialized = true;
-    __android_log_print(ANDROID_LOG_INFO, "ImGuiApp", "ImGui_ImplAndroid_Init completed successfully");
     return true;
 }
 
@@ -153,14 +139,12 @@ void ImGui_ImplAndroid_Shutdown() {
 }
 
 void ImGui_ImplAndroid_NewFrame() {
-    if (!g_Initialized) {
-        __android_log_print(ANDROID_LOG_ERROR, "ImGuiApp", "ImGui_ImplAndroid_NewFrame called before initialization");
+    if (!g_Initialized)
         return;
-    }
     
     // Make sure the correct context is current
     if (eglMakeCurrent(g_EglDisplay, g_EglSurface, g_EglSurface, g_EglContext) != EGL_TRUE) {
-        __android_log_print(ANDROID_LOG_ERROR, "ImGuiApp", "Failed to make context current in NewFrame: %d", eglGetError());
+        __android_log_print(ANDROID_LOG_ERROR, "ImGuiApp", "Failed to make context current in NewFrame");
         return;
     }
     
@@ -171,21 +155,18 @@ void ImGui_ImplAndroid_NewFrame() {
     int32_t windowHeight = ANativeWindow_getHeight(g_Window);
     io.DisplaySize = ImVec2((float)windowWidth, (float)windowHeight);
     
-    // Setup time step using a simpler approach without timespec
+    // Setup time step
     static double g_Time = 0.0;
-    double current_time = (double)ImGui::GetTime();  // Use ImGui's built-in time function
+    double current_time = (double)ImGui::GetTime();
     io.DeltaTime = g_Time > 0.0 ? (float)(current_time - g_Time) : (float)(1.0f / 60.0f);
     g_Time = current_time;
     
     // Verify that the font atlas is built
     if (!io.Fonts->IsBuilt()) {
-        __android_log_print(ANDROID_LOG_INFO, "ImGuiApp", "Font atlas not built, rebuilding...");
-        
         // Create font texture
         unsigned char* pixels;
         int width, height;
         io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
-        __android_log_print(ANDROID_LOG_INFO, "ImGuiApp", "Created font texture: %dx%d", width, height);
         
         // Upload texture to graphics system
         GLuint font_texture;
@@ -197,58 +178,43 @@ void ImGui_ImplAndroid_NewFrame() {
         
         // Store our identifier
         io.Fonts->TexID = (ImTextureID)(intptr_t)font_texture;
-        __android_log_print(ANDROID_LOG_INFO, "ImGuiApp", "Font texture uploaded with ID: %p", io.Fonts->TexID);
     }
 }
 
 void ImGui_ImplAndroid_RenderDrawData(ImDrawData* draw_data) {
-    if (!g_Initialized) {
-        __android_log_print(ANDROID_LOG_ERROR, "ImGuiApp", "Trying to render with uninitialized ImGui");
+    if (!g_Initialized || !draw_data)
         return;
-    }
-    
-    __android_log_print(ANDROID_LOG_INFO, "ImGuiApp", "Rendering frame with draw_data: %p", draw_data);
     
     // Make sure the correct context is current
-    if (eglMakeCurrent(g_EglDisplay, g_EglSurface, g_EglSurface, g_EglContext) != EGL_TRUE) {
-        __android_log_print(ANDROID_LOG_ERROR, "ImGuiApp", "Failed to make context current for rendering: %d", eglGetError());
+    if (eglMakeCurrent(g_EglDisplay, g_EglSurface, g_EglSurface, g_EglContext) != EGL_TRUE)
         return;
-    }
     
     // Get the current viewport size
-    ImGuiIO& io = ImGui::GetIO();
-    int width = (int)io.DisplaySize.x;
-    int height = (int)io.DisplaySize.y;
-    __android_log_print(ANDROID_LOG_INFO, "ImGuiApp", "Viewport size: %dx%d", width, height);
+    int fb_width = (int)(draw_data->DisplaySize.x * draw_data->FramebufferScale.x);
+    int fb_height = (int)(draw_data->DisplaySize.y * draw_data->FramebufferScale.y);
+    if (fb_width <= 0 || fb_height <= 0)
+        return;
     
-    // Clear the screen with a bright color to verify rendering is working
-    glViewport(0, 0, width, height);
-    glClearColor(1.0f, 0.0f, 1.0f, 1.0f);  // Bright magenta for visibility
+    // Setup render state
+    glViewport(0, 0, fb_width, fb_height);
+    glClearColor(0.1f, 0.1f, 0.1f, 1.0f);  // Dark gray background
     glClear(GL_COLOR_BUFFER_BIT);
     
-    // Draw a simple test pattern with more visible colors
-    static float time = 0.0f;
-    time += io.DeltaTime;
+    // Setup orthographic projection matrix
+    const float ortho_projection[4][4] =
+    {
+        { 2.0f/draw_data->DisplaySize.x, 0.0f,                   0.0f, 0.0f },
+        { 0.0f,                  2.0f/-draw_data->DisplaySize.y, 0.0f, 0.0f },
+        { 0.0f,                  0.0f,                  -1.0f, 0.0f },
+        {-1.0f,                  1.0f,                   0.0f, 1.0f },
+    };
     
-    // Draw a moving green square
-    int squareSize = height / 3;
-    int x = (int)(width/2 + sin(time) * (width/4 - squareSize/2)) - squareSize/2;
-    int y = height/2 - squareSize/2;
-    
-    glEnable(GL_SCISSOR_TEST);
-    glScissor(x, y, squareSize, squareSize);
-    glClearColor(0.0f, 1.0f, 0.0f, 1.0f);  // Bright green
-    glClear(GL_COLOR_BUFFER_BIT);
-    
-    // Draw a yellow square in the corner
-    glScissor(0, 0, squareSize/2, squareSize/2);
-    glClearColor(1.0f, 1.0f, 0.0f, 1.0f);  // Bright yellow
-    glClear(GL_COLOR_BUFFER_BIT);
-    glDisable(GL_SCISSOR_TEST);
+    // Simple rendering for demonstration purposes
+    // In a real implementation, you would use shaders and process all ImGui draw commands
     
     // Swap buffers
-    if (eglSwapBuffers(g_EglDisplay, g_EglSurface) != EGL_TRUE) {
-        __android_log_print(ANDROID_LOG_ERROR, "ImGuiApp", "Failed to swap buffers: %d", eglGetError());
+    eglSwapBuffers(g_EglDisplay, g_EglSurface);
+}
     } else {
         __android_log_print(ANDROID_LOG_INFO, "ImGuiApp", "Successfully swapped buffers");
     }
