@@ -84,6 +84,8 @@ void android_main(struct android_app* app) {
             // Check if we are exiting
             if (app->destroyRequested != 0) {
                 LOGI("Exiting application");
+                delete g_app;
+                g_app = nullptr;
                 return;
             }
         }
@@ -104,15 +106,7 @@ void android_main(struct android_app* app) {
             ts.tv_nsec = 16 * 1000000; // 16ms ~= 60fps
             nanosleep(&ts, NULL);
         }
-            
-            // Don't start the application here anymore
-            // The application will be started in handle_cmd when the window is ready
-            
-            frameCount++;
-        }
+        
+        frameCount++;
     }
-    
-    // Clean up
-    delete g_app;
-    g_app = nullptr;
 }
