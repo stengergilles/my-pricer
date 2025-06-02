@@ -16,6 +16,9 @@
 #define ANDROID_LOG_ERROR 6
 #endif
 
+#define LOGI(...) ((void)__android_log_print(ANDROID_LOG_INFO, "ImGuiApp", __VA_ARGS__))
+#define LOGE(...) ((void)__android_log_print(ANDROID_LOG_ERROR, "ImGuiApp", __VA_ARGS__))
+
 // Forward declarations for Android NDK types
 struct android_app;
 struct android_poll_source {
@@ -62,6 +65,7 @@ PlatformAndroid::~PlatformAndroid() {
 
 void PlatformAndroid::setAndroidApp(void* app) {
     m_androidApp = app;
+    LOGI("Android app pointer set: %p", app);
 }
 
 void* PlatformAndroid::getAndroidApp() {
@@ -71,20 +75,25 @@ void* PlatformAndroid::getAndroidApp() {
 bool PlatformAndroid::platformInit() {
     struct android_app* app = (struct android_app*)m_androidApp;
     if (!app) {
-        __android_log_print(ANDROID_LOG_ERROR, "ImGuiApp", "No Android app in platformInit");
+        LOGE("No Android app in platformInit");
         return false;
     }
+    
+    LOGI("Platform init with app: %p, window: %p", app, app->window);
     
     if (!app->window) {
-        __android_log_print(ANDROID_LOG_ERROR, "ImGuiApp", "No window available in platformInit");
+        LOGE("No window available in platformInit");
         return false;
     }
     
-    __android_log_print(ANDROID_LOG_INFO, "ImGuiApp", "Creating ImGui context");
-    m_imguiContext = ImGui::CreateContext();
+    LOGI("Creating ImGui context");
+    // Don't create a new context if one already exists
     if (!m_imguiContext) {
-        __android_log_print(ANDROID_LOG_ERROR, "ImGuiApp", "Failed to create ImGui context");
-        return false;
+        m_imguiContext = ImGui::CreateContext();
+        if (!m_imguiContext) {
+            LOGE("Failed to create ImGui context");
+            return false;
+        }
     }
     
     // Configure ImGui style
@@ -101,16 +110,16 @@ bool PlatformAndroid::platformInit() {
         xdpi = AConfiguration_getScreenDensity(app->config);
         #else
         // Fallback to a reasonable default if the function is not available
-        __android_log_print(ANDROID_LOG_INFO, "ImGuiApp", "AConfiguration_getScreenDensity not available, using default density");
+        LOGI("AConfiguration_getScreenDensity not available, using default density");
         #endif
     }
     float scale = xdpi / 160.0f;
     io.FontGlobalScale = scale;
     
     // Initialize ImGui for Android
-    __android_log_print(ANDROID_LOG_INFO, "ImGuiApp", "Initializing ImGui for Android");
+    LOGI("Initializing ImGui for Android with window: %p", app->window);
     bool success = ImGui_ImplAndroid_Init(app->window);
-    __android_log_print(ANDROID_LOG_INFO, "ImGuiApp", "ImGui Android init result: %s", success ? "SUCCESS" : "FAILED");
+    LOGI("ImGui Android init result: %s", success ? "SUCCESS" : "FAILED");
     
     return success;
 }

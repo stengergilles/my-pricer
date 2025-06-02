@@ -9,6 +9,7 @@
 
 // Global application instance
 static PlatformAndroid* g_app = nullptr;
+static bool g_windowInitialized = false;
 
 // Process Android command events
 static void handle_cmd(android_app* app, int32_t cmd) {
@@ -17,11 +18,13 @@ static void handle_cmd(android_app* app, int32_t cmd) {
             // Window is being shown, initialize
             if (app->window != nullptr) {
                 LOGI("Window initialized, setting up application");
-                // Don't initialize the platform here, let the main loop handle it
+                g_windowInitialized = true;
             }
             break;
         case APP_CMD_TERM_WINDOW:
             // Window is being hidden or closed
+            LOGI("Window terminated");
+            g_windowInitialized = false;
             if (g_app) {
                 g_app->platformShutdown();
             }
@@ -60,18 +63,19 @@ void android_main(struct android_app* app) {
     
     // Create application instance
     g_app = new PlatformAndroid("ImGui Hello World");
-    g_app->setAndroidApp(app);
     
     LOGI("Starting application main loop");
     
     // Main loop
     bool appInitialized = false;
+    int waitCount = 0;
+    
     while (1) {
         // Read all pending events
         int events;
         android_poll_source* source;
         
-        // Process events
+        // Process events - use -1 timeout to block until events are available
         while ((ALooper_pollAll(0, nullptr, &events, (void**)&source)) >= 0) {
             if (source != nullptr) {
                 source->process(app, source);
@@ -80,28 +84,43 @@ void android_main(struct android_app* app) {
             // Check if we are exiting
             if (app->destroyRequested != 0) {
                 LOGI("Exiting application");
-                delete g_app;
-                g_app = nullptr;
+                if (g_app) {
+                    delete g_app;
+                    g_app = nullptr;
+                }
                 return;
             }
         }
         
-        // If window is initialized, run the application
-        if (app->window != nullptr && !appInitialized) {
-            // Initialize the platform first
-            bool success = g_app->platformInit();
-            if (success) {
-                LOGI("Platform initialized successfully, starting application");
-                appInitialized = true;
-                Application::getInstance()->run();
-            } else {
-                LOGE("Platform initialization failed, waiting for window");
-                // Sleep a bit to avoid busy waiting
-                struct timespec ts;
-                ts.tv_sec = 0;
-                ts.tv_nsec = 100 * 1000000; // 100ms
-                nanosleep(&ts, NULL);
+        // Check if window is initialized
+        if (g_windowInitialized && app->window != nullptr) {
+            if (!appInitialized) {
+                LOGI("Window is ready, initializing platform");
+                // Set the Android app pointer
+                g_app->setAndroidApp(app);
+                
+                // Initialize the platform
+                bool success = g_app->platformInit();
+                if (success) {
+                    LOGI("Platform initialized successfully, starting application");
+                    appInitialized = true;
+                    Application::getInstance()->run();
+                } else {
+                    LOGE("Platform initialization failed, will retry");
+                    waitCount++;
+                    if (waitCount > 10) {
+                        LOGE("Too many initialization attempts, exiting");
+                        break;
+                    }
+                }
             }
+        } else {
+            // Wait for window to be initialized
+            LOGI("Waiting for window initialization...");
+            struct timespec ts;
+            ts.tv_sec = 0;
+            ts.tv_nsec = 100 * 1000000; // 100ms
+            nanosleep(&ts, NULL);
         }
         
         // Sleep a bit to avoid busy waiting
