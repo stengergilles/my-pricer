@@ -7,6 +7,104 @@
 #define LOGW(...) ((void)__android_log_print(ANDROID_LOG_WARN, "ImGuiJNI", __VA_ARGS__))
 #define LOGE(...) ((void)__android_log_print(ANDROID_LOG_ERROR, "ImGuiJNI", __VA_ARGS__))
 
+// Global JavaVM reference
+static JavaVM* g_JavaVM = nullptr;
+static jclass g_MainActivityClass = nullptr;
+static jmethodID g_ShowKeyboardMethod = nullptr;
+
+// Called when the library is loaded
+JNIEXPORT jint JNI_OnLoad(JavaVM* vm, void* reserved) {
+    g_JavaVM = vm;
+    
+    JNIEnv* env;
+    if (vm->GetEnv(reinterpret_cast<void**>(&env), JNI_VERSION_1_6) != JNI_OK) {
+        return JNI_ERR;
+    }
+    
+    // Find and cache the MainActivity class and showSoftKeyboard method
+    jclass mainActivityClass = env->FindClass("com/example/imguihelloworld/MainActivity");
+    if (mainActivityClass == nullptr) {
+        LOGE("Failed to find MainActivity class");
+        return JNI_ERR;
+    }
+    
+    // Create a global reference to the class
+    g_MainActivityClass = (jclass)env->NewGlobalRef(mainActivityClass);
+    
+    // Get the showSoftKeyboard method ID
+    g_ShowKeyboardMethod = env->GetStaticMethodID(g_MainActivityClass, "showKeyboard", "()V");
+    if (g_ShowKeyboardMethod == nullptr) {
+        LOGE("Failed to find showKeyboard method");
+        // Not a fatal error, we'll try to find it later
+    }
+    
+    return JNI_VERSION_1_6;
+}
+
+// Helper function to show the keyboard from native code
+extern "C" void showKeyboard() {
+    JNIEnv* env;
+    bool attached = false;
+    
+    // Get the JNIEnv
+    jint result = g_JavaVM->GetEnv(reinterpret_cast<void**>(&env), JNI_VERSION_1_6);
+    if (result == JNI_EDETACHED) {
+        if (g_JavaVM->AttachCurrentThread(&env, nullptr) != 0) {
+            LOGE("Failed to attach thread to JavaVM");
+            return;
+        }
+        attached = true;
+    } else if (result != JNI_OK) {
+        LOGE("Failed to get JNIEnv");
+        return;
+    }
+    
+    // Find the MainActivity class if not already cached
+    if (g_MainActivityClass == nullptr) {
+        jclass mainActivityClass = env->FindClass("com/example/imguihelloworld/MainActivity");
+        if (mainActivityClass == nullptr) {
+            LOGE("Failed to find MainActivity class");
+            if (attached) g_JavaVM->DetachCurrentThread();
+            return;
+        }
+        g_MainActivityClass = (jclass)env->NewGlobalRef(mainActivityClass);
+    }
+    
+    // Find the static instance field
+    jfieldID instanceField = env->GetStaticFieldID(g_MainActivityClass, "instance", "Lcom/example/imguihelloworld/MainActivity;");
+    if (instanceField == nullptr) {
+        LOGE("Failed to find instance field");
+        if (attached) g_JavaVM->DetachCurrentThread();
+        return;
+    }
+    
+    // Get the instance object
+    jobject instance = env->GetStaticObjectField(g_MainActivityClass, instanceField);
+    if (instance == nullptr) {
+        LOGE("MainActivity instance is null");
+        if (attached) g_JavaVM->DetachCurrentThread();
+        return;
+    }
+    
+    // Find the showSoftKeyboard method if not already cached
+    if (g_ShowKeyboardMethod == nullptr) {
+        g_ShowKeyboardMethod = env->GetMethodID(g_MainActivityClass, "showSoftKeyboard", "()V");
+        if (g_ShowKeyboardMethod == nullptr) {
+            LOGE("Failed to find showSoftKeyboard method");
+            if (attached) g_JavaVM->DetachCurrentThread();
+            return;
+        }
+    }
+    
+    // Call the method
+    env->CallVoidMethod(instance, g_ShowKeyboardMethod);
+    
+    // Detach the thread if we attached it
+    if (attached) {
+        g_JavaVM->DetachCurrentThread();
+    }
+}
+
 // JNI method implementations for ImGuiKeyboardHelper
 extern "C" {
 
@@ -185,6 +283,18 @@ Java_com_example_imguihelloworld_ImGuiJNI_onTextInput(JNIEnv *env, jclass clazz,
         io.AddInputCharactersUTF8(utf8Text);
         env->ReleaseStringUTFChars(text, utf8Text);
     }
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_example_imguihelloworld_ImGuiJNI_wantsTextInput(JNIEnv *env, jclass clazz) {
+    ImGuiIO& io = ImGui::GetIO();
+    return io.WantTextInput ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_example_imguihelloworld_MainActivity_nativeWantsTextInput(JNIEnv *env, jobject thiz) {
+    ImGuiIO& io = ImGui::GetIO();
+    return io.WantTextInput ? JNI_TRUE : JNI_FALSE;
 }
 
 } // extern "C"

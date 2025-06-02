@@ -5,6 +5,9 @@ import android.view.KeyEvent;
 import android.view.inputmethod.InputMethodManager;
 import android.content.Context;
 import android.view.View;
+import android.os.Handler;
+import android.os.Looper;
+import android.util.Log;
 
 /**
  * Main activity for the ImGui Hello World application.
@@ -12,18 +15,67 @@ import android.view.View;
  */
 public class MainActivity extends ImGuiKeyboardHelper {
     
+    private static final String TAG = "MainActivity";
+    
+    // Static instance for access from native code via JNI
+    public static MainActivity instance;
+    
+    // Handler for delayed tasks
+    private Handler mHandler = new Handler(Looper.getMainLooper());
+    
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         
-        // Set up a long click listener to toggle the keyboard
-        getWindow().getDecorView().setOnLongClickListener(new View.OnLongClickListener() {
+        // Store instance for JNI access
+        instance = this;
+        
+        Log.d(TAG, "MainActivity created");
+        
+        // Set up a tap listener to show keyboard
+        getWindow().getDecorView().setOnClickListener(new View.OnClickListener() {
             @Override
-            public boolean onLongClick(View v) {
-                toggleSoftKeyboard();
-                return true;
+            public void onClick(View v) {
+                Log.d(TAG, "View clicked, showing keyboard");
+                showSoftKeyboard();
             }
         });
+        
+        // Show keyboard after a short delay
+        mHandler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                Log.d(TAG, "Initial keyboard show attempt");
+                showSoftKeyboard();
+            }
+        }, 1000); // 1 second delay
+    }
+    
+    @Override
+    protected void onResume() {
+        super.onResume();
+        
+        // Store instance for JNI access (in case it was lost)
+        instance = this;
+        
+        // Show keyboard when app resumes
+        mHandler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                Log.d(TAG, "onResume keyboard show attempt");
+                showSoftKeyboard();
+            }
+        }, 500); // 0.5 second delay
+    }
+    
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        
+        // Clear static instance if this instance is being destroyed
+        if (instance == this) {
+            instance = null;
+        }
     }
     
     @Override
@@ -69,5 +121,23 @@ public class MainActivity extends ImGuiKeyboardHelper {
         }
         
         return super.dispatchKeyEvent(event);
+    }
+    
+    // Override the showSoftKeyboard method to add more logging
+    @Override
+    public void showSoftKeyboard() {
+        Log.d(TAG, "MainActivity.showSoftKeyboard called");
+        super.showSoftKeyboard();
+        
+        // Try an alternative method if the first one doesn't work
+        try {
+            InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+            if (imm != null) {
+                View view = getWindow().getDecorView().getRootView();
+                imm.showSoftInput(view, InputMethodManager.SHOW_IMPLICIT);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error in alternative keyboard show: " + e.getMessage());
+        }
     }
 }

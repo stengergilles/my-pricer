@@ -6,12 +6,15 @@ import android.os.Bundle;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
+import android.util.Log;
 
 /**
  * Helper class to handle keyboard input for ImGui on Android.
  * This class extends NativeActivity to provide better keyboard support.
  */
 public class ImGuiKeyboardHelper extends NativeActivity {
+    
+    private static final String TAG = "ImGuiKeyboardHelper";
     
     // Native methods to pass keyboard events to the native code
     private native void nativeOnKeyDown(int keyCode, int metaState);
@@ -35,6 +38,10 @@ public class ImGuiKeyboardHelper extends NativeActivity {
                 }
             }
         );
+        
+        // Force the window to be focusable so the keyboard can show up
+        decorView.setFocusable(true);
+        decorView.setFocusableInTouchMode(true);
     }
     
     @Override
@@ -70,9 +77,17 @@ public class ImGuiKeyboardHelper extends NativeActivity {
      * Show the soft keyboard
      */
     public void showSoftKeyboard() {
-        InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
-        if (imm != null) {
-            imm.showSoftInput(getWindow().getDecorView(), InputMethodManager.SHOW_IMPLICIT);
+        Log.d(TAG, "Showing soft keyboard");
+        try {
+            InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+            if (imm != null) {
+                // Force the keyboard to show
+                View view = getWindow().getDecorView();
+                view.requestFocus();
+                imm.showSoftInput(view, InputMethodManager.SHOW_FORCED);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error showing keyboard: " + e.getMessage());
         }
     }
     
@@ -80,9 +95,15 @@ public class ImGuiKeyboardHelper extends NativeActivity {
      * Hide the soft keyboard
      */
     public void hideSoftKeyboard() {
-        InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
-        if (imm != null) {
-            imm.hideSoftInputFromWindow(getWindow().getDecorView().getWindowToken(), 0);
+        Log.d(TAG, "Hiding soft keyboard");
+        try {
+            InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+            if (imm != null) {
+                View view = getWindow().getDecorView();
+                imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error hiding keyboard: " + e.getMessage());
         }
     }
     
@@ -90,9 +111,14 @@ public class ImGuiKeyboardHelper extends NativeActivity {
      * Toggle the soft keyboard visibility
      */
     public void toggleSoftKeyboard() {
-        InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
-        if (imm != null) {
-            imm.toggleSoftInput(InputMethodManager.SHOW_FORCED, 0);
+        Log.d(TAG, "Toggling soft keyboard");
+        try {
+            InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+            if (imm != null) {
+                imm.toggleSoftInput(InputMethodManager.SHOW_FORCED, 0);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error toggling keyboard: " + e.getMessage());
         }
     }
 }

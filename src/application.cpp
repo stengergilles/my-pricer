@@ -111,7 +111,8 @@ void Application::renderImGui()
         // Input text was just activated - show keyboard
         #ifdef __ANDROID__
         // Call Java method to show keyboard
-        // This is handled by the MainActivity's toggleSoftKeyboard method
+        extern void showKeyboard();
+        showKeyboard();
         #endif
     }
     
