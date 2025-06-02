@@ -16,6 +16,9 @@ public:
     
     // Add a public setter method for m_androidApp
     void setAndroidApp(void* app);
+    
+    // Override the getAndroidApp method from PlatformBase
+    virtual void* getAndroidApp() override;
 
 protected:
     // Changed from private to protected to allow access in derived classes

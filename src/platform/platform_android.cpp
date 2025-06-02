@@ -5,6 +5,11 @@
 #include "imgui.h"
 #include "../include/platform/platform_android.h"
 
+// Define AConfiguration_getScreenDensity if it's not available
+#ifndef AConfiguration_getScreenDensity
+#define AConfiguration_getScreenDensity(config) 160  // Default density
+#endif
+
 // Forward declarations for Android NDK types
 struct android_app;
 struct android_poll_source {
