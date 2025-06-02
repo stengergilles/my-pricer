@@ -1,46 +1,37 @@
-# Python virtual environments
-.venv/
-venv/
-env/
-ENV/
-
-# Buildozer build directory
-.buildozer/
-make/android/.buildozer/
-
-# Python bytecode
-__pycache__/
-*.py[cod]
-*$py.class
-
-# Distribution / packaging
-dist/
+# Build directories
 build/
-*.egg-info/
-*.egg
+build_*/
 
-# Unit test / coverage reports
-htmlcov/
-.tox/
-.coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*.cover
-.hypothesis/
-.pytest_cache/
+# External dependencies
+external/
 
-# Jupyter Notebook
-.ipynb_checkpoints
-
-# IDE specific files
-.idea/
+# IDE files
 .vscode/
+.idea/
 *.swp
 *.swo
-.DS_Store
 
-# Project specific
-backtest_outputs/
-forwardtest_output/
+# Compiled files
+*.o
+*.obj
+*.so
+*.dll
+*.dylib
+*.a
+*.lib
+*.exe
+*.out
+*.app
+*.wasm
+*.js
+*.html
+
+# CMake generated files
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+
+# OS specific files
+.DS_Store
+Thumbs.db

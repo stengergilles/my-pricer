@@ -2,6 +2,10 @@
 
 This project provides a framework for fetching financial market data, applying technical indicators, defining trading strategies, backtesting these strategies against historical data, and monitoring assets in real-time.
 
+## ImGui Hello World Application
+
+The repository also includes a cross-platform Dear ImGui hello world application that demonstrates how to create a simple GUI application that can be built for multiple platforms including Android, Linux, Windows, macOS, and WebAssembly.
+
 ## Features
 
 *   **Data Fetching:**
