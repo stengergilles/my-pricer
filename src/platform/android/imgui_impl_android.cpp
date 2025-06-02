@@ -28,13 +28,13 @@ bool ImGui_ImplAndroid_Init(ANativeWindow* window) {
     
     // Verify window is valid
     ANativeWindow_acquire(window);
-    int32_t width = ANativeWindow_getWidth(window);
-    int32_t height = ANativeWindow_getHeight(window);
-    __android_log_print(ANDROID_LOG_INFO, "ImGuiApp", "Window dimensions: %dx%d", width, height);
+    int32_t windowWidth = ANativeWindow_getWidth(window);
+    int32_t windowHeight = ANativeWindow_getHeight(window);
+    __android_log_print(ANDROID_LOG_INFO, "ImGuiApp", "Window dimensions: %dx%d", windowWidth, windowHeight);
     ANativeWindow_release(window);
     
-    if (width <= 0 || height <= 0) {
-        __android_log_print(ANDROID_LOG_ERROR, "ImGuiApp", "Invalid window dimensions: %dx%d", width, height);
+    if (windowWidth <= 0 || windowHeight <= 0) {
+        __android_log_print(ANDROID_LOG_ERROR, "ImGuiApp", "Invalid window dimensions: %dx%d", windowWidth, windowHeight);
         return false;
     }
     
@@ -101,14 +101,10 @@ bool ImGui_ImplAndroid_Init(ANativeWindow* window) {
         return false;
     }
     
-    // Setup display size
-    int32_t width = ANativeWindow_getWidth(g_Window);
-    int32_t height = ANativeWindow_getHeight(g_Window);
-    __android_log_print(ANDROID_LOG_INFO, "ImGuiApp", "Window size: %dx%d", width, height);
-    
-    // Setup ImGui context
+    // Setup ImGui context with the window dimensions we already retrieved
     ImGuiIO& io = ImGui::GetIO();
-    io.DisplaySize = ImVec2((float)width, (float)height);
+    io.DisplaySize = ImVec2((float)windowWidth, (float)windowHeight);
+    __android_log_print(ANDROID_LOG_INFO, "ImGuiApp", "Set ImGui display size: %dx%d", windowWidth, windowHeight);
     
     // Initialize OpenGL ES
     __android_log_print(ANDROID_LOG_INFO, "ImGuiApp", "OpenGL version: %s", glGetString(GL_VERSION));
