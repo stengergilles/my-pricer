@@ -7,8 +7,8 @@
 #define LOGW(...) ((void)__android_log_print(ANDROID_LOG_WARN, "ImGuiJNI", __VA_ARGS__))
 #define LOGE(...) ((void)__android_log_print(ANDROID_LOG_ERROR, "ImGuiJNI", __VA_ARGS__))
 
-// Global JavaVM reference
-static JavaVM* g_JavaVM = nullptr;
+// Global JavaVM reference - make it accessible to other files
+JavaVM* g_JavaVM = nullptr;
 static jclass g_MainActivityClass = nullptr;
 static jmethodID g_ShowKeyboardMethod = nullptr;
 

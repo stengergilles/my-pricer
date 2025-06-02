@@ -110,8 +110,8 @@ void Application::renderImGui()
     if (!wasActive && isActive) {
         // Input text was just activated - show keyboard
         #ifdef __ANDROID__
-        // Call Java method to show keyboard
-        extern void showKeyboard();
+        // Include the header that declares the showKeyboard function
+        #include "platform/android/keyboard_helper.h"
         showKeyboard();
         #endif
     }

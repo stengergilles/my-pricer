@@ -44,6 +44,7 @@ if(ANDROID)
         src/platform/android/jni_bridge.cpp
         src/platform/android/android_main.cpp
         src/platform/android/imgui_impl_android.cpp
+        src/platform/android/keyboard_helper.cpp
         external/imgui/backends/imgui_impl_opengl3.cpp
     )
     
