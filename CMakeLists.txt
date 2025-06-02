@@ -39,7 +39,8 @@ if(ANDROID)
         src/platform/platform_android.cpp
         src/platform/android/android_native_app_glue.c
         src/platform/android/jni_bridge.cpp
-        external/imgui/backends/imgui_impl_android.cpp
+        src/platform/android/android_main.cpp
+        src/platform/android/imgui_impl_android.cpp
         external/imgui/backends/imgui_impl_opengl3.cpp
     )
     
