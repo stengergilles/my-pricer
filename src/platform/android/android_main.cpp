@@ -91,7 +91,17 @@ void android_main(struct android_app* app) {
             if (frameCount % 60 == 0) { // Log every 60 frames to avoid spam
                 LOGI("Rendering frame %d", frameCount);
             }
-            g_app->renderFrame();
+            
+            // Don't call renderFrame directly, use the Application's run method
+            // which properly sets up the ImGui frame context
+            if (frameCount == 0) {
+                // Start the application main loop on first frame
+                LOGI("Starting application main loop");
+                Application::getInstance()->run();
+                // If we get here, the application has exited its main loop
+                return;
+            }
+            
             frameCount++;
         }
     }

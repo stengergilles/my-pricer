@@ -108,22 +108,12 @@ bool PlatformAndroid::platformInit() {
 
 void PlatformAndroid::platformNewFrame() {
     ImGui_ImplAndroid_NewFrame();
-    ImGui::NewFrame();
+    // Note: Don't call ImGui::NewFrame() here, it's called in Application::run()
 }
 
 void PlatformAndroid::platformRender() {
-    // Begin ImGui frame
-    ImGui::NewFrame();
-    
-    // Create a simple ImGui window
-    ImGui::Begin("Hello, Android!");
-    ImGui::Text("This is an ImGui window on Android");
-    ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 
-                1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
-    ImGui::End();
-    
-    // Render ImGui
-    ImGui::Render();
+    // Render ImGui - don't call ImGui::NewFrame() here!
+    // Just render the data that was prepared in Application::renderFrame()
     ImGui_ImplAndroid_RenderDrawData(ImGui::GetDrawData());
 }
 
