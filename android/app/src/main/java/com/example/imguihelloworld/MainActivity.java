@@ -23,9 +23,6 @@ public class MainActivity extends ImGuiKeyboardHelper {
     // Handler for delayed tasks
     private Handler mHandler = new Handler(Looper.getMainLooper());
     
-    // Flag to track if keyboard should be shown automatically
-    private boolean mAutoShowKeyboard = false;
-    
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -34,9 +31,6 @@ public class MainActivity extends ImGuiKeyboardHelper {
         instance = this;
         
         Log.d(TAG, "MainActivity created");
-        
-        // Don't automatically show keyboard on startup
-        getWindow().getDecorView().setOnClickListener(null);
     }
     
     @Override
@@ -107,23 +101,23 @@ public class MainActivity extends ImGuiKeyboardHelper {
     public void showSoftKeyboard() {
         Log.d(TAG, "MainActivity.showSoftKeyboard called");
         
-        // Only show keyboard if explicitly requested from native code
-        if (ImGuiJNI.wantsTextInput()) {
-            Log.d(TAG, "ImGui wants text input, showing keyboard");
-            super.showSoftKeyboard();
-            
-            // Try an alternative method if the first one doesn't work
-            try {
-                InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
-                if (imm != null) {
-                    View view = getWindow().getDecorView().getRootView();
-                    imm.showSoftInput(view, InputMethodManager.SHOW_IMPLICIT);
-                }
-            } catch (Exception e) {
-                Log.e(TAG, "Error in alternative keyboard show: " + e.getMessage());
+        // Always show keyboard when requested from native code
+        try {
+            InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+            if (imm != null) {
+                View view = getWindow().getDecorView().getRootView();
+                
+                // Force the keyboard to show with SHOW_FORCED flag
+                imm.showSoftInput(view, InputMethodManager.SHOW_FORCED);
+                
+                // Try alternative methods if needed
+                view.requestFocus();
+                imm.toggleSoftInput(InputMethodManager.SHOW_FORCED, 0);
+                
+                Log.d(TAG, "Keyboard show requested with multiple methods");
             }
-        } else {
-            Log.d(TAG, "ImGui does not want text input, not showing keyboard");
+        } catch (Exception e) {
+            Log.e(TAG, "Error showing keyboard: " + e.getMessage());
         }
     }
     
@@ -133,7 +127,13 @@ public class MainActivity extends ImGuiKeyboardHelper {
     public static void showKeyboard() {
         Log.d(TAG, "Static showKeyboard called from JNI");
         if (instance != null) {
-            instance.showSoftKeyboard();
+            // Run on UI thread to avoid crashes
+            instance.runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    instance.showSoftKeyboard();
+                }
+            });
         } else {
             Log.e(TAG, "Cannot show keyboard - instance is null");
         }

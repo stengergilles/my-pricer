@@ -16,22 +16,21 @@ extern jmethodID g_ShowKeyboardMethod;
 
 // Implementation of the showKeyboard function
 extern "C" void showKeyboard() {
+    LOGI("showKeyboard called");
     showKeyboardSafely();
 }
 
 // Safe implementation of showKeyboard that checks for null pointers
 extern "C" bool showKeyboardSafely() {
+    LOGI("showKeyboardSafely called");
+    
     if (!g_JavaVM) {
         LOGE("JavaVM is null, cannot show keyboard");
         return false;
     }
     
-    // Check if ImGui actually wants text input
-    ImGuiIO& io = ImGui::GetIO();
-    if (!io.WantTextInput) {
-        LOGI("ImGui does not want text input, not showing keyboard");
-        return false;
-    }
+    // Always show keyboard when requested
+    // We've already checked in application.cpp if we want to show it
     
     JNIEnv* env = nullptr;
     bool attached = false;
@@ -39,6 +38,7 @@ extern "C" bool showKeyboardSafely() {
     // Get the JNIEnv safely
     jint result = g_JavaVM->GetEnv(reinterpret_cast<void**>(&env), JNI_VERSION_1_6);
     if (result == JNI_EDETACHED) {
+        LOGI("Thread not attached, attaching now");
         if (g_JavaVM->AttachCurrentThread(&env, nullptr) != 0) {
             LOGE("Failed to attach thread to JavaVM");
             return false;
@@ -52,6 +52,7 @@ extern "C" bool showKeyboardSafely() {
     // Find the MainActivity class if not already cached
     jclass mainActivityClass = g_MainActivityClass;
     if (mainActivityClass == nullptr) {
+        LOGI("Finding MainActivity class");
         mainActivityClass = env->FindClass("com/example/imguihelloworld/MainActivity");
         if (mainActivityClass == nullptr) {
             LOGE("Failed to find MainActivity class");
@@ -65,6 +66,7 @@ extern "C" bool showKeyboardSafely() {
     // Find the showKeyboard method if not already cached
     jmethodID showKeyboardMethod = g_ShowKeyboardMethod;
     if (showKeyboardMethod == nullptr) {
+        LOGI("Finding showKeyboard method");
         showKeyboardMethod = env->GetStaticMethodID(mainActivityClass, "showKeyboard", "()V");
         if (showKeyboardMethod == nullptr) {
             LOGE("Failed to find showKeyboard method");
@@ -90,8 +92,10 @@ extern "C" bool showKeyboardSafely() {
     
     // Detach the thread if we attached it
     if (attached) {
+        LOGI("Detaching thread");
         g_JavaVM->DetachCurrentThread();
     }
     
+    LOGI("showKeyboardSafely completed successfully");
     return true;
 }
