@@ -351,9 +351,6 @@ void ImGui_ImplAndroid_NewFrame()
     
     lastWidth = windowWidth;
     lastHeight = windowHeight;
-    bool orientationChanged = (lastWidth != windowWidth || lastHeight != windowHeight);
-    lastWidth = windowWidth;
-    lastHeight = windowHeight;
     
     // Set display size based on orientation
     io.DisplaySize = ImVec2((float)windowWidth, (float)windowHeight);
