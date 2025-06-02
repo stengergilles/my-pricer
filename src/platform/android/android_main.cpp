@@ -7,6 +7,9 @@
 #define LOGW(...) ((void)__android_log_print(ANDROID_LOG_WARN, "ImGuiApp", __VA_ARGS__))
 #define LOGE(...) ((void)__android_log_print(ANDROID_LOG_ERROR, "ImGuiApp", __VA_ARGS__))
 
+// Forward declaration for ImGui Android functions
+extern bool ImGui_ImplAndroid_HandleInputEvent(const AInputEvent* event);
+
 // Global application instance
 static PlatformAndroid* g_app = nullptr;
 static bool g_initialized = false;
