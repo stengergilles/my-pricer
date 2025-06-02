@@ -247,9 +247,14 @@ bool ImGui_ImplAndroid_Init(ANativeWindow* window)
     
     // Configure ImGui for Android
     io.ConfigFlags |= ImGuiConfigFlags_IsTouchScreen;
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
     
-    // Load DroidSans.ttf font
-    io.Fonts->AddFontFromFileTTF("/system/fonts/DroidSans.ttf", 16.0f);
+    // Set up style with larger elements for touch
+    ImGuiStyle& style = ImGui::GetStyle();
+    style.ScaleAllSizes(2.0f);  // Scale up UI elements for touch
+    
+    // Load DroidSans.ttf font with larger size for touch
+    io.Fonts->AddFontFromFileTTF("/system/fonts/DroidSans.ttf", 24.0f);
     
     // Create OpenGL objects
     CreateDeviceObjects();
@@ -319,7 +324,38 @@ void ImGui_ImplAndroid_NewFrame()
     // Setup display size (every frame to accommodate for window resizing)
     int32_t windowWidth = ANativeWindow_getWidth(g_Window);
     int32_t windowHeight = ANativeWindow_getHeight(g_Window);
+    
+    // Check if orientation changed
+    static int32_t lastWidth = 0;
+    static int32_t lastHeight = 0;
+    bool orientationChanged = (lastWidth != windowWidth || lastHeight != windowHeight);
+    lastWidth = windowWidth;
+    lastHeight = windowHeight;
+    
+    // Set display size based on orientation
     io.DisplaySize = ImVec2((float)windowWidth, (float)windowHeight);
+    
+    // Calculate display scale based on screen density
+    static float displayScale = 1.0f;
+    if (orientationChanged) {
+        // Get screen density from Android
+        ANativeWindow_acquire(g_Window);
+        float density = ANativeWindow_getWidth(g_Window) / (float)ANativeWindow_getHeight(g_Window);
+        ANativeWindow_release(g_Window);
+        
+        // Adjust scale based on screen size
+        if (windowWidth > 1080 || windowHeight > 1080) {
+            displayScale = 2.0f; // High-res screens
+        } else if (windowWidth > 720 || windowHeight > 720) {
+            displayScale = 1.5f; // Medium-res screens
+        } else {
+            displayScale = 1.0f; // Low-res screens
+        }
+        
+        // Apply the scale to ImGui
+        ImGui::GetStyle().ScaleAllSizes(displayScale);
+        io.FontGlobalScale = displayScale;
+    }
     
     // Setup time step
     static double g_Time = 0.0;
@@ -380,14 +416,20 @@ void ImGui_ImplAndroid_RenderDrawData(ImDrawData* draw_data)
     
     // Setup viewport
     glViewport(0, 0, fb_width, fb_height);
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+    
+    // Check if we need to swap width/height for orientation
+    bool isPortrait = fb_height > fb_width;
     
     // Setup orthographic projection matrix
-    // Our visible imgui space lies from draw_data->DisplayPos (top left) to draw_data->DisplayPos+data_data->DisplaySize (bottom right).
     float L = draw_data->DisplayPos.x;
     float R = draw_data->DisplayPos.x + draw_data->DisplaySize.x;
     float T = draw_data->DisplayPos.y;
     float B = draw_data->DisplayPos.y + draw_data->DisplaySize.y;
-    const float ortho_projection[4][4] =
+    
+    // Adjust projection matrix based on orientation
+    float ortho_projection[4][4] =
     {
         { 2.0f/(R-L),   0.0f,         0.0f,   0.0f },
         { 0.0f,         2.0f/(T-B),   0.0f,   0.0f },
