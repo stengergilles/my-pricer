@@ -9,8 +9,8 @@
 
 // Global JavaVM reference - make it accessible to other files
 JavaVM* g_JavaVM = nullptr;
-static jclass g_MainActivityClass = nullptr;
-static jmethodID g_ShowKeyboardMethod = nullptr;
+jclass g_MainActivityClass = nullptr;
+jmethodID g_ShowKeyboardMethod = nullptr;
 
 // Called when the library is loaded
 JNIEXPORT jint JNI_OnLoad(JavaVM* vm, void* reserved) {

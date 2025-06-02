@@ -8,6 +8,8 @@
 
 // Forward declaration of the JavaVM reference from jni_bridge.cpp
 extern JavaVM* g_JavaVM;
+
+// These need to be declared as extern variables from jni_bridge.cpp
 extern jclass g_MainActivityClass;
 extern jmethodID g_ShowKeyboardMethod;
 
