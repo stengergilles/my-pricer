@@ -86,43 +86,15 @@ void Application::renderFrame()
 
 void Application::renderImGui()
 {
-    // Set ImGui style
-    ImGui::StyleColorsDark();
-    ImGui::GetStyle().ScaleAllSizes(2.0f); // Scale up UI for better touch interaction
+    // Create a simple window
+    ImGui::Begin("Hello, ImGui!");
     
-    // Create a window with a title bar
-    ImGui::SetNextWindowPos(ImVec2(0, 0));
-    ImGui::SetNextWindowSize(ImGui::GetIO().DisplaySize);
-    ImGui::Begin("My Android App", nullptr, 
-        ImGuiWindowFlags_NoResize | 
-        ImGuiWindowFlags_NoMove | 
-        ImGuiWindowFlags_NoCollapse);
+    ImGui::Text("Welcome to Dear ImGui!");
+    ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "This is a cross-platform application.");
     
-    // Add a label (text)
-    ImGui::Text("Hello from ImGui on Android!");
-    
-    // Add some colored text
-    ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "This is a yellow text.");
-    
-    // Add some spacing
-    ImGui::Spacing();
-    ImGui::Separator();
-    ImGui::Spacing();
-    
-    // Add a button
-    static int clickCount = 0;
-    if (ImGui::Button("Click Me!", ImVec2(200, 60))) {
-        clickCount++;
+    if (ImGui::Button("Click me!")) {
+        // Button action
     }
     
-    // Display the click count
-    ImGui::SameLine();
-    ImGui::Text("Button clicked %d times", clickCount);
-    
-    // Add a slider
-    static float value = 0.5f;
-    ImGui::SliderFloat("Slider", &value, 0.0f, 1.0f);
-    
-    // End the window
     ImGui::End();
 }
