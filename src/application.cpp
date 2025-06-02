@@ -39,11 +39,14 @@ bool Application::initImGui()
 
 void Application::run()
 {
+    // For Android, platformInit is called before this method
+    #ifndef __ANDROID__
     // Initialize platform-specific components
     if (!platformInit()) {
         std::cerr << "Platform initialization failed" << std::endl;
         return;
     }
+    #endif
 
     // Initialize ImGui
     if (!initImGui()) {

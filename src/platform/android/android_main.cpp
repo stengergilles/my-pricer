@@ -16,14 +16,8 @@ static void handle_cmd(android_app* app, int32_t cmd) {
         case APP_CMD_INIT_WINDOW:
             // Window is being shown, initialize
             if (app->window != nullptr) {
-                if (g_app) {
-                    LOGI("Window initialized, setting up application");
-                    g_app->setAndroidApp(app);
-                    
-                    // Don't start the application here, just initialize the platform
-                    bool success = g_app->platformInit();
-                    LOGI("Platform init result: %s", success ? "SUCCESS" : "FAILED");
-                }
+                LOGI("Window initialized, setting up application");
+                // Don't initialize the platform here, let the main loop handle it
             }
             break;
         case APP_CMD_TERM_WINDOW:
@@ -68,8 +62,10 @@ void android_main(struct android_app* app) {
     g_app = new PlatformAndroid("ImGui Hello World");
     g_app->setAndroidApp(app);
     
+    LOGI("Starting application main loop");
+    
     // Main loop
-    int frameCount = 0;
+    bool appInitialized = false;
     while (1) {
         // Read all pending events
         int events;
@@ -91,22 +87,27 @@ void android_main(struct android_app* app) {
         }
         
         // If window is initialized, run the application
-        if (app->window != nullptr) {
-            static bool appStarted = false;
-            if (!appStarted) {
-                LOGI("Starting application main loop");
+        if (app->window != nullptr && !appInitialized) {
+            // Initialize the platform first
+            bool success = g_app->platformInit();
+            if (success) {
+                LOGI("Platform initialized successfully, starting application");
+                appInitialized = true;
                 Application::getInstance()->run();
-                appStarted = true;
+            } else {
+                LOGE("Platform initialization failed, waiting for window");
+                // Sleep a bit to avoid busy waiting
+                struct timespec ts;
+                ts.tv_sec = 0;
+                ts.tv_nsec = 100 * 1000000; // 100ms
+                nanosleep(&ts, NULL);
             }
-            
-            // If we're here, the application is running
-            // Just sleep a bit to avoid busy waiting
-            struct timespec ts;
-            ts.tv_sec = 0;
-            ts.tv_nsec = 16 * 1000000; // 16ms ~= 60fps
-            nanosleep(&ts, NULL);
         }
         
-        frameCount++;
+        // Sleep a bit to avoid busy waiting
+        struct timespec ts;
+        ts.tv_sec = 0;
+        ts.tv_nsec = 16 * 1000000; // 16ms ~= 60fps
+        nanosleep(&ts, NULL);
     }
 }
