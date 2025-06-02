@@ -92,6 +92,21 @@ void Application::renderImGui()
     ImGui::Text("Welcome to Dear ImGui!");
     ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "This is a cross-platform application.");
     
+    // Add an input text field
+    static char inputBuffer[256] = "";
+    ImGui::Text("Enter some text:");
+    if (ImGui::InputText("##input", inputBuffer, IM_ARRAYSIZE(inputBuffer))) {
+        // This code runs when the input text changes
+    }
+    
+    ImGui::SameLine();
+    if (ImGui::Button("Clear")) {
+        inputBuffer[0] = '\0'; // Clear the input buffer
+    }
+    
+    // Display the entered text
+    ImGui::Text("You entered: %s", inputBuffer);
+    
     static int clickCount = 0;
     if (ImGui::Button("Click me!")) {
         clickCount++;
