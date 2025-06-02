@@ -2,12 +2,16 @@
 #include <android/native_activity.h>
 #include <android/input.h>
 #include <android/looper.h>  // For ALooper_pollAll
+#include <android/log.h>     // Added for Android logging
 #include "imgui.h"
 #include "../include/platform/platform_android.h"
 
-// Define AConfiguration_getScreenDensity if it's not available
-#ifndef AConfiguration_getScreenDensity
-#define AConfiguration_getScreenDensity(config) 160  // Default density
+// Define log macros if not defined
+#ifndef ANDROID_LOG_INFO
+#define ANDROID_LOG_INFO 4
+#endif
+#ifndef ANDROID_LOG_ERROR
+#define ANDROID_LOG_ERROR 6
 #endif
 
 // Forward declarations for Android NDK types
@@ -25,6 +29,7 @@ struct android_app {
     int32_t (*onInputEvent)(android_app* app, AInputEvent* event);
     struct ANativeActivity* activity;
     struct AConfiguration* config;
+    ANativeWindow* window;  // Added window member
     // ... other fields not needed for this example
 };
 
