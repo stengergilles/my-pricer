@@ -98,39 +98,18 @@ void Application::renderImGui()
     
     // Add an input text field
     static char inputBuffer[256] = "";
-    ImGui::Text("Enter some text (tap to show keyboard):");
+    ImGui::Text("Enter some text:");
     
-    // Store the current active state before the InputText widget
-    bool wasActive = ImGui::IsItemActive();
-    
-    // Use ImGuiInputTextFlags_CallbackAlways to ensure we get callbacks
+    // Use ImGuiInputTextFlags_EnterReturnsTrue to handle Enter key
     if (ImGui::InputText("##input", inputBuffer, IM_ARRAYSIZE(inputBuffer), 
                          ImGuiInputTextFlags_EnterReturnsTrue)) {
         // This code runs when Enter is pressed
         // You can handle the input submission here
     }
     
-    // Check if the input text became active
-    bool isActive = ImGui::IsItemActive();
-    
-    // Only show keyboard when the input field is activated
-    // and only call showKeyboard once when it becomes active
-    #ifdef __ANDROID__
-    static bool keyboardVisible = false;
-    if (!wasActive && isActive) {
-        // Input text was just activated - show keyboard
-        if (!keyboardVisible) {
-            // Check if ImGui wants text input before showing keyboard
-            if (ImGui::GetIO().WantTextInput) {
-                extern bool showKeyboardSafely(); // Forward declaration
-                keyboardVisible = showKeyboardSafely();
-            }
-        }
-    } else if (!isActive && keyboardVisible) {
-        // Input is no longer active, keyboard should be hidden
-        keyboardVisible = false;
-    }
-    #endif
+    // TEMPORARILY DISABLED KEYBOARD HANDLING
+    // The keyboard functionality is disabled until we fix the Java side
+    // of the application to properly implement the showKeyboard method
     
     ImGui::SameLine();
     if (ImGui::Button("Clear")) {
