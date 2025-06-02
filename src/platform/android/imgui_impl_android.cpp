@@ -426,14 +426,55 @@ void ImGui_ImplAndroid_RenderDrawData(ImDrawData* draw_data)
     float T = 0.0f;
     float B = draw_data->DisplaySize.y;
     
+    // Detect orientation
+    bool isPortrait = fb_height > fb_width;
+    
     // This projection matrix works for Android's coordinate system
-    float ortho_projection[4][4] =
-    {
-        { 2.0f/(R-L),   0.0f,         0.0f,   0.0f },
-        { 0.0f,         2.0f/(B-T),   0.0f,   0.0f },  // Note: B-T instead of T-B to flip Y axis
-        { 0.0f,         0.0f,        -1.0f,   0.0f },
-        { (R+L)/(L-R),  (T+B)/(T-B),  0.0f,   1.0f },  // Note: T-B instead of B-T to flip Y axis
-    };
+    float ortho_projection[4][4];
+    
+    if (isPortrait) {
+        // Portrait orientation
+        ortho_projection[0][0] = 2.0f/(R-L);
+        ortho_projection[0][1] = 0.0f;
+        ortho_projection[0][2] = 0.0f;
+        ortho_projection[0][3] = 0.0f;
+        
+        ortho_projection[1][0] = 0.0f;
+        ortho_projection[1][1] = -2.0f/(B-T);  // Flip Y axis for portrait
+        ortho_projection[1][2] = 0.0f;
+        ortho_projection[1][3] = 0.0f;
+        
+        ortho_projection[2][0] = 0.0f;
+        ortho_projection[2][1] = 0.0f;
+        ortho_projection[2][2] = -1.0f;
+        ortho_projection[2][3] = 0.0f;
+        
+        ortho_projection[3][0] = (R+L)/(L-R);
+        ortho_projection[3][1] = (T+B)/(B-T);
+        ortho_projection[3][2] = 0.0f;
+        ortho_projection[3][3] = 1.0f;
+    } else {
+        // Landscape orientation
+        ortho_projection[0][0] = 2.0f/(R-L);
+        ortho_projection[0][1] = 0.0f;
+        ortho_projection[0][2] = 0.0f;
+        ortho_projection[0][3] = 0.0f;
+        
+        ortho_projection[1][0] = 0.0f;
+        ortho_projection[1][1] = 2.0f/(T-B);  // Standard Y axis for landscape
+        ortho_projection[1][2] = 0.0f;
+        ortho_projection[1][3] = 0.0f;
+        
+        ortho_projection[2][0] = 0.0f;
+        ortho_projection[2][1] = 0.0f;
+        ortho_projection[2][2] = -1.0f;
+        ortho_projection[2][3] = 0.0f;
+        
+        ortho_projection[3][0] = (R+L)/(L-R);
+        ortho_projection[3][1] = (T+B)/(B-T);
+        ortho_projection[3][2] = 0.0f;
+        ortho_projection[3][3] = 1.0f;
+    }
     
     glUseProgram(g_ShaderHandle);
     glUniform1i(g_AttribLocationTex, 0);
@@ -473,7 +514,16 @@ void ImGui_ImplAndroid_RenderDrawData(ImDrawData* draw_data)
             {
                 // Apply scissor/clipping rectangle - adjusted for Android
                 int scissor_x = (int)(pcmd->ClipRect.x);
-                int scissor_y = (int)(fb_height - pcmd->ClipRect.w);  // Flip Y for OpenGL
+                int scissor_y;
+                
+                if (isPortrait) {
+                    // Portrait orientation
+                    scissor_y = (int)(fb_height - pcmd->ClipRect.w);
+                } else {
+                    // Landscape orientation
+                    scissor_y = (int)(pcmd->ClipRect.y);
+                }
+                
                 int scissor_w = (int)(pcmd->ClipRect.z - pcmd->ClipRect.x);
                 int scissor_h = (int)(pcmd->ClipRect.w - pcmd->ClipRect.y);
                 
