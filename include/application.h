@@ -4,6 +4,7 @@
 
 // Forward declarations
 struct ImGuiContext;
+class PlatformBase;
 
 class Application {
 public:
@@ -21,6 +22,12 @@ public:
 
     // Getters
     const std::string& getAppName() const { return m_appName; }
+    
+    // Get platform instance
+    PlatformBase* getPlatform() { return static_cast<PlatformBase*>(this); }
+    
+    // Singleton access
+    static Application* getInstance() { return s_instance; }
 
 protected:
     // Platform-specific implementations (to be overridden by platform classes)
@@ -37,4 +44,7 @@ private:
     std::string m_appName;
     ImGuiContext* m_imguiContext;
     bool m_running;
-};
+    
+    // Singleton instance
+    static Application* s_instance;
+};;

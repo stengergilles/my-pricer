@@ -2,16 +2,24 @@
 #include "imgui.h"
 #include <iostream>
 
+// Initialize static instance
+Application* Application::s_instance = nullptr;
+
 Application::Application(const std::string& appName)
     : m_appName(appName)
     , m_imguiContext(nullptr)
     , m_running(false)
 {
+    // Set singleton instance
+    s_instance = this;
 }
 
 Application::~Application()
 {
     // ImGui cleanup is handled in platformShutdown()
+    if (s_instance == this) {
+        s_instance = nullptr;
+    }
 }
 
 bool Application::initImGui()

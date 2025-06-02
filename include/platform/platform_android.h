@@ -12,6 +12,7 @@ public:
     virtual void platformNewFrame() override;
     virtual void platformRender() override;
     virtual bool platformHandleEvents() override;
+    virtual void platformShutdown() override;  // Implement the pure virtual method
     
     // Add a public setter method for m_androidApp
     void setAndroidApp(void* app);

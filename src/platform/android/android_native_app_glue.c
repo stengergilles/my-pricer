@@ -24,6 +24,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <sys/resource.h>
+#include <stdlib.h>  // Added for malloc and free functions
 
 #include <android/log.h>
 
@@ -442,5 +443,5 @@ void ANativeActivity_onCreate(ANativeActivity* activity,
     activity->callbacks->onInputQueueCreated = onInputQueueCreated;
     activity->callbacks->onInputQueueDestroyed = onInputQueueDestroyed;
 
-    activity->instance = android_app_create(activity, savedState, savedStateSize);
+    activity->instance = _android_app_create(activity, savedState, savedStateSize);
 }
