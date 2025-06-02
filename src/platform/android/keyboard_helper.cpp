@@ -1,19 +1,87 @@
 #include "keyboard_helper.h"
+#include <jni.h>
 #include <android/log.h>
 
 #define LOGI(...) ((void)__android_log_print(ANDROID_LOG_INFO, "KeyboardHelper", __VA_ARGS__))
 #define LOGW(...) ((void)__android_log_print(ANDROID_LOG_WARN, "KeyboardHelper", __VA_ARGS__))
 #define LOGE(...) ((void)__android_log_print(ANDROID_LOG_ERROR, "KeyboardHelper", __VA_ARGS__))
 
-// Stub implementation that doesn't try to call Java methods
+// Forward declaration of the JavaVM reference from jni_bridge.cpp
+extern JavaVM* g_JavaVM;
+extern jclass g_MainActivityClass;
+extern jmethodID g_ShowKeyboardMethod;
+
+// Implementation of the showKeyboard function
 extern "C" void showKeyboard() {
-    LOGI("showKeyboard called - functionality disabled");
-    // Do nothing for now - this prevents crashes
+    showKeyboardSafely();
 }
 
-// Stub implementation that doesn't try to call Java methods
+// Safe implementation of showKeyboard that checks for null pointers
 extern "C" bool showKeyboardSafely() {
-    LOGI("showKeyboardSafely called - functionality disabled");
-    // Return false to indicate keyboard wasn't shown
-    return false;
+    if (!g_JavaVM) {
+        LOGE("JavaVM is null, cannot show keyboard");
+        return false;
+    }
+    
+    JNIEnv* env = nullptr;
+    bool attached = false;
+    
+    // Get the JNIEnv safely
+    jint result = g_JavaVM->GetEnv(reinterpret_cast<void**>(&env), JNI_VERSION_1_6);
+    if (result == JNI_EDETACHED) {
+        if (g_JavaVM->AttachCurrentThread(&env, nullptr) != 0) {
+            LOGE("Failed to attach thread to JavaVM");
+            return false;
+        }
+        attached = true;
+    } else if (result != JNI_OK || env == nullptr) {
+        LOGE("Failed to get JNIEnv");
+        return false;
+    }
+    
+    // Find the MainActivity class if not already cached
+    jclass mainActivityClass = g_MainActivityClass;
+    if (mainActivityClass == nullptr) {
+        mainActivityClass = env->FindClass("com/example/imguihelloworld/MainActivity");
+        if (mainActivityClass == nullptr) {
+            LOGE("Failed to find MainActivity class");
+            env->ExceptionClear(); // Clear any pending exception
+            if (attached) g_JavaVM->DetachCurrentThread();
+            return false;
+        }
+        g_MainActivityClass = (jclass)env->NewGlobalRef(mainActivityClass);
+    }
+    
+    // Find the showKeyboard method if not already cached
+    jmethodID showKeyboardMethod = g_ShowKeyboardMethod;
+    if (showKeyboardMethod == nullptr) {
+        showKeyboardMethod = env->GetStaticMethodID(mainActivityClass, "showKeyboard", "()V");
+        if (showKeyboardMethod == nullptr) {
+            LOGE("Failed to find showKeyboard method");
+            env->ExceptionClear(); // Clear any pending exception
+            if (attached) g_JavaVM->DetachCurrentThread();
+            return false;
+        }
+        g_ShowKeyboardMethod = showKeyboardMethod;
+    }
+    
+    // Call the static method
+    LOGI("Calling MainActivity.showKeyboard()");
+    env->CallStaticVoidMethod(mainActivityClass, showKeyboardMethod);
+    
+    // Check for exceptions
+    if (env->ExceptionCheck()) {
+        LOGE("Exception occurred while calling showKeyboard");
+        env->ExceptionDescribe();
+        env->ExceptionClear();
+        if (attached) g_JavaVM->DetachCurrentThread();
+        return false;
+    }
+    
+    // Detach the thread if we attached it
+    if (attached) {
+        g_JavaVM->DetachCurrentThread();
+    }
+    
+    return true;
 }

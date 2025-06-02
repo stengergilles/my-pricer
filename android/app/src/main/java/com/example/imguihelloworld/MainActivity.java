@@ -140,4 +140,17 @@ public class MainActivity extends ImGuiKeyboardHelper {
             Log.e(TAG, "Error in alternative keyboard show: " + e.getMessage());
         }
     }
+    
+    /**
+     * Static method to show the keyboard - called from native code via JNI
+     * This is the method that was missing and causing the crash
+     */
+    public static void showKeyboard() {
+        Log.d(TAG, "Static showKeyboard called from JNI");
+        if (instance != null) {
+            instance.showSoftKeyboard();
+        } else {
+            Log.e(TAG, "Cannot show keyboard - instance is null");
+        }
+    }
 }

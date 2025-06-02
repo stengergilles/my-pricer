@@ -21,30 +21,28 @@ JNIEXPORT jint JNI_OnLoad(JavaVM* vm, void* reserved) {
         return JNI_ERR;
     }
     
-    // Find and cache the MainActivity class and showSoftKeyboard method
+    // Find and cache the MainActivity class and showKeyboard method
     jclass mainActivityClass = env->FindClass("com/example/imguihelloworld/MainActivity");
     if (mainActivityClass == nullptr) {
         LOGE("Failed to find MainActivity class");
-        return JNI_ERR;
+        env->ExceptionClear(); // Clear any pending exception
+        return JNI_VERSION_1_6; // Continue loading even if class not found
     }
     
     // Create a global reference to the class
     g_MainActivityClass = (jclass)env->NewGlobalRef(mainActivityClass);
     
-    // Get the showSoftKeyboard method ID
+    // Get the showKeyboard method ID
     g_ShowKeyboardMethod = env->GetStaticMethodID(g_MainActivityClass, "showKeyboard", "()V");
     if (g_ShowKeyboardMethod == nullptr) {
         LOGE("Failed to find showKeyboard method");
+        env->ExceptionClear(); // Clear any pending exception
         // Not a fatal error, we'll try to find it later
     }
     
+    LOGI("JNI_OnLoad completed successfully");
     return JNI_VERSION_1_6;
 }
-
-// Helper function to show the keyboard from native code
-// Implementation moved to keyboard_helper.cpp for better organization
-extern "C" void showKeyboard();
-extern "C" bool showKeyboardSafely();
 
 // JNI method implementations for ImGuiKeyboardHelper
 extern "C" {

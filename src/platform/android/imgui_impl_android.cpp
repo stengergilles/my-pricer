@@ -167,6 +167,9 @@ bool ImGui_ImplAndroid_Init(ANativeWindow* window)
         return false;
     }
     
+    // Initialize ImGui IO
+    ImGuiIO& io = ImGui::GetIO();
+    
     // Verify window is valid
     ANativeWindow_acquire(window);
     int32_t windowWidth = ANativeWindow_getWidth(window);
