@@ -24,11 +24,15 @@
 #include <string.h>
 #include <unistd.h>
 #include <sys/resource.h>
+#include <pthread.h>
 
 #include <android/log.h>
 
 #define LOGI(...) ((void)__android_log_print(ANDROID_LOG_INFO, "native-activity", __VA_ARGS__))
 #define LOGW(...) ((void)__android_log_print(ANDROID_LOG_WARN, "native-activity", __VA_ARGS__))
+
+// Forward declarations
+static void* android_app_entry(void* param);
 
 /**
  * This is the interface for the standard glue code of a threaded
