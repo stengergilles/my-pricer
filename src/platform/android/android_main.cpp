@@ -81,7 +81,8 @@ static int32_t handle_input(android_app* app, AInputEvent* event) {
     // Forward to ImGui
     if (AInputEvent_getType(event) == AINPUT_EVENT_TYPE_MOTION) {
         // Handle touch events
-        return 1; // Event was handled
+        bool handled = ImGui_ImplAndroid_HandleInputEvent(event);
+        return handled ? 1 : 0;
     }
     return 0; // Event was not handled
 }

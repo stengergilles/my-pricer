@@ -432,49 +432,27 @@ void ImGui_ImplAndroid_RenderDrawData(ImDrawData* draw_data)
     // This projection matrix works for Android's coordinate system
     float ortho_projection[4][4];
     
-    if (isPortrait) {
-        // Portrait orientation
-        ortho_projection[0][0] = 2.0f/(R-L);
-        ortho_projection[0][1] = 0.0f;
-        ortho_projection[0][2] = 0.0f;
-        ortho_projection[0][3] = 0.0f;
-        
-        ortho_projection[1][0] = 0.0f;
-        ortho_projection[1][1] = -2.0f/(B-T);  // Flip Y axis for portrait
-        ortho_projection[1][2] = 0.0f;
-        ortho_projection[1][3] = 0.0f;
-        
-        ortho_projection[2][0] = 0.0f;
-        ortho_projection[2][1] = 0.0f;
-        ortho_projection[2][2] = -1.0f;
-        ortho_projection[2][3] = 0.0f;
-        
-        ortho_projection[3][0] = (R+L)/(L-R);
-        ortho_projection[3][1] = (T+B)/(B-T);
-        ortho_projection[3][2] = 0.0f;
-        ortho_projection[3][3] = 1.0f;
-    } else {
-        // Landscape orientation
-        ortho_projection[0][0] = 2.0f/(R-L);
-        ortho_projection[0][1] = 0.0f;
-        ortho_projection[0][2] = 0.0f;
-        ortho_projection[0][3] = 0.0f;
-        
-        ortho_projection[1][0] = 0.0f;
-        ortho_projection[1][1] = 2.0f/(T-B);  // Standard Y axis for landscape
-        ortho_projection[1][2] = 0.0f;
-        ortho_projection[1][3] = 0.0f;
-        
-        ortho_projection[2][0] = 0.0f;
-        ortho_projection[2][1] = 0.0f;
-        ortho_projection[2][2] = -1.0f;
-        ortho_projection[2][3] = 0.0f;
-        
-        ortho_projection[3][0] = (R+L)/(L-R);
-        ortho_projection[3][1] = (T+B)/(B-T);
-        ortho_projection[3][2] = 0.0f;
-        ortho_projection[3][3] = 1.0f;
-    }
+    // Always use the standard projection matrix for Android
+    // This is the key to fixing the orientation issue
+    ortho_projection[0][0] = 2.0f/(R-L);
+    ortho_projection[0][1] = 0.0f;
+    ortho_projection[0][2] = 0.0f;
+    ortho_projection[0][3] = 0.0f;
+    
+    ortho_projection[1][0] = 0.0f;
+    ortho_projection[1][1] = 2.0f/(T-B);  // Standard Y axis
+    ortho_projection[1][2] = 0.0f;
+    ortho_projection[1][3] = 0.0f;
+    
+    ortho_projection[2][0] = 0.0f;
+    ortho_projection[2][1] = 0.0f;
+    ortho_projection[2][2] = -1.0f;
+    ortho_projection[2][3] = 0.0f;
+    
+    ortho_projection[3][0] = (R+L)/(L-R);
+    ortho_projection[3][1] = (T+B)/(B-T);
+    ortho_projection[3][2] = 0.0f;
+    ortho_projection[3][3] = 1.0f;
     
     glUseProgram(g_ShaderHandle);
     glUniform1i(g_AttribLocationTex, 0);
@@ -514,16 +492,7 @@ void ImGui_ImplAndroid_RenderDrawData(ImDrawData* draw_data)
             {
                 // Apply scissor/clipping rectangle - adjusted for Android
                 int scissor_x = (int)(pcmd->ClipRect.x);
-                int scissor_y;
-                
-                if (isPortrait) {
-                    // Portrait orientation
-                    scissor_y = (int)(fb_height - pcmd->ClipRect.w);
-                } else {
-                    // Landscape orientation
-                    scissor_y = (int)(pcmd->ClipRect.y);
-                }
-                
+                int scissor_y = (int)(fb_height - pcmd->ClipRect.w);  // Standard OpenGL Y-flip
                 int scissor_w = (int)(pcmd->ClipRect.z - pcmd->ClipRect.x);
                 int scissor_h = (int)(pcmd->ClipRect.w - pcmd->ClipRect.y);
                 
@@ -581,6 +550,9 @@ bool ImGui_ImplAndroid_HandleInputEvent(const AInputEvent* event)
         float x = AMotionEvent_getX(event, pointerIndex);
         float y = AMotionEvent_getY(event, pointerIndex);
         
+        // Log touch events for debugging
+        __android_log_print(ANDROID_LOG_INFO, "ImGuiApp", "Touch event: action=%d, x=%f, y=%f", actionMasked, x, y);
+        
         // Process touch events
         switch (actionMasked)
         {
@@ -601,7 +573,7 @@ bool ImGui_ImplAndroid_HandleInputEvent(const AInputEvent* event)
                 break;
         }
         
-        return io.WantCaptureMouse;
+        return true; // Return true to indicate we handled the event
     }
     
     return false;
