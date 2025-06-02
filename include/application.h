@@ -24,7 +24,7 @@ public:
     const std::string& getAppName() const { return m_appName; }
     
     // Get platform instance
-    PlatformBase* getPlatform() { return static_cast<PlatformBase*>(this); }
+    PlatformBase* getPlatform() { return dynamic_cast<PlatformBase*>(this); }
     
     // Singleton access
     static Application* getInstance() { return s_instance; }

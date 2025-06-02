@@ -42,12 +42,12 @@ Java_com_example_imguihelloworld_ImGuiKeyboardHelper_nativeOnKeyDown(JNIEnv *env
     
     if (imguiKey != -1) {
         ImGuiIO& io = ImGui::GetIO();
-        io.KeysDown[imguiKey] = true;
+        io.AddKeyEvent(imguiKey, true);
         
         // Handle modifiers
-        io.KeyShift = (meta_state & AMETA_SHIFT_ON) != 0;
-        io.KeyCtrl = (meta_state & AMETA_CTRL_ON) != 0;
-        io.KeyAlt = (meta_state & AMETA_ALT_ON) != 0;
+        io.AddKeyEvent(ImGuiKey_ModShift, (meta_state & AMETA_SHIFT_ON) != 0);
+        io.AddKeyEvent(ImGuiKey_ModCtrl, (meta_state & AMETA_CTRL_ON) != 0);
+        io.AddKeyEvent(ImGuiKey_ModAlt, (meta_state & AMETA_ALT_ON) != 0);
     }
 }
 
@@ -83,12 +83,12 @@ Java_com_example_imguihelloworld_ImGuiKeyboardHelper_nativeOnKeyUp(JNIEnv *env, 
     
     if (imguiKey != -1) {
         ImGuiIO& io = ImGui::GetIO();
-        io.KeysDown[imguiKey] = false;
+        io.AddKeyEvent(imguiKey, false);
         
         // Update modifiers
-        io.KeyShift = (meta_state & AMETA_SHIFT_ON) != 0;
-        io.KeyCtrl = (meta_state & AMETA_CTRL_ON) != 0;
-        io.KeyAlt = (meta_state & AMETA_ALT_ON) != 0;
+        io.AddKeyEvent(ImGuiKey_ModShift, (meta_state & AMETA_SHIFT_ON) != 0);
+        io.AddKeyEvent(ImGuiKey_ModCtrl, (meta_state & AMETA_CTRL_ON) != 0);
+        io.AddKeyEvent(ImGuiKey_ModAlt, (meta_state & AMETA_ALT_ON) != 0);
     }
 }
 
@@ -165,15 +165,15 @@ Java_com_example_imguihelloworld_ImGuiJNI_onKeyEvent(JNIEnv *env, jclass clazz, 
         
         // Handle key down/up
         if (action == 0) { // ACTION_DOWN
-            io.KeysDown[imguiKey] = true;
+            io.AddKeyEvent(imguiKey, true);
         } else if (action == 1) { // ACTION_UP
-            io.KeysDown[imguiKey] = false;
+            io.AddKeyEvent(imguiKey, false);
         }
         
         // Handle modifiers
-        io.KeyShift = (meta_state & AMETA_SHIFT_ON) != 0;
-        io.KeyCtrl = (meta_state & AMETA_CTRL_ON) != 0;
-        io.KeyAlt = (meta_state & AMETA_ALT_ON) != 0;
+        io.AddKeyEvent(ImGuiKey_ModShift, (meta_state & AMETA_SHIFT_ON) != 0);
+        io.AddKeyEvent(ImGuiKey_ModCtrl, (meta_state & AMETA_CTRL_ON) != 0);
+        io.AddKeyEvent(ImGuiKey_ModAlt, (meta_state & AMETA_ALT_ON) != 0);
     }
 }
 

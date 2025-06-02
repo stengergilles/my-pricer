@@ -2,8 +2,8 @@
 #include <android/native_activity.h>
 #include <android/input.h>
 #include "imgui.h"
-#include "platform_android.h"
-#include "../application.h"
+#include "../include/platform/platform_android.h"
+#include "../include/application.h"
 
 // ImGui Android implementation
 extern bool ImGui_ImplAndroid_Init(ANativeWindow* window);
