@@ -173,6 +173,9 @@ bool ImGui_ImplAndroid_Init(ANativeWindow* window)
     int32_t windowHeight = ANativeWindow_getHeight(window);
     ANativeWindow_release(window);
     
+    __android_log_print(ANDROID_LOG_INFO, "ImGuiApp", "ImGui_ImplAndroid_Init with window: %p, dimensions: %dx%d", 
+                       window, windowWidth, windowHeight);
+    
     if (windowWidth <= 0 || windowHeight <= 0)
     {
         __android_log_print(ANDROID_LOG_ERROR, "ImGuiApp", "Invalid window dimensions");
@@ -193,6 +196,8 @@ bool ImGui_ImplAndroid_Init(ANativeWindow* window)
         __android_log_print(ANDROID_LOG_ERROR, "ImGuiApp", "Failed to initialize EGL");
         return false;
     }
+    
+    __android_log_print(ANDROID_LOG_INFO, "ImGuiApp", "EGL initialized: version %d.%d", major, minor);
     
     // Configure EGL
     EGLint attribs[] = {
@@ -266,6 +271,8 @@ bool ImGui_ImplAndroid_Init(ANativeWindow* window)
 
 void ImGui_ImplAndroid_Shutdown()
 {
+    __android_log_print(ANDROID_LOG_INFO, "ImGuiApp", "ImGui_ImplAndroid_Shutdown called");
+    
     // Cleanup OpenGL objects
     if (g_VboHandle) glDeleteBuffers(1, &g_VboHandle);
     if (g_ElementsHandle) glDeleteBuffers(1, &g_ElementsHandle);
@@ -292,6 +299,7 @@ void ImGui_ImplAndroid_Shutdown()
     // Cleanup EGL
     if (g_EglDisplay != EGL_NO_DISPLAY)
     {
+        __android_log_print(ANDROID_LOG_INFO, "ImGuiApp", "Destroying EGL resources");
         eglMakeCurrent(g_EglDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
         
         if (g_EglContext != EGL_NO_CONTEXT)
@@ -308,16 +316,22 @@ void ImGui_ImplAndroid_Shutdown()
     g_EglSurface = EGL_NO_SURFACE;
     g_Window = NULL;
     g_Initialized = false;
+    
+    __android_log_print(ANDROID_LOG_INFO, "ImGuiApp", "ImGui_ImplAndroid_Shutdown completed");
 }
 
 void ImGui_ImplAndroid_NewFrame()
 {
-    if (!g_Initialized)
+    if (!g_Initialized) {
+        __android_log_print(ANDROID_LOG_WARN, "ImGuiApp", "ImGui_ImplAndroid_NewFrame called but not initialized");
         return;
+    }
     
     // Make sure the correct context is current
-    if (eglMakeCurrent(g_EglDisplay, g_EglSurface, g_EglSurface, g_EglContext) != EGL_TRUE)
+    if (eglMakeCurrent(g_EglDisplay, g_EglSurface, g_EglSurface, g_EglContext) != EGL_TRUE) {
+        __android_log_print(ANDROID_LOG_ERROR, "ImGuiApp", "Failed to make EGL context current in NewFrame");
         return;
+    }
     
     ImGuiIO& io = ImGui::GetIO();
     
@@ -328,6 +342,15 @@ void ImGui_ImplAndroid_NewFrame()
     // Check if orientation changed
     static int32_t lastWidth = 0;
     static int32_t lastHeight = 0;
+    bool orientationChanged = (lastWidth != windowWidth || lastHeight != windowHeight);
+    
+    if (orientationChanged) {
+        __android_log_print(ANDROID_LOG_INFO, "ImGuiApp", "Orientation/size changed: %dx%d -> %dx%d", 
+                           lastWidth, lastHeight, windowWidth, windowHeight);
+    }
+    
+    lastWidth = windowWidth;
+    lastHeight = windowHeight;
     bool orientationChanged = (lastWidth != windowWidth || lastHeight != windowHeight);
     lastWidth = windowWidth;
     lastHeight = windowHeight;

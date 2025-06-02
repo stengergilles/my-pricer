@@ -64,12 +64,24 @@ static void handle_cmd(android_app* app, int32_t cmd) {
         case APP_CMD_CONFIG_CHANGED:
             // Configuration changed (e.g., orientation)
             LOGI("Configuration changed (possibly orientation)");
-            if (g_app && g_initialized && g_savedWindow != nullptr) {
-                // Force a re-initialization to handle the new orientation
-                g_app->platformShutdown();
+            if (g_app && g_savedWindow != nullptr) {
+                // Force a complete teardown and reinit to handle the new orientation
+                if (g_initialized) {
+                    g_app->platformShutdown();
+                    g_initialized = false;
+                }
+                
+                // Small delay to ensure complete teardown
+                struct timespec ts;
+                ts.tv_sec = 0;
+                ts.tv_nsec = 200000000; // 200ms
+                nanosleep(&ts, NULL);
+                
+                // Reinitialize with the window
                 bool success = g_app->initWithWindow(g_savedWindow);
                 if (success) {
                     LOGI("Successfully reinitialized after orientation change");
+                    g_initialized = true;
                 } else {
                     LOGE("Failed to reinitialize after orientation change");
                 }

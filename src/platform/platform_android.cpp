@@ -187,6 +187,8 @@ bool PlatformAndroid::platformHandleEvents() {
 }
 
 void PlatformAndroid::platformShutdown() {
+    LOGI("Platform Android shutdown called");
+    
     // First shut down ImGui Android implementation
     ImGui_ImplAndroid_Shutdown();
     
@@ -194,7 +196,11 @@ void PlatformAndroid::platformShutdown() {
     if (m_imguiContext) {
         ImGui::DestroyContext(m_imguiContext);
         m_imguiContext = nullptr;
+        LOGI("ImGui context destroyed");
     }
+    
+    // Clear the window pointer
+    m_window = nullptr;
     
     // Reset the Android app pointer
     m_androidApp = nullptr;
