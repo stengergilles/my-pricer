@@ -45,11 +45,6 @@ JNIEXPORT jint JNI_OnLoad(JavaVM* vm, void* reserved) {
 // Implementation moved to keyboard_helper.cpp for better organization
 extern "C" void showKeyboard();
 extern "C" bool showKeyboardSafely();
-    
-    // Detach the thread if we attached it
-    if (attached) {
-        g_JavaVM->DetachCurrentThread();
-    }
 
 // JNI method implementations for ImGuiKeyboardHelper
 extern "C" {
