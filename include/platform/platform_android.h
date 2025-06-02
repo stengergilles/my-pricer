@@ -1,9 +1,9 @@
 #pragma once
 
-#include "platform/platform.h"
+#include "platform_base.h"
 #include <string>
 
-class PlatformAndroid : public Platform {
+class PlatformAndroid : public PlatformBase {
 public:
     PlatformAndroid(const std::string& title);
     virtual ~PlatformAndroid();

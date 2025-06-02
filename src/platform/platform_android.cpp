@@ -29,7 +29,7 @@ static void ShutdownOpenGL();
 static void HandleAppCommand(struct android_app* app, int32_t appCmd);
 static int32_t HandleInputEvent(struct android_app* app, AInputEvent* event);
 
-PlatformAndroid::PlatformAndroid(const std::string& title) : Platform(title) {
+PlatformAndroid::PlatformAndroid(const std::string& title) : PlatformBase(title) {
     // Initialize platform-specific members
     m_androidApp = nullptr;
 }
