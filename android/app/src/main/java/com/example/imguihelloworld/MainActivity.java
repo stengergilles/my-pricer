@@ -23,6 +23,9 @@ public class MainActivity extends ImGuiKeyboardHelper {
     // Handler for delayed tasks
     private Handler mHandler = new Handler(Looper.getMainLooper());
     
+    // Flag to track if keyboard should be shown automatically
+    private boolean mAutoShowKeyboard = false;
+    
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -32,23 +35,8 @@ public class MainActivity extends ImGuiKeyboardHelper {
         
         Log.d(TAG, "MainActivity created");
         
-        // Set up a tap listener to show keyboard
-        getWindow().getDecorView().setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Log.d(TAG, "View clicked, showing keyboard");
-                showSoftKeyboard();
-            }
-        });
-        
-        // Show keyboard after a short delay
-        mHandler.postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                Log.d(TAG, "Initial keyboard show attempt");
-                showSoftKeyboard();
-            }
-        }, 1000); // 1 second delay
+        // Don't automatically show keyboard on startup
+        getWindow().getDecorView().setOnClickListener(null);
     }
     
     @Override
@@ -57,15 +45,6 @@ public class MainActivity extends ImGuiKeyboardHelper {
         
         // Store instance for JNI access (in case it was lost)
         instance = this;
-        
-        // Show keyboard when app resumes
-        mHandler.postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                Log.d(TAG, "onResume keyboard show attempt");
-                showSoftKeyboard();
-            }
-        }, 500); // 0.5 second delay
     }
     
     @Override
@@ -127,23 +106,29 @@ public class MainActivity extends ImGuiKeyboardHelper {
     @Override
     public void showSoftKeyboard() {
         Log.d(TAG, "MainActivity.showSoftKeyboard called");
-        super.showSoftKeyboard();
         
-        // Try an alternative method if the first one doesn't work
-        try {
-            InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
-            if (imm != null) {
-                View view = getWindow().getDecorView().getRootView();
-                imm.showSoftInput(view, InputMethodManager.SHOW_IMPLICIT);
+        // Only show keyboard if explicitly requested from native code
+        if (ImGuiJNI.wantsTextInput()) {
+            Log.d(TAG, "ImGui wants text input, showing keyboard");
+            super.showSoftKeyboard();
+            
+            // Try an alternative method if the first one doesn't work
+            try {
+                InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+                if (imm != null) {
+                    View view = getWindow().getDecorView().getRootView();
+                    imm.showSoftInput(view, InputMethodManager.SHOW_IMPLICIT);
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "Error in alternative keyboard show: " + e.getMessage());
             }
-        } catch (Exception e) {
-            Log.e(TAG, "Error in alternative keyboard show: " + e.getMessage());
+        } else {
+            Log.d(TAG, "ImGui does not want text input, not showing keyboard");
         }
     }
     
     /**
      * Static method to show the keyboard - called from native code via JNI
-     * This is the method that was missing and causing the crash
      */
     public static void showKeyboard() {
         Log.d(TAG, "Static showKeyboard called from JNI");

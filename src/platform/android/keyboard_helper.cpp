@@ -25,6 +25,13 @@ extern "C" bool showKeyboardSafely() {
         return false;
     }
     
+    // Check if ImGui actually wants text input
+    ImGuiIO& io = ImGui::GetIO();
+    if (!io.WantTextInput) {
+        LOGI("ImGui does not want text input, not showing keyboard");
+        return false;
+    }
+    
     JNIEnv* env = nullptr;
     bool attached = false;
     

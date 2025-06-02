@@ -101,7 +101,7 @@ void Application::renderImGui()
     ImGui::Text("Enter some text (tap to show keyboard):");
     
     // Store the current active state before the InputText widget
-    bool wasActive = ImGui::IsItemActive();
+    bool wasActive = ImGui::IsItemFocused();
     
     // Use ImGuiInputTextFlags_CallbackAlways to ensure we get callbacks
     if (ImGui::InputText("##input", inputBuffer, IM_ARRAYSIZE(inputBuffer), 
@@ -111,7 +111,7 @@ void Application::renderImGui()
     }
     
     // Check if the input text became active
-    bool isActive = ImGui::IsItemActive();
+    bool isActive = ImGui::IsItemFocused();
     
     // Only show keyboard when the input field is activated
     // and only call showKeyboard once when it becomes active
@@ -121,10 +121,8 @@ void Application::renderImGui()
         // Input text was just activated - show keyboard
         if (!keyboardVisible) {
             // Check if ImGui wants text input before showing keyboard
-            if (ImGui::GetIO().WantTextInput) {
-                extern bool showKeyboardSafely(); // Forward declaration
-                keyboardVisible = showKeyboardSafely();
-            }
+            extern bool showKeyboardSafely(); // Forward declaration
+            keyboardVisible = showKeyboardSafely();
         }
     } else if (!isActive && keyboardVisible) {
         // Input is no longer active, keyboard should be hidden
