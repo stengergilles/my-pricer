@@ -215,10 +215,6 @@ void ImGui_ImplAndroid_RenderDrawData(ImDrawData* draw_data) {
     // Swap buffers
     eglSwapBuffers(g_EglDisplay, g_EglSurface);
 }
-    } else {
-        __android_log_print(ANDROID_LOG_INFO, "ImGuiApp", "Successfully swapped buffers");
-    }
-}
 
 bool ImGui_ImplAndroid_HandleInputEvent(const AInputEvent* event) {
     if (!g_Initialized)
