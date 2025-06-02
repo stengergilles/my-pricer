@@ -1,6 +1,7 @@
 #include "keyboard_helper.h"
 #include <jni.h>
 #include <android/log.h>
+#include "imgui.h"  // Added ImGui header
 
 #define LOGI(...) ((void)__android_log_print(ANDROID_LOG_INFO, "KeyboardHelper", __VA_ARGS__))
 #define LOGW(...) ((void)__android_log_print(ANDROID_LOG_WARN, "KeyboardHelper", __VA_ARGS__))
