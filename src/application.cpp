@@ -39,14 +39,14 @@ bool Application::initImGui()
 
 void Application::run()
 {
-    // For Android, platformInit is called before this method
+    // For Android, we don't run the main loop here
+    // The main loop is handled in android_main.cpp
     #ifndef __ANDROID__
     // Initialize platform-specific components
     if (!platformInit()) {
         std::cerr << "Platform initialization failed" << std::endl;
         return;
     }
-    #endif
 
     // Initialize ImGui
     if (!initImGui()) {
@@ -61,36 +61,27 @@ void Application::run()
         // Handle platform events (may set m_running to false)
         m_running = platformHandleEvents();
         
-        // Start a new frame
-        platformNewFrame();
-        ImGui::NewFrame();
-        
-        // Render application frame
+        // Render a frame
         renderFrame();
-        
-        // Render and present
-        ImGui::Render();
-        platformRender();
-        
-        // Add a small delay to avoid consuming too much CPU
-        // This is especially important for Android
-        #ifdef __ANDROID__
-        // Use a simple sleep for now - in a real app you might want to use a more sophisticated approach
-        struct timespec ts;
-        ts.tv_sec = 0;
-        ts.tv_nsec = 16 * 1000000; // 16ms ~= 60fps
-        nanosleep(&ts, NULL);
-        #endif
     }
 
     // Cleanup
     platformShutdown();
+    #endif
 }
 
 void Application::renderFrame()
 {
-    // Render ImGui components
+    // Start a new frame
+    platformNewFrame();
+    ImGui::NewFrame();
+    
+    // Render application frame
     renderImGui();
+    
+    // Render and present
+    ImGui::Render();
+    platformRender();
 }
 
 void Application::renderImGui()

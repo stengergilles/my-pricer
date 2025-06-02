@@ -26,6 +26,18 @@ bool ImGui_ImplAndroid_Init(ANativeWindow* window) {
         return false;
     }
     
+    // Verify window is valid
+    ANativeWindow_acquire(window);
+    int32_t width = ANativeWindow_getWidth(window);
+    int32_t height = ANativeWindow_getHeight(window);
+    __android_log_print(ANDROID_LOG_INFO, "ImGuiApp", "Window dimensions: %dx%d", width, height);
+    ANativeWindow_release(window);
+    
+    if (width <= 0 || height <= 0) {
+        __android_log_print(ANDROID_LOG_ERROR, "ImGuiApp", "Invalid window dimensions: %dx%d", width, height);
+        return false;
+    }
+    
     // Initialize EGL
     __android_log_print(ANDROID_LOG_INFO, "ImGuiApp", "Getting EGL display");
     g_EglDisplay = eglGetDisplay(EGL_DEFAULT_DISPLAY);

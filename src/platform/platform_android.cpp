@@ -81,10 +81,15 @@ bool PlatformAndroid::platformInit() {
     
     LOGI("Platform init with app: %p, window: %p", app, app->window);
     
-    if (!app->window) {
+    // Store the window pointer directly from the app structure
+    ANativeWindow* window = app->window;
+    
+    if (!window) {
         LOGE("No window available in platformInit");
         return false;
     }
+    
+    LOGI("Using window pointer directly: %p", window);
     
     LOGI("Creating ImGui context");
     // Don't create a new context if one already exists
@@ -116,9 +121,9 @@ bool PlatformAndroid::platformInit() {
     float scale = xdpi / 160.0f;
     io.FontGlobalScale = scale;
     
-    // Initialize ImGui for Android
-    LOGI("Initializing ImGui for Android with window: %p", app->window);
-    bool success = ImGui_ImplAndroid_Init(app->window);
+    // Initialize ImGui for Android with the direct window pointer
+    LOGI("Initializing ImGui for Android with window: %p", window);
+    bool success = ImGui_ImplAndroid_Init(window);
     LOGI("ImGui Android init result: %s", success ? "SUCCESS" : "FAILED");
     
     return success;
@@ -126,7 +131,7 @@ bool PlatformAndroid::platformInit() {
 
 void PlatformAndroid::platformNewFrame() {
     ImGui_ImplAndroid_NewFrame();
-    // Note: Don't call ImGui::NewFrame() here, it's called in Application::run()
+    // Note: Don't call ImGui::NewFrame() here, it's called in Application::renderFrame()
 }
 
 void PlatformAndroid::platformRender() {

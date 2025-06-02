@@ -9,16 +9,34 @@
 
 // Global application instance
 static PlatformAndroid* g_app = nullptr;
+static bool g_initialized = false;
 
 // Process Android command events
 static void handle_cmd(android_app* app, int32_t cmd) {
     switch (cmd) {
         case APP_CMD_INIT_WINDOW:
             // Window is being shown, initialize
+            LOGI("APP_CMD_INIT_WINDOW received, window pointer: %p", app->window);
             if (app->window != nullptr) {
-                LOGI("Window initialized with pointer: %p", app->window);
-            } else {
-                LOGE("APP_CMD_INIT_WINDOW received but window is NULL");
+                if (g_app && !g_initialized) {
+                    // Set the Android app pointer first
+                    g_app->setAndroidApp(app);
+                    
+                    // Add a small delay to ensure window is fully initialized
+                    struct timespec ts;
+                    ts.tv_sec = 0;
+                    ts.tv_nsec = 10 * 1000000; // 10ms delay
+                    nanosleep(&ts, NULL);
+                    
+                    // Initialize the platform
+                    bool success = g_app->platformInit();
+                    if (success) {
+                        LOGI("Platform initialized successfully");
+                        g_initialized = true;
+                    } else {
+                        LOGE("Platform initialization failed, will retry");
+                    }
+                }
             }
             break;
         case APP_CMD_TERM_WINDOW:
@@ -26,6 +44,7 @@ static void handle_cmd(android_app* app, int32_t cmd) {
             LOGI("Window terminated");
             if (g_app) {
                 g_app->platformShutdown();
+                g_initialized = false;
             }
             break;
         case APP_CMD_GAINED_FOCUS:
@@ -66,17 +85,13 @@ void android_main(struct android_app* app) {
     LOGI("Starting application main loop");
     
     // Main loop
-    bool appInitialized = false;
-    int waitCount = 0;
-    
     while (1) {
         // Read all pending events
         int events;
         android_poll_source* source;
         
-        // Process events - use -1 timeout to block until events are available
-        // This is critical to ensure we process the window creation event
-        while ((ALooper_pollAll(-1, nullptr, &events, (void**)&source)) >= 0) {
+        // Process events - block until we get events
+        while ((ALooper_pollAll(g_initialized ? 0 : -1, nullptr, &events, (void**)&source)) >= 0) {
             if (source != nullptr) {
                 source->process(app, source);
             }
@@ -90,52 +105,18 @@ void android_main(struct android_app* app) {
                 }
                 return;
             }
-            
-            // Check if window is now available
-            if (app->window != nullptr && !appInitialized) {
-                LOGI("Window pointer detected: %p", app->window);
-                break;
-            }
         }
         
-        // Check if window is available directly
-        if (app->window != nullptr) {
-            if (!appInitialized) {
-                LOGI("Window is available, initializing platform with window: %p", app->window);
-                // Set the Android app pointer
-                g_app->setAndroidApp(app);
-                
-                // Initialize the platform
-                bool success = g_app->platformInit();
-                if (success) {
-                    LOGI("Platform initialized successfully, starting application");
-                    appInitialized = true;
-                    Application::getInstance()->run();
-                    break; // Exit the loop after application run completes
-                } else {
-                    LOGE("Platform initialization failed, will retry");
-                    waitCount++;
-                    if (waitCount > 10) {
-                        LOGE("Too many initialization attempts, exiting");
-                        break;
-                    }
-                }
-            }
-        } else {
-            // Wait for window to be initialized
-            LOGI("Waiting for window pointer (currently NULL)");
+        // If initialized, run the application frame
+        if (g_initialized) {
+            // Run a single frame of the application
+            Application::getInstance()->renderFrame();
+            
+            // Sleep a bit to avoid busy waiting
             struct timespec ts;
             ts.tv_sec = 0;
-            ts.tv_nsec = 100 * 1000000; // 100ms
+            ts.tv_nsec = 16 * 1000000; // 16ms ~= 60fps
             nanosleep(&ts, NULL);
-            
-            waitCount++;
-            if (waitCount > 50) { // Allow more time for window initialization
-                LOGE("Window initialization timeout, exiting");
-                break;
-            }
         }
     }
-    
-    LOGI("Exiting android_main");
 }
