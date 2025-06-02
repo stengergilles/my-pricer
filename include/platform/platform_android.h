@@ -1,22 +1,22 @@
 #pragma once
 
-#include "platform_base.h"
+#include "platform/platform.h"
+#include <string>
 
-// Android implementation
-class PlatformAndroid : public PlatformBase {
+class PlatformAndroid : public Platform {
 public:
-    PlatformAndroid(const std::string& appName = "ImGui Hello World");
+    PlatformAndroid(const std::string& title);
     virtual ~PlatformAndroid();
-
-protected:
-    // Platform-specific implementations
+    
     virtual bool platformInit() override;
-    virtual void platformShutdown() override;
     virtual void platformNewFrame() override;
     virtual void platformRender() override;
     virtual bool platformHandleEvents() override;
+    
+    // Add a public setter method for m_androidApp
+    void setAndroidApp(void* app);
 
-private:
-    // Android-specific members
+protected:
+    // Changed from private to protected to allow access in derived classes
     void* m_androidApp;  // android_app* in actual implementation
 };

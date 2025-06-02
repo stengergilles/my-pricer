@@ -1,82 +1,84 @@
-#include "../../include/platform/platform_android.h"
+#include "platform/platform_android.h"
 #include "imgui.h"
 #include "imgui_impl_android.h"
 #include "imgui_impl_opengl3.h"
 
+// Add missing header for AConfiguration_getScreenDensity
+#include <android/configuration.h>
+
 #include <android/log.h>
-#include <android/native_activity.h>
+#include <android/native_window.h>
 #include <android/input.h>
 #include <android_native_app_glue.h>
-#include <android/configuration.h>
+
 #include <EGL/egl.h>
 #include <GLES3/gl3.h>
-#include <jni.h>
 
-#define LOGI(...) ((void)__android_log_print(ANDROID_LOG_INFO, "ImGuiApp", __VA_ARGS__))
-#define LOGW(...) ((void)__android_log_print(ANDROID_LOG_WARN, "ImGuiApp", __VA_ARGS__))
-#define LOGE(...) ((void)__android_log_print(ANDROID_LOG_ERROR, "ImGuiApp", __VA_ARGS__))
+#define LOGI(...) ((void)__android_log_print(ANDROID_LOG_INFO, "ImGui", __VA_ARGS__))
+#define LOGW(...) ((void)__android_log_print(ANDROID_LOG_WARN, "ImGui", __VA_ARGS__))
+#define LOGE(...) ((void)__android_log_print(ANDROID_LOG_ERROR, "ImGui", __VA_ARGS__))
 
-// Global state for the Android app
-struct AndroidAppState {
-    ANativeWindow* window = nullptr;
-    EGLDisplay display = EGL_NO_DISPLAY;
-    EGLSurface surface = EGL_NO_SURFACE;
-    EGLContext context = EGL_NO_CONTEXT;
-    bool initialized = false;
-    bool active = false;
-    int32_t width = 0;
-    int32_t height = 0;
-    PlatformAndroid* app = nullptr;
-};
+// EGL context globals
+static EGLDisplay g_EglDisplay = EGL_NO_DISPLAY;
+static EGLSurface g_EglSurface = EGL_NO_SURFACE;
+static EGLContext g_EglContext = EGL_NO_CONTEXT;
 
 // Forward declarations
-static int32_t handleInputEvent(struct android_app* app, AInputEvent* event);
-static void handleCmdEvent(struct android_app* app, int32_t cmd);
-static bool initializeEGL(AndroidAppState* state);
-static void terminateEGL(AndroidAppState* state);
+static int InitializeOpenGL();
+static void ShutdownOpenGL();
+static void HandleAppCommand(struct android_app* app, int32_t appCmd);
+static int32_t HandleInputEvent(struct android_app* app, AInputEvent* event);
 
-PlatformAndroid::PlatformAndroid(const std::string& appName)
-    : PlatformBase(appName)
-    , m_androidApp(nullptr)
-{
+PlatformAndroid::PlatformAndroid(const std::string& title) : Platform(title) {
+    // Initialize platform-specific members
+    m_androidApp = nullptr;
 }
 
-PlatformAndroid::~PlatformAndroid()
-{
-    platformShutdown();
+PlatformAndroid::~PlatformAndroid() {
+    // Clean up platform-specific resources
+    ImGui_ImplOpenGL3_Shutdown();
+    ImGui_ImplAndroid_Shutdown();
+    ImGui::DestroyContext();
+    
+    ShutdownOpenGL();
 }
 
-bool PlatformAndroid::platformInit()
-{
-    // This function is called from the main thread after android_main has set up m_androidApp
-    if (!m_androidApp) {
-        LOGE("Android app not initialized");
+bool PlatformAndroid::platformInit() {
+    // Get the android_app instance
+    struct android_app* app = static_cast<struct android_app*>(m_androidApp);
+    if (!app) {
+        LOGE("Android app instance is null");
         return false;
     }
-
-    auto* app = static_cast<android_app*>(m_androidApp);
-    auto* state = new AndroidAppState();
-    state->app = this;
-    app->userData = state;
-    app->onAppCmd = handleCmdEvent;
-    app->onInputEvent = handleInputEvent;
-
+    
+    // Set callbacks
+    app->onAppCmd = HandleAppCommand;
+    app->onInputEvent = HandleInputEvent;
+    app->userData = this;
+    
     // Wait for window to be initialized
-    while (!state->initialized) {
+    while (app->window == nullptr) {
         int events;
-        android_poll_source* source;
+        struct android_poll_source* source;
+        
+        // Process events
         if (ALooper_pollAll(0, nullptr, &events, (void**)&source) >= 0) {
             if (source != nullptr) {
                 source->process(app, source);
             }
         }
     }
-
-    // Initialize ImGui for Android
+    
+    // Initialize OpenGL
+    if (!InitializeOpenGL()) {
+        LOGE("Failed to initialize OpenGL");
+        return false;
+    }
+    
+    // Setup Dear ImGui context
     IMGUI_CHECKVERSION();
-    ImGui_ImplAndroid_Init(app->window);
-    ImGui_ImplOpenGL3_Init("#version 300 es");
-
+    ImGui::CreateContext();
+    
     // Configure ImGui style
     ImGuiIO& io = ImGui::GetIO();
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;  // Enable keyboard navigation
@@ -90,52 +92,37 @@ bool PlatformAndroid::platformInit()
     return true;
 }
 
-void PlatformAndroid::platformShutdown()
-{
-    if (m_androidApp) {
-        auto* app = static_cast<android_app*>(m_androidApp);
-        if (app->userData) {
-            auto* state = static_cast<AndroidAppState*>(app->userData);
-            
-            ImGui_ImplOpenGL3_Shutdown();
-            ImGui_ImplAndroid_Shutdown();
-            
-            terminateEGL(state);
-            delete state;
-            app->userData = nullptr;
-        }
-        m_androidApp = nullptr;
-    }
-}
-
-void PlatformAndroid::platformNewFrame()
-{
+void PlatformAndroid::platformNewFrame() {
+    // Start the Dear ImGui frame
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplAndroid_NewFrame();
+    ImGui::NewFrame();
 }
 
-void PlatformAndroid::platformRender()
-{
-    auto* app = static_cast<android_app*>(m_androidApp);
-    auto* state = static_cast<AndroidAppState*>(app->userData);
+void PlatformAndroid::platformRender() {
+    // Rendering
+    ImGui::Render();
     
-    ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
-    glViewport(0, 0, state->width, state->height);
-    glClearColor(clear_color.x, clear_color.y, clear_color.z, clear_color.w);
+    glViewport(0, 0, (int)ImGui::GetIO().DisplaySize.x, (int)ImGui::GetIO().DisplaySize.y);
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
     
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-    eglSwapBuffers(state->display, state->surface);
+    eglSwapBuffers(g_EglDisplay, g_EglSurface);
 }
 
-bool PlatformAndroid::platformHandleEvents()
-{
-    auto* app = static_cast<android_app*>(m_androidApp);
-    auto* state = static_cast<AndroidAppState*>(app->userData);
+bool PlatformAndroid::platformHandleEvents() {
+    // Get the android_app instance
+    struct android_app* app = static_cast<struct android_app*>(m_androidApp);
+    if (!app) {
+        return false;
+    }
     
-    // Process Android events
+    // Process events
     int events;
-    android_poll_source* source;
+    struct android_poll_source* source;
+    
+    // Poll for events without blocking
     while (ALooper_pollAll(0, nullptr, &events, (void**)&source) >= 0) {
         if (source != nullptr) {
             source->process(app, source);
@@ -147,111 +134,323 @@ bool PlatformAndroid::platformHandleEvents()
         }
     }
     
-    return state->active;
+    return true;
 }
 
-// Static helper functions
+// Public setter for m_androidApp to fix private member access issue
+void PlatformAndroid::setAndroidApp(void* app) {
+    m_androidApp = app;
+}
 
-static int32_t handleInputEvent(struct android_app* app, AInputEvent* event)
-{
-    auto* state = static_cast<AndroidAppState*>(app->userData);
-    if (!state || !state->initialized) return 0;
-    
-    if (ImGui_ImplAndroid_HandleInputEvent(event)) {
-        return 1;
+// OpenGL initialization
+static int InitializeOpenGL() {
+    // Initialize EGL
+    g_EglDisplay = eglGetDisplay(EGL_DEFAULT_DISPLAY);
+    if (g_EglDisplay == EGL_NO_DISPLAY) {
+        LOGE("eglGetDisplay failed");
+        return 0;
     }
     
-    // Handle keyboard events
-    if (AInputEvent_getType(event) == AINPUT_EVENT_TYPE_KEY) {
+    if (eglInitialize(g_EglDisplay, nullptr, nullptr) != EGL_TRUE) {
+        LOGE("eglInitialize failed");
+        return 0;
+    }
+    
+    // Configure EGL
+    EGLint attribs[] = {
+        EGL_SURFACE_TYPE, EGL_WINDOW_BIT,
+        EGL_RENDERABLE_TYPE, EGL_OPENGL_ES3_BIT,
+        EGL_BLUE_SIZE, 8,
+        EGL_GREEN_SIZE, 8,
+        EGL_RED_SIZE, 8,
+        EGL_ALPHA_SIZE, 8,
+        EGL_DEPTH_SIZE, 16,
+        EGL_STENCIL_SIZE, 8,
+        EGL_NONE
+    };
+    
+    EGLint numConfigs;
+    EGLConfig config;
+    if (eglChooseConfig(g_EglDisplay, attribs, &config, 1, &numConfigs) != EGL_TRUE) {
+        LOGE("eglChooseConfig failed");
+        return 0;
+    }
+    
+    // Create surface
+    ANativeWindow* window = (ANativeWindow*)((struct android_app*)ImGui_ImplAndroid_GetApp())->window;
+    g_EglSurface = eglCreateWindowSurface(g_EglDisplay, config, window, nullptr);
+    if (g_EglSurface == EGL_NO_SURFACE) {
+        LOGE("eglCreateWindowSurface failed");
+        return 0;
+    }
+    
+    // Create context
+    EGLint contextAttribs[] = {
+        EGL_CONTEXT_CLIENT_VERSION, 3,
+        EGL_NONE
+    };
+    g_EglContext = eglCreateContext(g_EglDisplay, config, EGL_NO_CONTEXT, contextAttribs);
+    if (g_EglContext == EGL_NO_CONTEXT) {
+        LOGE("eglCreateContext failed");
+        return 0;
+    }
+    
+    if (eglMakeCurrent(g_EglDisplay, g_EglSurface, g_EglSurface, g_EglContext) != EGL_TRUE) {
+        LOGE("eglMakeCurrent failed");
+        return 0;
+    }
+    
+    // Initialize ImGui backends
+    ImGui_ImplAndroid_Init(window);
+    ImGui_ImplOpenGL3_Init("#version 300 es");
+    
+    return 1;
+}
+
+static void ShutdownOpenGL() {
+    if (g_EglDisplay != EGL_NO_DISPLAY) {
+        eglMakeCurrent(g_EglDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
+        
+        if (g_EglContext != EGL_NO_CONTEXT) {
+            eglDestroyContext(g_EglDisplay, g_EglContext);
+            g_EglContext = EGL_NO_CONTEXT;
+        }
+        
+        if (g_EglSurface != EGL_NO_SURFACE) {
+            eglDestroySurface(g_EglDisplay, g_EglSurface);
+            g_EglSurface = EGL_NO_SURFACE;
+        }
+        
+        eglTerminate(g_EglDisplay);
+        g_EglDisplay = EGL_NO_DISPLAY;
+    }
+}
+
+// Android app command handler
+static void HandleAppCommand(struct android_app* app, int32_t appCmd) {
+    switch (appCmd) {
+        case APP_CMD_SAVE_STATE:
+            // The system has asked us to save our current state
+            LOGI("APP_CMD_SAVE_STATE");
+            break;
+            
+        case APP_CMD_INIT_WINDOW:
+            // The window is being shown, get it ready
+            LOGI("APP_CMD_INIT_WINDOW");
+            if (app->window != nullptr) {
+                InitializeOpenGL();
+            }
+            break;
+            
+        case APP_CMD_TERM_WINDOW:
+            // The window is being hidden or closed
+            LOGI("APP_CMD_TERM_WINDOW");
+            ShutdownOpenGL();
+            break;
+            
+        case APP_CMD_GAINED_FOCUS:
+            // App gains focus
+            LOGI("APP_CMD_GAINED_FOCUS");
+            break;
+            
+        case APP_CMD_LOST_FOCUS:
+            // App loses focus
+            LOGI("APP_CMD_LOST_FOCUS");
+            break;
+            
+        default:
+            break;
+    }
+}
+
+// Android input event handler
+static int32_t HandleInputEvent(struct android_app* app, AInputEvent* event) {
+    ImGuiIO& io = ImGui::GetIO();
+    
+    int32_t eventType = AInputEvent_getType(event);
+    
+    if (eventType == AINPUT_EVENT_TYPE_MOTION) {
+        int32_t action = AMotionEvent_getAction(event);
+        int32_t pointerIndex = (action & AMOTION_EVENT_ACTION_POINTER_INDEX_MASK) >> AMOTION_EVENT_ACTION_POINTER_INDEX_SHIFT;
+        int32_t pointerId = AMotionEvent_getPointerId(event, pointerIndex);
+        int32_t actionMasked = action & AMOTION_EVENT_ACTION_MASK;
+        
+        switch (actionMasked) {
+            case AMOTION_EVENT_ACTION_DOWN:
+            case AMOTION_EVENT_ACTION_POINTER_DOWN:
+                {
+                    float x = AMotionEvent_getX(event, pointerIndex);
+                    float y = AMotionEvent_getY(event, pointerIndex);
+                    ImGui_ImplAndroid_HandleTouchDown(pointerId, x, y);
+                }
+                return 1;
+                
+            case AMOTION_EVENT_ACTION_MOVE:
+                {
+                    int32_t pointerCount = AMotionEvent_getPointerCount(event);
+                    for (int i = 0; i < pointerCount; i++) {
+                        float x = AMotionEvent_getX(event, i);
+                        float y = AMotionEvent_getY(event, i);
+                        int32_t id = AMotionEvent_getPointerId(event, i);
+                        ImGui_ImplAndroid_HandleTouchMove(id, x, y);
+                    }
+                }
+                return 1;
+                
+            case AMOTION_EVENT_ACTION_UP:
+            case AMOTION_EVENT_ACTION_POINTER_UP:
+                {
+                    ImGui_ImplAndroid_HandleTouchUp(pointerId);
+                }
+                return 1;
+                
+            case AMOTION_EVENT_ACTION_CANCEL:
+                {
+                    int32_t pointerCount = AMotionEvent_getPointerCount(event);
+                    for (int i = 0; i < pointerCount; i++) {
+                        int32_t id = AMotionEvent_getPointerId(event, i);
+                        ImGui_ImplAndroid_HandleTouchUp(id);
+                    }
+                }
+                return 1;
+        }
+    }
+    else if (eventType == AINPUT_EVENT_TYPE_KEY) {
         int32_t keyCode = AKeyEvent_getKeyCode(event);
         int32_t action = AKeyEvent_getAction(event);
         int32_t metaState = AKeyEvent_getMetaState(event);
         
-        ImGuiIO& io = ImGui::GetIO();
-        
-        if (action == AKEY_EVENT_ACTION_DOWN) {
+        if (action == AKEY_EVENT_ACTION_DOWN || action == AKEY_EVENT_ACTION_UP) {
+            // Map Android key codes to ImGui key codes
+            ImGuiKey imguiKey = ImGuiKey_None;
+            
             switch (keyCode) {
-                case AKEYCODE_BACK:
-                    // Handle back button
-                    if (!io.WantCaptureMouse && !io.WantCaptureKeyboard) {
-                        return 0;  // Let the system handle it
-                    }
-                    return 1;
-                    
-                default:
-                    // Map Android key codes to ImGui key codes
-                    int imguiKey = -1;
-                    if (keyCode >= AKEYCODE_A && keyCode <= AKEYCODE_Z) {
-                        imguiKey = ImGuiKey_A + (keyCode - AKEYCODE_A);
-                    } else if (keyCode >= AKEYCODE_0 && keyCode <= AKEYCODE_9) {
-                        imguiKey = ImGuiKey_0 + (keyCode - AKEYCODE_0);
-                    } else {
-                        // Map other keys as needed
-                        switch (keyCode) {
-                            case AKEYCODE_SPACE: imguiKey = ImGuiKey_Space; break;
-                            case AKEYCODE_ENTER: imguiKey = ImGuiKey_Enter; break;
-                            case AKEYCODE_ESCAPE: imguiKey = ImGuiKey_Escape; break;
-                            case AKEYCODE_TAB: imguiKey = ImGuiKey_Tab; break;
-                            case AKEYCODE_DEL: imguiKey = ImGuiKey_Backspace; break;
-                            case AKEYCODE_FORWARD_DEL: imguiKey = ImGuiKey_Delete; break;
-                            case AKEYCODE_DPAD_LEFT: imguiKey = ImGuiKey_LeftArrow; break;
-                            case AKEYCODE_DPAD_RIGHT: imguiKey = ImGuiKey_RightArrow; break;
-                            case AKEYCODE_DPAD_UP: imguiKey = ImGuiKey_UpArrow; break;
-                            case AKEYCODE_DPAD_DOWN: imguiKey = ImGuiKey_DownArrow; break;
-                            case AKEYCODE_PAGE_UP: imguiKey = ImGuiKey_PageUp; break;
-                            case AKEYCODE_PAGE_DOWN: imguiKey = ImGuiKey_PageDown; break;
-                            case AKEYCODE_HOME: imguiKey = ImGuiKey_Home; break;
-                            case AKEYCODE_MOVE_END: imguiKey = ImGuiKey_End; break;
-                        }
-                    }
-                    
-                    if (imguiKey != -1) {
-                        io.KeysDown[imguiKey] = true;
-                        
-                        // Handle modifiers
-                        io.KeyShift = (metaState & AMETA_SHIFT_ON) != 0;
-                        io.KeyCtrl = (metaState & AMETA_CTRL_ON) != 0;
-                        io.KeyAlt = (metaState & AMETA_ALT_ON) != 0;
-                        
-                        return 1;
-                    }
-                    break;
-            }
-        } else if (action == AKEY_EVENT_ACTION_UP) {
-            // Similar key mapping for key up events
-            int imguiKey = -1;
-            if (keyCode >= AKEYCODE_A && keyCode <= AKEYCODE_Z) {
-                imguiKey = ImGuiKey_A + (keyCode - AKEYCODE_A);
-            } else if (keyCode >= AKEYCODE_0 && keyCode <= AKEYCODE_9) {
-                imguiKey = ImGuiKey_0 + (keyCode - AKEYCODE_0);
-            } else {
-                // Map other keys as needed (same mapping as above)
-                switch (keyCode) {
-                    case AKEYCODE_SPACE: imguiKey = ImGuiKey_Space; break;
-                    case AKEYCODE_ENTER: imguiKey = ImGuiKey_Enter; break;
-                    case AKEYCODE_ESCAPE: imguiKey = ImGuiKey_Escape; break;
-                    case AKEYCODE_TAB: imguiKey = ImGuiKey_Tab; break;
-                    case AKEYCODE_DEL: imguiKey = ImGuiKey_Backspace; break;
-                    case AKEYCODE_FORWARD_DEL: imguiKey = ImGuiKey_Delete; break;
-                    case AKEYCODE_DPAD_LEFT: imguiKey = ImGuiKey_LeftArrow; break;
-                    case AKEYCODE_DPAD_RIGHT: imguiKey = ImGuiKey_RightArrow; break;
-                    case AKEYCODE_DPAD_UP: imguiKey = ImGuiKey_UpArrow; break;
-                    case AKEYCODE_DPAD_DOWN: imguiKey = ImGuiKey_DownArrow; break;
-                    case AKEYCODE_PAGE_UP: imguiKey = ImGuiKey_PageUp; break;
-                    case AKEYCODE_PAGE_DOWN: imguiKey = ImGuiKey_PageDown; break;
-                    case AKEYCODE_HOME: imguiKey = ImGuiKey_Home; break;
-                    case AKEYCODE_MOVE_END: imguiKey = ImGuiKey_End; break;
-                }
+                case AKEYCODE_TAB: imguiKey = ImGuiKey_Tab; break;
+                case AKEYCODE_DPAD_LEFT: imguiKey = ImGuiKey_LeftArrow; break;
+                case AKEYCODE_DPAD_RIGHT: imguiKey = ImGuiKey_RightArrow; break;
+                case AKEYCODE_DPAD_UP: imguiKey = ImGuiKey_UpArrow; break;
+                case AKEYCODE_DPAD_DOWN: imguiKey = ImGuiKey_DownArrow; break;
+                case AKEYCODE_PAGE_UP: imguiKey = ImGuiKey_PageUp; break;
+                case AKEYCODE_PAGE_DOWN: imguiKey = ImGuiKey_PageDown; break;
+                case AKEYCODE_MOVE_HOME: imguiKey = ImGuiKey_Home; break;
+                case AKEYCODE_MOVE_END: imguiKey = ImGuiKey_End; break;
+                case AKEYCODE_INSERT: imguiKey = ImGuiKey_Insert; break;
+                case AKEYCODE_FORWARD_DEL: imguiKey = ImGuiKey_Delete; break;
+                case AKEYCODE_DEL: imguiKey = ImGuiKey_Backspace; break;
+                case AKEYCODE_SPACE: imguiKey = ImGuiKey_Space; break;
+                case AKEYCODE_ENTER: imguiKey = ImGuiKey_Enter; break;
+                case AKEYCODE_ESCAPE: imguiKey = ImGuiKey_Escape; break;
+                case AKEYCODE_APOSTROPHE: imguiKey = ImGuiKey_Apostrophe; break;
+                case AKEYCODE_COMMA: imguiKey = ImGuiKey_Comma; break;
+                case AKEYCODE_MINUS: imguiKey = ImGuiKey_Minus; break;
+                case AKEYCODE_PERIOD: imguiKey = ImGuiKey_Period; break;
+                case AKEYCODE_SLASH: imguiKey = ImGuiKey_Slash; break;
+                case AKEYCODE_SEMICOLON: imguiKey = ImGuiKey_Semicolon; break;
+                case AKEYCODE_EQUALS: imguiKey = ImGuiKey_Equal; break;
+                case AKEYCODE_LEFT_BRACKET: imguiKey = ImGuiKey_LeftBracket; break;
+                case AKEYCODE_BACKSLASH: imguiKey = ImGuiKey_Backslash; break;
+                case AKEYCODE_RIGHT_BRACKET: imguiKey = ImGuiKey_RightBracket; break;
+                case AKEYCODE_GRAVE: imguiKey = ImGuiKey_GraveAccent; break;
+                case AKEYCODE_CAPS_LOCK: imguiKey = ImGuiKey_CapsLock; break;
+                case AKEYCODE_SCROLL_LOCK: imguiKey = ImGuiKey_ScrollLock; break;
+                case AKEYCODE_NUM_LOCK: imguiKey = ImGuiKey_NumLock; break;
+                case AKEYCODE_SYSRQ: imguiKey = ImGuiKey_PrintScreen; break;
+                case AKEYCODE_BREAK: imguiKey = ImGuiKey_Pause; break;
+                case AKEYCODE_NUMPAD_0: imguiKey = ImGuiKey_Keypad0; break;
+                case AKEYCODE_NUMPAD_1: imguiKey = ImGuiKey_Keypad1; break;
+                case AKEYCODE_NUMPAD_2: imguiKey = ImGuiKey_Keypad2; break;
+                case AKEYCODE_NUMPAD_3: imguiKey = ImGuiKey_Keypad3; break;
+                case AKEYCODE_NUMPAD_4: imguiKey = ImGuiKey_Keypad4; break;
+                case AKEYCODE_NUMPAD_5: imguiKey = ImGuiKey_Keypad5; break;
+                case AKEYCODE_NUMPAD_6: imguiKey = ImGuiKey_Keypad6; break;
+                case AKEYCODE_NUMPAD_7: imguiKey = ImGuiKey_Keypad7; break;
+                case AKEYCODE_NUMPAD_8: imguiKey = ImGuiKey_Keypad8; break;
+                case AKEYCODE_NUMPAD_9: imguiKey = ImGuiKey_Keypad9; break;
+                case AKEYCODE_NUMPAD_DOT: imguiKey = ImGuiKey_KeypadDecimal; break;
+                case AKEYCODE_NUMPAD_DIVIDE: imguiKey = ImGuiKey_KeypadDivide; break;
+                case AKEYCODE_NUMPAD_MULTIPLY: imguiKey = ImGuiKey_KeypadMultiply; break;
+                case AKEYCODE_NUMPAD_SUBTRACT: imguiKey = ImGuiKey_KeypadSubtract; break;
+                case AKEYCODE_NUMPAD_ADD: imguiKey = ImGuiKey_KeypadAdd; break;
+                case AKEYCODE_NUMPAD_ENTER: imguiKey = ImGuiKey_KeypadEnter; break;
+                case AKEYCODE_NUMPAD_EQUALS: imguiKey = ImGuiKey_KeypadEqual; break;
+                case AKEYCODE_CTRL_LEFT: imguiKey = ImGuiKey_LeftCtrl; break;
+                case AKEYCODE_SHIFT_LEFT: imguiKey = ImGuiKey_LeftShift; break;
+                case AKEYCODE_ALT_LEFT: imguiKey = ImGuiKey_LeftAlt; break;
+                case AKEYCODE_META_LEFT: imguiKey = ImGuiKey_LeftSuper; break;
+                case AKEYCODE_CTRL_RIGHT: imguiKey = ImGuiKey_RightCtrl; break;
+                case AKEYCODE_SHIFT_RIGHT: imguiKey = ImGuiKey_RightShift; break;
+                case AKEYCODE_ALT_RIGHT: imguiKey = ImGuiKey_RightAlt; break;
+                case AKEYCODE_META_RIGHT: imguiKey = ImGuiKey_RightSuper; break;
+                case AKEYCODE_MENU: imguiKey = ImGuiKey_Menu; break;
+                case AKEYCODE_0: imguiKey = ImGuiKey_0; break;
+                case AKEYCODE_1: imguiKey = ImGuiKey_1; break;
+                case AKEYCODE_2: imguiKey = ImGuiKey_2; break;
+                case AKEYCODE_3: imguiKey = ImGuiKey_3; break;
+                case AKEYCODE_4: imguiKey = ImGuiKey_4; break;
+                case AKEYCODE_5: imguiKey = ImGuiKey_5; break;
+                case AKEYCODE_6: imguiKey = ImGuiKey_6; break;
+                case AKEYCODE_7: imguiKey = ImGuiKey_7; break;
+                case AKEYCODE_8: imguiKey = ImGuiKey_8; break;
+                case AKEYCODE_9: imguiKey = ImGuiKey_9; break;
+                case AKEYCODE_A: imguiKey = ImGuiKey_A; break;
+                case AKEYCODE_B: imguiKey = ImGuiKey_B; break;
+                case AKEYCODE_C: imguiKey = ImGuiKey_C; break;
+                case AKEYCODE_D: imguiKey = ImGuiKey_D; break;
+                case AKEYCODE_E: imguiKey = ImGuiKey_E; break;
+                case AKEYCODE_F: imguiKey = ImGuiKey_F; break;
+                case AKEYCODE_G: imguiKey = ImGuiKey_G; break;
+                case AKEYCODE_H: imguiKey = ImGuiKey_H; break;
+                case AKEYCODE_I: imguiKey = ImGuiKey_I; break;
+                case AKEYCODE_J: imguiKey = ImGuiKey_J; break;
+                case AKEYCODE_K: imguiKey = ImGuiKey_K; break;
+                case AKEYCODE_L: imguiKey = ImGuiKey_L; break;
+                case AKEYCODE_M: imguiKey = ImGuiKey_M; break;
+                case AKEYCODE_N: imguiKey = ImGuiKey_N; break;
+                case AKEYCODE_O: imguiKey = ImGuiKey_O; break;
+                case AKEYCODE_P: imguiKey = ImGuiKey_P; break;
+                case AKEYCODE_Q: imguiKey = ImGuiKey_Q; break;
+                case AKEYCODE_R: imguiKey = ImGuiKey_R; break;
+                case AKEYCODE_S: imguiKey = ImGuiKey_S; break;
+                case AKEYCODE_T: imguiKey = ImGuiKey_T; break;
+                case AKEYCODE_U: imguiKey = ImGuiKey_U; break;
+                case AKEYCODE_V: imguiKey = ImGuiKey_V; break;
+                case AKEYCODE_W: imguiKey = ImGuiKey_W; break;
+                case AKEYCODE_X: imguiKey = ImGuiKey_X; break;
+                case AKEYCODE_Y: imguiKey = ImGuiKey_Y; break;
+                case AKEYCODE_Z: imguiKey = ImGuiKey_Z; break;
+                case AKEYCODE_F1: imguiKey = ImGuiKey_F1; break;
+                case AKEYCODE_F2: imguiKey = ImGuiKey_F2; break;
+                case AKEYCODE_F3: imguiKey = ImGuiKey_F3; break;
+                case AKEYCODE_F4: imguiKey = ImGuiKey_F4; break;
+                case AKEYCODE_F5: imguiKey = ImGuiKey_F5; break;
+                case AKEYCODE_F6: imguiKey = ImGuiKey_F6; break;
+                case AKEYCODE_F7: imguiKey = ImGuiKey_F7; break;
+                case AKEYCODE_F8: imguiKey = ImGuiKey_F8; break;
+                case AKEYCODE_F9: imguiKey = ImGuiKey_F9; break;
+                case AKEYCODE_F10: imguiKey = ImGuiKey_F10; break;
+                case AKEYCODE_F11: imguiKey = ImGuiKey_F11; break;
+                case AKEYCODE_F12: imguiKey = ImGuiKey_F12; break;
             }
             
-            if (imguiKey != -1) {
-                ImGui::GetIO().KeysDown[imguiKey] = false;
-                
-                // Update modifiers
-                ImGuiIO& io = ImGui::GetIO();
-                io.KeyShift = (metaState & AMETA_SHIFT_ON) != 0;
-                io.KeyCtrl = (metaState & AMETA_CTRL_ON) != 0;
-                io.KeyAlt = (metaState & AMETA_ALT_ON) != 0;
+            if (imguiKey != ImGuiKey_None) {
+                // Use the new ImGui input API instead of KeysDown array
+                if (action == AKEY_EVENT_ACTION_DOWN) {
+                    ImGui::GetIO().AddKeyEvent(imguiKey, true);
+                    
+                    // Handle modifiers
+                    ImGuiIO& io = ImGui::GetIO();
+                    io.KeyShift = (metaState & AMETA_SHIFT_ON) != 0;
+                    io.KeyCtrl = (metaState & AMETA_CTRL_ON) != 0;
+                    io.KeyAlt = (metaState & AMETA_ALT_ON) != 0;
+                } else {
+                    ImGui::GetIO().AddKeyEvent(imguiKey, false);
+                    
+                    // Update modifiers
+                    ImGuiIO& io = ImGui::GetIO();
+                    io.KeyShift = (metaState & AMETA_SHIFT_ON) != 0;
+                    io.KeyCtrl = (metaState & AMETA_CTRL_ON) != 0;
+                    io.KeyAlt = (metaState & AMETA_ALT_ON) != 0;
+                }
                 
                 return 1;
             }
@@ -261,171 +460,12 @@ static int32_t handleInputEvent(struct android_app* app, AInputEvent* event)
     return 0;
 }
 
-static void handleCmdEvent(struct android_app* app, int32_t cmd)
-{
-    auto* state = static_cast<AndroidAppState*>(app->userData);
-    if (!state) return;
-    
-    switch (cmd) {
-        case APP_CMD_SAVE_STATE:
-            LOGI("APP_CMD_SAVE_STATE");
-            break;
-            
-        case APP_CMD_INIT_WINDOW:
-            LOGI("APP_CMD_INIT_WINDOW");
-            if (app->window != nullptr) {
-                state->window = app->window;
-                if (initializeEGL(state)) {
-                    state->initialized = true;
-                    state->active = true;
-                }
-            }
-            break;
-            
-        case APP_CMD_TERM_WINDOW:
-            LOGI("APP_CMD_TERM_WINDOW");
-            terminateEGL(state);
-            state->initialized = false;
-            state->active = false;
-            break;
-            
-        case APP_CMD_GAINED_FOCUS:
-            LOGI("APP_CMD_GAINED_FOCUS");
-            state->active = true;
-            break;
-            
-        case APP_CMD_LOST_FOCUS:
-            LOGI("APP_CMD_LOST_FOCUS");
-            state->active = false;
-            break;
-            
-        case APP_CMD_WINDOW_RESIZED:
-        case APP_CMD_CONFIG_CHANGED:
-            LOGI("Window resized or config changed");
-            // Update window size
-            if (state->display != EGL_NO_DISPLAY && state->surface != EGL_NO_SURFACE) {
-                eglQuerySurface(state->display, state->surface, EGL_WIDTH, &state->width);
-                eglQuerySurface(state->display, state->surface, EGL_HEIGHT, &state->height);
-                LOGI("New size: %dx%d", state->width, state->height);
-            }
-            break;
-            
-        default:
-            break;
-    }
-}
-
-static bool initializeEGL(AndroidAppState* state)
-{
-    // Initialize EGL
-    EGLint majorVersion, minorVersion;
-    EGLint format;
-    EGLint numConfigs;
-    EGLConfig config;
-    EGLint attribs[] = {
-        EGL_SURFACE_TYPE, EGL_WINDOW_BIT,
-        EGL_RENDERABLE_TYPE, EGL_OPENGL_ES3_BIT,
-        EGL_RED_SIZE, 8,
-        EGL_GREEN_SIZE, 8,
-        EGL_BLUE_SIZE, 8,
-        EGL_ALPHA_SIZE, 8,
-        EGL_DEPTH_SIZE, 16,
-        EGL_STENCIL_SIZE, 8,
-        EGL_NONE
-    };
-    
-    EGLint contextAttribs[] = {
-        EGL_CONTEXT_CLIENT_VERSION, 3,
-        EGL_NONE
-    };
-    
-    // Get display
-    state->display = eglGetDisplay(EGL_DEFAULT_DISPLAY);
-    if (state->display == EGL_NO_DISPLAY) {
-        LOGE("eglGetDisplay failed: %d", eglGetError());
-        return false;
-    }
-    
-    // Initialize display
-    if (!eglInitialize(state->display, &majorVersion, &minorVersion)) {
-        LOGE("eglInitialize failed: %d", eglGetError());
-        return false;
-    }
-    
-    LOGI("EGL version: %d.%d", majorVersion, minorVersion);
-    
-    // Choose config
-    if (!eglChooseConfig(state->display, attribs, &config, 1, &numConfigs) || numConfigs == 0) {
-        LOGE("eglChooseConfig failed: %d", eglGetError());
-        return false;
-    }
-    
-    // Get the selected config's format
-    if (!eglGetConfigAttrib(state->display, config, EGL_NATIVE_VISUAL_ID, &format)) {
-        LOGE("eglGetConfigAttrib failed: %d", eglGetError());
-        return false;
-    }
-    
-    // Set the window's format
-    ANativeWindow_setBuffersGeometry(state->window, 0, 0, format);
-    
-    // Create surface
-    state->surface = eglCreateWindowSurface(state->display, config, state->window, nullptr);
-    if (state->surface == EGL_NO_SURFACE) {
-        LOGE("eglCreateWindowSurface failed: %d", eglGetError());
-        return false;
-    }
-    
-    // Create context
-    state->context = eglCreateContext(state->display, config, EGL_NO_CONTEXT, contextAttribs);
-    if (state->context == EGL_NO_CONTEXT) {
-        LOGE("eglCreateContext failed: %d", eglGetError());
-        return false;
-    }
-    
-    // Make current
-    if (!eglMakeCurrent(state->display, state->surface, state->surface, state->context)) {
-        LOGE("eglMakeCurrent failed: %d", eglGetError());
-        return false;
-    }
-    
-    // Get surface dimensions
-    eglQuerySurface(state->display, state->surface, EGL_WIDTH, &state->width);
-    eglQuerySurface(state->display, state->surface, EGL_HEIGHT, &state->height);
-    
-    LOGI("EGL initialized: %dx%d", state->width, state->height);
-    
-    return true;
-}
-
-static void terminateEGL(AndroidAppState* state)
-{
-    if (state->display != EGL_NO_DISPLAY) {
-        eglMakeCurrent(state->display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
-        
-        if (state->context != EGL_NO_CONTEXT) {
-            eglDestroyContext(state->display, state->context);
-            state->context = EGL_NO_CONTEXT;
-        }
-        
-        if (state->surface != EGL_NO_SURFACE) {
-            eglDestroySurface(state->display, state->surface);
-            state->surface = EGL_NO_SURFACE;
-        }
-        
-        eglTerminate(state->display);
-        state->display = EGL_NO_DISPLAY;
-    }
-}
-
-// Android entry point
-extern "C" void android_main(struct android_app* app)
-{
-    // Make sure glue isn't stripped
+// Android main entry point
+void android_main(struct android_app* app) {
     app_dummy();
     
     // Create and run the application
     PlatformAndroid platform("ImGui Hello World");
-    platform.m_androidApp = app;
+    platform.setAndroidApp(app);  // Use the setter method instead of direct access
     platform.run();
 }
