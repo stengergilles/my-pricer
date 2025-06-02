@@ -25,6 +25,8 @@ external/
 *.wasm
 *.js
 *.html
+*.pyc
+__pycache__/
 
 # CMake generated files
 CMakeCache.txt
@@ -35,3 +37,12 @@ Makefile
 # OS specific files
 .DS_Store
 Thumbs.db
+
+# External tools
+
+external/
+
+# Android
+
+.gradle/
+.cxx/

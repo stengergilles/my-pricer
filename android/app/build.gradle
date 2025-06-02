@@ -24,6 +24,7 @@ android {
     externalNativeBuild {
         cmake {
             path "../../CMakeLists.txt"
+	    version "3.25.1"
         }
     }
     sourceSets {
@@ -35,5 +36,5 @@ android {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
     }
-    ndkVersion '25.2.9519653'
+    ndkVersion '26.1.10909125'
 }
