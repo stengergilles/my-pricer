@@ -11,6 +11,7 @@
 JavaVM* g_JavaVM = nullptr;
 jclass g_MainActivityClass = nullptr;
 jmethodID g_ShowKeyboardMethod = nullptr;
+jmethodID g_HideKeyboardMethod = nullptr;
 
 // Called when the library is loaded
 JNIEXPORT jint JNI_OnLoad(JavaVM* vm, void* reserved) {
@@ -21,7 +22,7 @@ JNIEXPORT jint JNI_OnLoad(JavaVM* vm, void* reserved) {
         return JNI_ERR;
     }
     
-    // Find and cache the MainActivity class and showKeyboard method
+    // Find and cache the MainActivity class and keyboard methods
     jclass mainActivityClass = env->FindClass("com/example/imguihelloworld/MainActivity");
     if (mainActivityClass == nullptr) {
         LOGE("Failed to find MainActivity class");
@@ -36,6 +37,14 @@ JNIEXPORT jint JNI_OnLoad(JavaVM* vm, void* reserved) {
     g_ShowKeyboardMethod = env->GetStaticMethodID(g_MainActivityClass, "showKeyboard", "()V");
     if (g_ShowKeyboardMethod == nullptr) {
         LOGE("Failed to find showKeyboard method");
+        env->ExceptionClear(); // Clear any pending exception
+        // Not a fatal error, we'll try to find it later
+    }
+    
+    // Get the hideKeyboard method ID
+    g_HideKeyboardMethod = env->GetStaticMethodID(g_MainActivityClass, "hideKeyboard", "()V");
+    if (g_HideKeyboardMethod == nullptr) {
+        LOGE("Failed to find hideKeyboard method");
         env->ExceptionClear(); // Clear any pending exception
         // Not a fatal error, we'll try to find it later
     }
@@ -227,12 +236,14 @@ Java_com_example_imguihelloworld_ImGuiJNI_onTextInput(JNIEnv *env, jclass clazz,
 JNIEXPORT jboolean JNICALL
 Java_com_example_imguihelloworld_ImGuiJNI_wantsTextInput(JNIEnv *env, jclass clazz) {
     ImGuiIO& io = ImGui::GetIO();
+    LOGI("ImGui WantTextInput: %s", io.WantTextInput ? "true" : "false");
     return io.WantTextInput ? JNI_TRUE : JNI_FALSE;
 }
 
 JNIEXPORT jboolean JNICALL
 Java_com_example_imguihelloworld_MainActivity_nativeWantsTextInput(JNIEnv *env, jobject thiz) {
     ImGuiIO& io = ImGui::GetIO();
+    LOGI("ImGui WantTextInput (from MainActivity): %s", io.WantTextInput ? "true" : "false");
     return io.WantTextInput ? JNI_TRUE : JNI_FALSE;
 }
 

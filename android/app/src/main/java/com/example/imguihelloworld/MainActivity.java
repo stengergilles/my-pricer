@@ -23,6 +23,12 @@ public class MainActivity extends ImGuiKeyboardHelper {
     // Handler for delayed tasks
     private Handler mHandler = new Handler(Looper.getMainLooper());
     
+    // Flag to track keyboard visibility
+    private boolean mKeyboardVisible = false;
+    
+    // Native method to check if ImGui wants text input
+    private native boolean nativeWantsTextInput();
+    
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -31,6 +37,9 @@ public class MainActivity extends ImGuiKeyboardHelper {
         instance = this;
         
         Log.d(TAG, "MainActivity created");
+        
+        // Start a periodic check for keyboard visibility
+        startKeyboardVisibilityCheck();
     }
     
     @Override
@@ -96,36 +105,39 @@ public class MainActivity extends ImGuiKeyboardHelper {
         return super.dispatchKeyEvent(event);
     }
     
-    // Override the showSoftKeyboard method to add more logging
-    @Override
-    public void showSoftKeyboard() {
-        Log.d(TAG, "MainActivity.showSoftKeyboard called");
-        
-        // Always show keyboard when requested from native code
-        try {
-            InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
-            if (imm != null) {
-                View view = getWindow().getDecorView().getRootView();
-                
-                // Force the keyboard to show with SHOW_FORCED flag
-                imm.showSoftInput(view, InputMethodManager.SHOW_FORCED);
-                
-                // Try alternative methods if needed
-                view.requestFocus();
-                imm.toggleSoftInput(InputMethodManager.SHOW_FORCED, 0);
-                
-                Log.d(TAG, "Keyboard show requested with multiple methods");
+    /**
+     * Start a periodic check for keyboard visibility based on ImGui's WantTextInput flag
+     */
+    private void startKeyboardVisibilityCheck() {
+        mHandler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    // Check if ImGui wants text input
+                    boolean wantsTextInput = ImGuiJNI.wantsTextInput();
+                    Log.d(TAG, "ImGui WantTextInput: " + wantsTextInput + ", Keyboard visible: " + mKeyboardVisible);
+                    
+                    // Show or hide keyboard based on ImGui's WantTextInput flag
+                    if (wantsTextInput && !mKeyboardVisible) {
+                        showKeyboard();
+                    } else if (!wantsTextInput && mKeyboardVisible) {
+                        hideKeyboard();
+                    }
+                    
+                    // Continue checking
+                    mHandler.postDelayed(this, 500); // Check every 500ms
+                } catch (Exception e) {
+                    Log.e(TAG, "Error in keyboard visibility check: " + e.getMessage(), e);
+                }
             }
-        } catch (Exception e) {
-            Log.e(TAG, "Error showing keyboard: " + e.getMessage());
-        }
+        }, 1000); // Start after 1 second
     }
     
     /**
      * Static method to show the keyboard - called from native code via JNI
      */
     public static void showKeyboard() {
-        Log.d(TAG, "Static showKeyboard called from JNI");
+        Log.d(TAG, "Static showKeyboard called");
         if (instance != null) {
             // Run on UI thread to avoid crashes
             instance.runOnUiThread(new Runnable() {
@@ -146,11 +158,10 @@ public class MainActivity extends ImGuiKeyboardHelper {
                             // Method 2: Toggle
                             imm.toggleSoftInput(InputMethodManager.SHOW_FORCED, 0);
                             
-                            // Method 3: Show with flags
-                            imm.showSoftInput(view, InputMethodManager.SHOW_IMPLICIT | 
-                                                  InputMethodManager.SHOW_FORCED);
+                            // Update visibility flag
+                            instance.mKeyboardVisible = true;
                             
-                            Log.d(TAG, "All keyboard show methods attempted");
+                            Log.d(TAG, "Keyboard show methods attempted");
                         } else {
                             Log.e(TAG, "InputMethodManager is null");
                         }
@@ -161,6 +172,40 @@ public class MainActivity extends ImGuiKeyboardHelper {
             });
         } else {
             Log.e(TAG, "Cannot show keyboard - instance is null");
+        }
+    }
+    
+    /**
+     * Static method to hide the keyboard - called from native code via JNI
+     */
+    public static void hideKeyboard() {
+        Log.d(TAG, "Static hideKeyboard called");
+        if (instance != null) {
+            // Run on UI thread to avoid crashes
+            instance.runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        Log.d(TAG, "Hiding keyboard on UI thread");
+                        InputMethodManager imm = (InputMethodManager) instance.getSystemService(Context.INPUT_METHOD_SERVICE);
+                        if (imm != null) {
+                            View view = instance.getWindow().getDecorView().getRootView();
+                            imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
+                            
+                            // Update visibility flag
+                            instance.mKeyboardVisible = false;
+                            
+                            Log.d(TAG, "Keyboard hide attempted");
+                        } else {
+                            Log.e(TAG, "InputMethodManager is null");
+                        }
+                    } catch (Exception e) {
+                        Log.e(TAG, "Error hiding keyboard: " + e.getMessage(), e);
+                    }
+                }
+            });
+        } else {
+            Log.e(TAG, "Cannot hide keyboard - instance is null");
         }
     }
 }

@@ -113,27 +113,30 @@ void Application::renderImGui()
         // You can handle the input submission here
     }
     
-    // Check if the input text became active
-    bool isActive = ImGui::IsItemActive();
-    
-    // Only show keyboard when the input field is activated
-    // and only call showKeyboard once when it becomes active
+    // Let ImGui handle WantTextInput naturally
     #ifdef __ANDROID__
     static bool keyboardVisible = false;
-    if (isActive) {
-        // Input text is active - show keyboard
+    bool wantsTextInput = ImGui::GetIO().WantTextInput;
+    
+    if (wantsTextInput) {
+        // ImGui wants text input - show keyboard
         if (!keyboardVisible) {
-            // Always show keyboard when input is active
+            // Show keyboard when ImGui wants text input
             extern void showKeyboard(); // Forward declaration
             showKeyboard();
             keyboardVisible = true;
             
             // Log that we're trying to show the keyboard
-            ImGui::LogText("Showing keyboard for input field");
+            ImGui::LogText("Showing keyboard - ImGui wants text input");
         }
-    } else if (!isActive && keyboardVisible) {
-        // Input is no longer active, keyboard should be hidden
+    } else if (!wantsTextInput && keyboardVisible) {
+        // ImGui no longer wants text input - hide keyboard
+        extern void hideKeyboard(); // Forward declaration
+        hideKeyboard();
         keyboardVisible = false;
+        
+        // Log that we're hiding the keyboard
+        ImGui::LogText("Hiding keyboard - ImGui no longer wants text input");
     }
     #endif
     
