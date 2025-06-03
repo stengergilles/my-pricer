@@ -56,9 +56,22 @@ public class ImGuiKeyboardHelper extends NativeActivity {
         int keyCode = event.getKeyCode();
         int metaState = event.getMetaState();
         
+        Log.d(TAG, "dispatchKeyEvent: keyCode=" + keyCode + ", action=" + action);
+        
         switch (action) {
             case KeyEvent.ACTION_DOWN:
                 nativeOnKeyDown(keyCode, metaState);
+                
+                // For character keys, also send the character
+                int unicodeChar = event.getUnicodeChar();
+                if (unicodeChar != 0) {
+                    String charStr = String.valueOf((char)unicodeChar);
+                    Log.d(TAG, "Sending unicode character: " + charStr + " (code: " + unicodeChar + ")");
+                    
+                    // Send to ImGuiJNI
+                    ImGuiJNI.onTextInput(charStr);
+                }
+                
                 return true;
                 
             case KeyEvent.ACTION_UP:
@@ -84,7 +97,12 @@ public class ImGuiKeyboardHelper extends NativeActivity {
                 // Force the keyboard to show
                 View view = getWindow().getDecorView();
                 view.requestFocus();
+                
+                // Try multiple methods to ensure keyboard shows
                 imm.showSoftInput(view, InputMethodManager.SHOW_FORCED);
+                imm.toggleSoftInput(InputMethodManager.SHOW_FORCED, 0);
+                
+                Log.d(TAG, "Keyboard show methods called");
             }
         } catch (Exception e) {
             Log.e(TAG, "Error showing keyboard: " + e.getMessage());

@@ -227,6 +227,7 @@ JNIEXPORT void JNICALL
 Java_com_example_imguihelloworld_ImGuiJNI_onTextInput(JNIEnv *env, jclass clazz, jstring text) {
     const char* utf8Text = env->GetStringUTFChars(text, nullptr);
     if (utf8Text != nullptr) {
+        LOGI("Received text input: %s", utf8Text);
         ImGuiIO& io = ImGui::GetIO();
         io.AddInputCharactersUTF8(utf8Text);
         env->ReleaseStringUTFChars(text, utf8Text);
