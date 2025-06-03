@@ -48,7 +48,12 @@ android {
                 // Additional dependencies that might be needed
                 install "python-dateutil"
                 install "pytz"
-                install "six"  // Add six explicitly
+                install "six==1.16.0"  // Specify exact version of six
+                install "pip==23.0.1"  // Add specific pip version
+                
+                // Ensure proper installation order
+                options "--no-deps"  // First install without dependencies
+                options "--upgrade"  // Then upgrade packages
             }
         }
     }
