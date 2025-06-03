@@ -23,7 +23,7 @@ android {
         
         // Configure Python packages from requirements.txt
         python {
-            buildPython "3.12"
+            buildPython "/usr/bin/python3"
             
             pip {
                 // Core dependencies for TickerMonitor
