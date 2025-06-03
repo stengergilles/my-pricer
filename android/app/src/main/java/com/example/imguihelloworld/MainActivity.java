@@ -26,6 +26,9 @@ public class MainActivity extends ImGuiKeyboardHelper {
     // Flag to track keyboard visibility
     private boolean mKeyboardVisible = false;
     
+    // EditText for capturing input
+    private android.widget.EditText mInputEditText = null;
+    
     // Native method to check if ImGui wants text input
     private native boolean nativeWantsTextInput();
     
@@ -40,6 +43,64 @@ public class MainActivity extends ImGuiKeyboardHelper {
         
         // Start a periodic check for keyboard visibility
         startKeyboardVisibilityCheck();
+        
+        // Set up an EditText to capture text input
+        setupInputCapture();
+    }
+    
+    /**
+     * Set up an invisible EditText to capture text input
+     */
+    private void setupInputCapture() {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    // Create a new EditText that will capture input
+                    final android.widget.EditText editText = new android.widget.EditText(MainActivity.this);
+                    editText.setVisibility(View.INVISIBLE);
+                    editText.setWidth(1);
+                    editText.setHeight(1);
+                    
+                    // Add it to the layout
+                    android.widget.FrameLayout layout = new android.widget.FrameLayout(MainActivity.this);
+                    layout.addView(editText);
+                    addContentView(layout, new android.view.ViewGroup.LayoutParams(
+                        android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+                        android.view.ViewGroup.LayoutParams.MATCH_PARENT));
+                    
+                    // Set up a text watcher to capture input
+                    editText.addTextChangedListener(new android.text.TextWatcher() {
+                        @Override
+                        public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+                            // Not used
+                        }
+                        
+                        @Override
+                        public void onTextChanged(CharSequence s, int start, int before, int count) {
+                            if (count > 0) {
+                                String newText = s.subSequence(start, start + count).toString();
+                                Log.d(TAG, "Text changed: " + newText);
+                                ImGuiJNI.onTextInput(newText);
+                            }
+                        }
+                        
+                        @Override
+                        public void afterTextChanged(android.text.Editable s) {
+                            // Clear the text so we only get the delta
+                            s.clear();
+                        }
+                    });
+                    
+                    // Store the EditText for later use
+                    mInputEditText = editText;
+                    
+                    Log.d(TAG, "Input capture setup complete");
+                } catch (Exception e) {
+                    Log.e(TAG, "Error setting up input capture: " + e.getMessage(), e);
+                }
+            }
+        });
     }
     
     @Override
@@ -91,6 +152,7 @@ public class MainActivity extends ImGuiKeyboardHelper {
         if (action == KeyEvent.ACTION_MULTIPLE && keyCode == KeyEvent.KEYCODE_UNKNOWN) {
             String characters = event.getCharacters();
             if (characters != null && !characters.isEmpty()) {
+                Log.d(TAG, "Sending text input to ImGui: " + characters);
                 ImGuiJNI.onTextInput(characters);
                 return true;
             }
@@ -98,7 +160,48 @@ public class MainActivity extends ImGuiKeyboardHelper {
         
         // For normal keys, pass to the native code
         if (action == KeyEvent.ACTION_DOWN || action == KeyEvent.ACTION_UP) {
+            Log.d(TAG, "Sending key event to ImGui: " + keyCode + ", action: " + action);
             ImGuiJNI.onKeyEvent(keyCode, action, event.getMetaState());
+            
+            // For character keys, also send the character
+            if (action == KeyEvent.ACTION_DOWN && keyCode >= KeyEvent.KEYCODE_A && keyCode <= KeyEvent.KEYCODE_Z) {
+                char c = (char) ('a' + (keyCode - KeyEvent.KEYCODE_A));
+                if (event.isShiftPressed()) {
+                    c = Character.toUpperCase(c);
+                }
+                String charStr = String.valueOf(c);
+                Log.d(TAG, "Sending character to ImGui: " + charStr);
+                ImGuiJNI.onTextInput(charStr);
+            } else if (action == KeyEvent.ACTION_DOWN && keyCode >= KeyEvent.KEYCODE_0 && keyCode <= KeyEvent.KEYCODE_9) {
+                char c = (char) ('0' + (keyCode - KeyEvent.KEYCODE_0));
+                String charStr = String.valueOf(c);
+                Log.d(TAG, "Sending character to ImGui: " + charStr);
+                ImGuiJNI.onTextInput(charStr);
+            } else if (action == KeyEvent.ACTION_DOWN) {
+                // Handle special characters
+                char c = 0;
+                switch (keyCode) {
+                    case KeyEvent.KEYCODE_SPACE: c = ' '; break;
+                    case KeyEvent.KEYCODE_PERIOD: c = '.'; break;
+                    case KeyEvent.KEYCODE_COMMA: c = ','; break;
+                    case KeyEvent.KEYCODE_SLASH: c = '/'; break;
+                    case KeyEvent.KEYCODE_BACKSLASH: c = '\\'; break;
+                    case KeyEvent.KEYCODE_SEMICOLON: c = ';'; break;
+                    case KeyEvent.KEYCODE_APOSTROPHE: c = '\''; break;
+                    case KeyEvent.KEYCODE_MINUS: c = '-'; break;
+                    case KeyEvent.KEYCODE_EQUALS: c = '='; break;
+                    case KeyEvent.KEYCODE_LEFT_BRACKET: c = '['; break;
+                    case KeyEvent.KEYCODE_RIGHT_BRACKET: c = ']'; break;
+                    case KeyEvent.KEYCODE_GRAVE: c = '`'; break;
+                }
+                
+                if (c != 0) {
+                    String charStr = String.valueOf(c);
+                    Log.d(TAG, "Sending special character to ImGui: " + charStr);
+                    ImGuiJNI.onTextInput(charStr);
+                }
+            }
+            
             return true;
         }
         
@@ -145,25 +248,37 @@ public class MainActivity extends ImGuiKeyboardHelper {
                 public void run() {
                     try {
                         Log.d(TAG, "Showing keyboard on UI thread");
-                        InputMethodManager imm = (InputMethodManager) instance.getSystemService(Context.INPUT_METHOD_SERVICE);
-                        if (imm != null) {
-                            View view = instance.getWindow().getDecorView().getRootView();
+                        
+                        // Focus the input EditText if available
+                        if (instance.mInputEditText != null) {
+                            instance.mInputEditText.requestFocus();
                             
-                            // Try multiple approaches to ensure keyboard shows
-                            view.requestFocus();
-                            
-                            // Method 1: Direct show
-                            imm.showSoftInput(view, InputMethodManager.SHOW_FORCED);
-                            
-                            // Method 2: Toggle
-                            imm.toggleSoftInput(InputMethodManager.SHOW_FORCED, 0);
-                            
-                            // Update visibility flag
-                            instance.mKeyboardVisible = true;
-                            
-                            Log.d(TAG, "Keyboard show methods attempted");
+                            InputMethodManager imm = (InputMethodManager) instance.getSystemService(Context.INPUT_METHOD_SERVICE);
+                            if (imm != null) {
+                                // Show keyboard for the EditText
+                                imm.showSoftInput(instance.mInputEditText, InputMethodManager.SHOW_FORCED);
+                                
+                                // Update visibility flag
+                                instance.mKeyboardVisible = true;
+                                
+                                Log.d(TAG, "Keyboard shown for EditText");
+                            }
                         } else {
-                            Log.e(TAG, "InputMethodManager is null");
+                            // Fallback to showing keyboard for the main view
+                            InputMethodManager imm = (InputMethodManager) instance.getSystemService(Context.INPUT_METHOD_SERVICE);
+                            if (imm != null) {
+                                View view = instance.getWindow().getDecorView().getRootView();
+                                view.requestFocus();
+                                imm.showSoftInput(view, InputMethodManager.SHOW_FORCED);
+                                imm.toggleSoftInput(InputMethodManager.SHOW_FORCED, 0);
+                                
+                                // Update visibility flag
+                                instance.mKeyboardVisible = true;
+                                
+                                Log.d(TAG, "Keyboard shown for main view (fallback)");
+                            } else {
+                                Log.e(TAG, "InputMethodManager is null");
+                            }
                         }
                     } catch (Exception e) {
                         Log.e(TAG, "Error showing keyboard: " + e.getMessage(), e);
@@ -189,8 +304,14 @@ public class MainActivity extends ImGuiKeyboardHelper {
                         Log.d(TAG, "Hiding keyboard on UI thread");
                         InputMethodManager imm = (InputMethodManager) instance.getSystemService(Context.INPUT_METHOD_SERVICE);
                         if (imm != null) {
-                            View view = instance.getWindow().getDecorView().getRootView();
-                            imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
+                            // If we have an EditText, hide keyboard for it
+                            if (instance.mInputEditText != null) {
+                                imm.hideSoftInputFromWindow(instance.mInputEditText.getWindowToken(), 0);
+                            } else {
+                                // Fallback to hiding keyboard for the main view
+                                View view = instance.getWindow().getDecorView().getRootView();
+                                imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
+                            }
                             
                             // Update visibility flag
                             instance.mKeyboardVisible = false;
