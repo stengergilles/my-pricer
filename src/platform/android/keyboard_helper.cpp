@@ -22,7 +22,7 @@ extern "C" void showKeyboard() {
 
 // Safe implementation of showKeyboard that checks for null pointers
 extern "C" bool showKeyboardSafely() {
-    LOGI("showKeyboardSafely called");
+    LOGI("showKeyboardSafely called - attempting to show keyboard");
     
     if (!g_JavaVM) {
         LOGE("JavaVM is null, cannot show keyboard");

@@ -256,6 +256,9 @@ bool ImGui_ImplAndroid_Init(ANativeWindow* window)
     io.ConfigFlags |= ImGuiConfigFlags_IsTouchScreen;
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
     
+    // Always set WantTextInput to true for Android to ensure keyboard can be shown
+    io.WantTextInput = true;
+    
     // Set up style with larger elements for touch
     ImGuiStyle& style = ImGui::GetStyle();
     style.ScaleAllSizes(2.0f);  // Scale up UI elements for touch

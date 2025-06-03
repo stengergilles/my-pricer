@@ -120,13 +120,16 @@ void Application::renderImGui()
     // and only call showKeyboard once when it becomes active
     #ifdef __ANDROID__
     static bool keyboardVisible = false;
-    if (!wasActive && isActive) {
-        // Input text was just activated - show keyboard
+    if (isActive) {
+        // Input text is active - show keyboard
         if (!keyboardVisible) {
             // Always show keyboard when input is active
             extern void showKeyboard(); // Forward declaration
             showKeyboard();
             keyboardVisible = true;
+            
+            // Log that we're trying to show the keyboard
+            ImGui::LogText("Showing keyboard for input field");
         }
     } else if (!isActive && keyboardVisible) {
         // Input is no longer active, keyboard should be hidden

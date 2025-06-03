@@ -131,7 +131,32 @@ public class MainActivity extends ImGuiKeyboardHelper {
             instance.runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    instance.showSoftKeyboard();
+                    try {
+                        Log.d(TAG, "Showing keyboard on UI thread");
+                        InputMethodManager imm = (InputMethodManager) instance.getSystemService(Context.INPUT_METHOD_SERVICE);
+                        if (imm != null) {
+                            View view = instance.getWindow().getDecorView().getRootView();
+                            
+                            // Try multiple approaches to ensure keyboard shows
+                            view.requestFocus();
+                            
+                            // Method 1: Direct show
+                            imm.showSoftInput(view, InputMethodManager.SHOW_FORCED);
+                            
+                            // Method 2: Toggle
+                            imm.toggleSoftInput(InputMethodManager.SHOW_FORCED, 0);
+                            
+                            // Method 3: Show with flags
+                            imm.showSoftInput(view, InputMethodManager.SHOW_IMPLICIT | 
+                                                  InputMethodManager.SHOW_FORCED);
+                            
+                            Log.d(TAG, "All keyboard show methods attempted");
+                        } else {
+                            Log.e(TAG, "InputMethodManager is null");
+                        }
+                    } catch (Exception e) {
+                        Log.e(TAG, "Error showing keyboard: " + e.getMessage(), e);
+                    }
                 }
             });
         } else {
