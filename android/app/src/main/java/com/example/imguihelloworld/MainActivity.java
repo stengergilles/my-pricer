@@ -26,9 +26,6 @@ public class MainActivity extends ImGuiKeyboardHelper {
     // Flag to track keyboard visibility
     private boolean mKeyboardVisible = false;
     
-    // Native method to check if ImGui wants text input
-    private native boolean nativeWantsTextInput();
-    
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);

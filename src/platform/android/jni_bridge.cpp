@@ -241,11 +241,4 @@ Java_com_example_imguihelloworld_ImGuiJNI_wantsTextInput(JNIEnv *env, jclass cla
     return io.WantTextInput ? JNI_TRUE : JNI_FALSE;
 }
 
-JNIEXPORT jboolean JNICALL
-Java_com_example_imguihelloworld_MainActivity_nativeWantsTextInput(JNIEnv *env, jobject thiz) {
-    ImGuiIO& io = ImGui::GetIO();
-    LOGI("ImGui WantTextInput (from MainActivity): %s", io.WantTextInput ? "true" : "false");
-    return io.WantTextInput ? JNI_TRUE : JNI_FALSE;
-}
-
 } // extern "C"
