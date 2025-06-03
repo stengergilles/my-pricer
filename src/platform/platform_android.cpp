@@ -8,6 +8,9 @@
 #include "imgui.h"
 #include "../include/platform/platform_android.h"
 
+// Include keyboard helper
+#include "android/keyboard_helper.h"
+
 // Define log macros if not defined
 #ifndef ANDROID_LOG_INFO
 #define ANDROID_LOG_INFO 4
@@ -56,7 +59,7 @@ static struct android_app* ImGui_ImplAndroid_GetApp() {
 }
 
 PlatformAndroid::PlatformAndroid(const std::string& title) 
-    : PlatformBase(title), m_androidApp(nullptr) {
+    : PlatformBase(title), m_androidApp(nullptr), m_keyboardVisible(false) {
 }
 
 PlatformAndroid::~PlatformAndroid() {
@@ -158,6 +161,24 @@ void PlatformAndroid::platformNewFrame() {
     // Call ImGui_ImplAndroid_NewFrame but don't call ImGui::NewFrame() here
     // ImGui::NewFrame() is called in Application::renderFrame()
     ImGui_ImplAndroid_NewFrame();
+    
+    // Check ImGui's WantTextInput flag to show/hide keyboard
+    // This is done here so it's checked every frame
+    ImGuiIO& io = ImGui::GetIO();
+    bool wantsTextInput = io.WantTextInput;
+    
+    // Show or hide keyboard based on ImGui's WantTextInput flag
+    if (wantsTextInput && !m_keyboardVisible) {
+        // ImGui wants text input - show keyboard
+        showKeyboard();
+        m_keyboardVisible = true;
+        LOGI("Showing keyboard - ImGui wants text input");
+    } else if (!wantsTextInput && m_keyboardVisible) {
+        // ImGui no longer wants text input - hide keyboard
+        hideKeyboard();
+        m_keyboardVisible = false;
+        LOGI("Hiding keyboard - ImGui no longer wants text input");
+    }
     
     // Note: Don't call ImGui::NewFrame() here, it's called in Application::renderFrame()
 }

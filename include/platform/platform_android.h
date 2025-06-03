@@ -31,4 +31,5 @@ protected:
     void* m_androidApp;  // android_app* in actual implementation
     ANativeWindow* m_window = nullptr;  // Store window pointer directly
     ImGuiContext* m_imguiContext = nullptr;  // Store ImGui context pointer
+    bool m_keyboardVisible = false;  // Track keyboard visibility
 };

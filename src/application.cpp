@@ -100,12 +100,6 @@ void Application::renderImGui()
     static char inputBuffer[256] = "";
     ImGui::Text("Enter some text (tap to show keyboard):");
     
-    // Force ImGui to want text input for this frame
-    ImGui::GetIO().WantTextInput = true;
-    
-    // Store the current active state before the InputText widget
-    bool wasActive = ImGui::IsItemActive();
-    
     // Use ImGuiInputTextFlags_CallbackAlways to ensure we get callbacks
     if (ImGui::InputText("##input", inputBuffer, IM_ARRAYSIZE(inputBuffer), 
                          ImGuiInputTextFlags_EnterReturnsTrue)) {
@@ -113,32 +107,8 @@ void Application::renderImGui()
         // You can handle the input submission here
     }
     
-    // Let ImGui handle WantTextInput naturally
-    #ifdef __ANDROID__
-    static bool keyboardVisible = false;
-    bool wantsTextInput = ImGui::GetIO().WantTextInput;
-    
-    if (wantsTextInput) {
-        // ImGui wants text input - show keyboard
-        if (!keyboardVisible) {
-            // Show keyboard when ImGui wants text input
-            extern void showKeyboard(); // Forward declaration
-            showKeyboard();
-            keyboardVisible = true;
-            
-            // Log that we're trying to show the keyboard
-            ImGui::LogText("Showing keyboard - ImGui wants text input");
-        }
-    } else if (!wantsTextInput && keyboardVisible) {
-        // ImGui no longer wants text input - hide keyboard
-        extern void hideKeyboard(); // Forward declaration
-        hideKeyboard();
-        keyboardVisible = false;
-        
-        // Log that we're hiding the keyboard
-        ImGui::LogText("Hiding keyboard - ImGui no longer wants text input");
-    }
-    #endif
+    // Note: Keyboard handling is now managed in platform_android.cpp
+    // ImGui's WantTextInput flag is used naturally without manual setting
     
     ImGui::SameLine();
     if (ImGui::Button("Clear")) {
