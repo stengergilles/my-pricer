@@ -1,4 +1,32 @@
+#ifdef WITH_PYTHON
 #include <Python.h>
+#else
+// Define minimal Python.h replacements if Python is not available
+typedef struct _object PyObject;
+#define Py_RETURN_NONE return NULL
+#define Py_DECREF(op)
+#define Py_XDECREF(op)
+#define Py_INCREF(op)
+#define Py_None NULL
+#define PyObject_CallMethod(o, m, f, ...) NULL
+#define PyObject_Call(o, a, k) NULL
+#define PyObject_GetAttrString(o, a) NULL
+#define PyCallable_Check(o) 0
+#define PyImport_Import(n) NULL
+#define PyUnicode_DecodeFSDefault(s) NULL
+#define PyTuple_New(n) NULL
+#define PyTuple_SetItem(p, i, o)
+#define PyTuple_Pack(n, ...) NULL
+#define PyDict_New() NULL
+#define PyDict_SetItemString(p, k, v)
+#define PyFloat_FromDouble(v) NULL
+#define PyObject_IsTrue(o) 0
+#define PyUnicode_AsUTF8(u) ""
+#define PyObject_Str(o) NULL
+#define PyErr_Clear()
+#define PyErr_Print()
+#endif
+
 #include <string>
 #include <vector>
 #include <iostream>
@@ -28,6 +56,7 @@ private:
     
     // Check if a Python module is available
     bool isPythonModuleAvailable(const char* moduleName) {
+#ifdef WITH_PYTHON
         PyObject* pName = PyUnicode_DecodeFSDefault(moduleName);
         PyObject* pModule = PyImport_Import(pName);
         Py_DECREF(pName);
@@ -39,10 +68,14 @@ private:
         
         Py_DECREF(pModule);
         return true;
+#else
+        return false;
+#endif
     }
     
     // Check if all required dependencies are available
     bool checkDependencies() {
+#ifdef WITH_PYTHON
         const char* requiredModules[] = {
             "pandas", "numpy", "requests", "multiprocessing"
         };
@@ -66,6 +99,10 @@ private:
         }
         
         return allAvailable;
+#else
+        std::cerr << "Python support is not enabled in this build." << std::endl;
+        return false;
+#endif
     }
 
 public:
@@ -82,6 +119,7 @@ public:
         std::lock_guard<std::mutex> lock(mtx);
         if (initialized) return true;
 
+#ifdef WITH_PYTHON
         // Initialize Python interpreter
         Py_Initialize();
         if (!Py_IsInitialized()) {
@@ -127,6 +165,10 @@ public:
 
         initialized = true;
         return true;
+#else
+        std::cerr << "Python support is not enabled in this build." << std::endl;
+        return false;
+#endif
     }
 
     // Create a new TickerMonitor instance
@@ -140,6 +182,7 @@ public:
             return -1;
         }
 
+#ifdef WITH_PYTHON
         // Create a custom queue for the monitor
         PyObject* pQueue = PyObject_CallObject(
             PyObject_GetAttrString(PyImport_ImportModule("queue"), "Queue"), 
@@ -231,6 +274,10 @@ public:
         }).detach();
 
         return monitorId;
+#else
+        std::cerr << "Python support is not enabled in this build." << std::endl;
+        return -1;
+#endif
     }
 
     // Stop a specific TickerMonitor
@@ -240,9 +287,13 @@ public:
             return false;
         }
 
+#ifdef WITH_PYTHON
         PyObject* pMonitor = activeMonitors[monitorId];
         PyObject_CallMethod(pMonitor, "stop", "()");
         return true;
+#else
+        return false;
+#endif
     }
 
     // Get the next message from the queue (non-blocking)
@@ -287,6 +338,7 @@ public:
             messageThread.join();
         }
 
+#ifdef WITH_PYTHON
         // Stop all active monitors
         for (PyObject* pMonitor : activeMonitors) {
             PyObject_CallMethod(pMonitor, "stop", "()");
@@ -296,6 +348,7 @@ public:
 
         Py_XDECREF(pTickerMonitorClass);
         Py_Finalize();
+#endif
         initialized = false;
     }
 

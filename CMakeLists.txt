@@ -38,13 +38,49 @@ if(ANDROID)
     # Don't specify a C++ standard library explicitly
     # Let the NDK use its default (libc++)
     
-    # Find Python package
-    find_package(Python3 COMPONENTS Development)
-    if(Python3_FOUND)
-        include_directories(${Python3_INCLUDE_DIRS})
-        message(STATUS "Found Python3: ${Python3_INCLUDE_DIRS}")
+    # Python integration
+    if(ANDROID)
+        # For Android, use the Python headers from Chaquopy or a specific location
+        # Try several possible locations for Python headers
+        set(POSSIBLE_PYTHON_INCLUDE_DIRS
+            "${ANDROID_NDK}/sources/python/3.12/include/python"
+            "${ANDROID_NDK}/sources/python/3.12/include"
+            "${CMAKE_CURRENT_SOURCE_DIR}/android/app/src/main/python/include"
+            "${CMAKE_CURRENT_SOURCE_DIR}/android/app/.cxx/python/include"
+            "$ENV{HOME}/.chaquopy/3.12/include/python3.12"
+        )
+        
+        # Find the first valid Python include directory
+        foreach(PYTHON_DIR ${POSSIBLE_PYTHON_INCLUDE_DIRS})
+            if(EXISTS "${PYTHON_DIR}/Python.h")
+                set(PYTHON_INCLUDE_DIR "${PYTHON_DIR}")
+                break()
+            endif()
+        endforeach()
+        
+        # If we found a valid Python include directory
+        if(DEFINED PYTHON_INCLUDE_DIR)
+            include_directories(${PYTHON_INCLUDE_DIR})
+            message(STATUS "Using Python headers from: ${PYTHON_INCLUDE_DIR}")
+            
+            # Define a macro to indicate we're using Python
+            add_definitions(-DWITH_PYTHON)
+        else()
+            # If we couldn't find Python headers, we'll build without Python support
+            message(WARNING "Python headers not found. Building without Python support.")
+            add_definitions(-DNO_PYTHON)
+        endif()
     else()
-        message(FATAL_ERROR "Python3 development package not found")
+        # For non-Android platforms, use find_package
+        find_package(Python3 COMPONENTS Development)
+        if(Python3_FOUND)
+            include_directories(${Python3_INCLUDE_DIRS})
+            message(STATUS "Found Python3: ${Python3_INCLUDE_DIRS}")
+            add_definitions(-DWITH_PYTHON)
+        else()
+            message(WARNING "Python3 development package not found. Building without Python support.")
+            add_definitions(-DNO_PYTHON)
+        endif()
     endif()
     
     set(PLATFORM_SOURCES

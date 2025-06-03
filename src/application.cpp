@@ -163,7 +163,7 @@ void Application::renderImGui()
 // Python integration methods
 void Application::startTickerMonitor(const char* ticker, float entryPrice)
 {
-#ifdef __ANDROID__
+#if defined(__ANDROID__) && defined(WITH_PYTHON)
     if (m_tickerMonitorId >= 0) {
         stopTickerMonitor();
     }
@@ -171,13 +171,13 @@ void Application::startTickerMonitor(const char* ticker, float entryPrice)
     m_tickerMonitorId = pythonBridgeCreateTickerMonitor(ticker, entryPrice, "intraday", 1.0f, 0.05f);
     std::cout << "Started ticker monitor with ID: " << m_tickerMonitorId << std::endl;
 #else
-    std::cout << "Ticker monitoring is only supported on Android" << std::endl;
+    std::cout << "Ticker monitoring is only supported on Android with Python enabled" << std::endl;
 #endif
 }
 
 void Application::stopTickerMonitor()
 {
-#ifdef __ANDROID__
+#if defined(__ANDROID__) && defined(WITH_PYTHON)
     if (m_tickerMonitorId >= 0) {
         pythonBridgeStopTickerMonitor(m_tickerMonitorId);
         m_tickerMonitorId = -1;
@@ -188,9 +188,10 @@ void Application::stopTickerMonitor()
 
 const char* Application::getNextTickerMessage()
 {
-#ifdef __ANDROID__
+#if defined(__ANDROID__) && defined(WITH_PYTHON)
     return pythonBridgeGetNextMessage();
 #else
-    return "";
+    static const char* msg = "Python support not enabled";
+    return msg;
 #endif
 }
