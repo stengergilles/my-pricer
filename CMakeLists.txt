@@ -38,13 +38,24 @@ if(ANDROID)
     # Don't specify a C++ standard library explicitly
     # Let the NDK use its default (libc++)
     
+    # Find Python package
+    find_package(Python3 COMPONENTS Development)
+    if(Python3_FOUND)
+        include_directories(${Python3_INCLUDE_DIRS})
+        message(STATUS "Found Python3: ${Python3_INCLUDE_DIRS}")
+    else()
+        message(FATAL_ERROR "Python3 development package not found")
+    endif()
+    
     set(PLATFORM_SOURCES
         src/platform/platform_android.cpp
         src/platform/android/android_native_app_glue.c
         src/platform/android/jni_bridge.cpp
+        src/platform/android/python_jni_bridge.cpp
         src/platform/android/android_main.cpp
         src/platform/android/imgui_impl_android.cpp
         src/platform/android/keyboard_helper.cpp
+        src/python_bridge.cpp
         external/imgui/backends/imgui_impl_opengl3.cpp
     )
     
@@ -60,6 +71,7 @@ if(ANDROID)
         EGL
         GLESv3
         log
+        ${Python3_LIBRARIES}
     )
     
     # Set to build a shared library for Android

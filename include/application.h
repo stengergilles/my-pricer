@@ -28,6 +28,11 @@ public:
     
     // Singleton access
     static Application* getInstance() { return s_instance; }
+    
+    // Python integration
+    void startTickerMonitor(const char* ticker, float entryPrice);
+    void stopTickerMonitor();
+    const char* getNextTickerMessage();
 
 protected:
     // Platform-specific implementations (to be overridden by platform classes)
@@ -44,6 +49,7 @@ private:
     std::string m_appName;
     ImGuiContext* m_imguiContext;
     bool m_running;
+    int m_tickerMonitorId;
     
     // Singleton instance
     static Application* s_instance;

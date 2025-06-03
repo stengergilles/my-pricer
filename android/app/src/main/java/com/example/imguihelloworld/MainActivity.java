@@ -8,6 +8,10 @@ import android.view.View;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 
 /**
  * Main activity for the ImGui Hello World application.
@@ -35,8 +39,36 @@ public class MainActivity extends ImGuiKeyboardHelper {
         
         Log.d(TAG, "MainActivity created");
         
+        // Copy requirements.txt to a location accessible by the Python interpreter
+        copyRequirementsFile();
+        
+        // Initialize Python bridge
+        boolean pythonInitialized = ImGuiPythonBridge.initializePythonBridge();
+        Log.d(TAG, "Python bridge initialized: " + pythonInitialized);
+        
         // Start a periodic check for keyboard visibility
         startKeyboardVisibilityCheck();
+    }
+    
+    // Copy requirements.txt to app's files directory
+    private void copyRequirementsFile() {
+        try {
+            InputStream inputStream = getAssets().open("requirements.txt");
+            File outFile = new File(getFilesDir(), "requirements.txt");
+            
+            FileOutputStream outputStream = new FileOutputStream(outFile);
+            byte[] buffer = new byte[1024];
+            int length;
+            while ((length = inputStream.read(buffer)) > 0) {
+                outputStream.write(buffer, 0, length);
+            }
+            outputStream.close();
+            inputStream.close();
+            
+            Log.d(TAG, "Copied requirements.txt to " + outFile.getAbsolutePath());
+        } catch (IOException e) {
+            Log.e(TAG, "Failed to copy requirements.txt: " + e.getMessage());
+        }
     }
     
     @Override
@@ -50,6 +82,9 @@ public class MainActivity extends ImGuiKeyboardHelper {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        
+        // Clean up Python bridge
+        ImGuiPythonBridge.cleanupPythonBridge();
         
         // Clear static instance if this instance is being destroyed
         if (instance == this) {

@@ -1,4 +1,5 @@
 apply plugin: 'com.android.application'
+apply plugin: 'com.chaquo.python'  // Add Chaquopy Python plugin
 
 android {
     compileSdkVersion 33
@@ -12,6 +13,41 @@ android {
             cmake {
                 cppFlags "-std=c++17"
                 arguments "-DANDROID=ON"
+            }
+        }
+        
+        // Add Python support
+        ndk {
+            abiFilters 'armeabi-v7a', 'arm64-v8a', 'x86', 'x86_64'
+        }
+        
+        // Configure Python packages from requirements.txt
+        python {
+            buildPython "3.12"
+            
+            pip {
+                // Core dependencies for TickerMonitor
+                install "pandas"
+                install "numpy"
+                install "requests"
+                
+                // Testing dependencies (not needed for runtime, but included for completeness)
+                install "pytest"
+                install "setuptools"
+                install "pytest-mock"
+                install "pytest-asyncio"
+                
+                // Mobile-specific dependencies
+                install "pyjnius"
+                install "plyer"
+                
+                // Optional dependencies based on platform
+                // pyobjus is for iOS, so we don't need it on Android
+                // install "pyobjus"
+                
+                // Additional dependencies that might be needed
+                install "python-dateutil"
+                install "pytz"
             }
         }
     }
@@ -29,7 +65,10 @@ android {
     }
     sourceSets {
         main {
-            assets.srcDirs = ['src/main/assets']
+            assets.srcDirs = ['src/main/assets', '../../stock_monitoring_app']
+            python {
+                srcDir "../../stock_monitoring_app"
+            }
         }
     }
     compileOptions {

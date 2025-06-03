@@ -4,6 +4,7 @@
 
 #ifdef __ANDROID__
 #include "platform/android/keyboard_helper.h"
+#include "../include/python_bridge.h"
 #endif
 
 // Initialize static instance
@@ -13,6 +14,7 @@ Application::Application(const std::string& appName)
     : m_appName(appName)
     , m_imguiContext(nullptr)
     , m_running(false)
+    , m_tickerMonitorId(-1)
 {
     // Set singleton instance
     s_instance = this;
@@ -24,6 +26,9 @@ Application::~Application()
     if (s_instance == this) {
         s_instance = nullptr;
     }
+    
+    // Stop any active ticker monitor
+    stopTickerMonitor();
 }
 
 bool Application::initImGui()
@@ -48,27 +53,24 @@ void Application::run()
     #ifndef __ANDROID__
     // Initialize platform-specific components
     if (!platformInit()) {
-        std::cerr << "Platform initialization failed" << std::endl;
+        std::cerr << "Failed to initialize platform" << std::endl;
         return;
     }
-
-    // Initialize ImGui
-    if (!initImGui()) {
-        std::cerr << "ImGui initialization failed" << std::endl;
-        platformShutdown();
-        return;
-    }
-
-    // Main loop
+    
     m_running = true;
+    
+    // Main loop
     while (m_running) {
-        // Handle platform events (may set m_running to false)
-        m_running = platformHandleEvents();
+        // Handle events (returns false if application should exit)
+        if (!platformHandleEvents()) {
+            m_running = false;
+            break;
+        }
         
         // Render a frame
         renderFrame();
     }
-
+    
     // Cleanup
     platformShutdown();
     #endif
@@ -78,13 +80,11 @@ void Application::renderFrame()
 {
     // Start a new frame
     platformNewFrame();
-    ImGui::NewFrame();
     
     // Render application frame
     renderImGui();
     
     // Render and present
-    ImGui::Render();
     platformRender();
 }
 
@@ -125,5 +125,72 @@ void Application::renderImGui()
     
     ImGui::Text("Button clicked %d times", clickCount);
     
+    // Add ticker monitor controls
+    ImGui::Separator();
+    ImGui::Text("Stock Monitoring");
+    
+    static char tickerBuffer[32] = "AAPL";
+    ImGui::InputText("Ticker", tickerBuffer, IM_ARRAYSIZE(tickerBuffer));
+    
+    static float entryPrice = 100.0f;
+    ImGui::InputFloat("Entry Price", &entryPrice, 1.0f, 10.0f, "%.2f");
+    
+    if (ImGui::Button("Start Monitoring")) {
+        startTickerMonitor(tickerBuffer, entryPrice);
+    }
+    
+    ImGui::SameLine();
+    
+    if (ImGui::Button("Stop Monitoring")) {
+        stopTickerMonitor();
+    }
+    
+    // Display messages from ticker monitor
+    ImGui::Separator();
+    ImGui::Text("Monitor Messages:");
+    ImGui::BeginChild("Messages", ImVec2(0, 200), true);
+    
+    const char* message = getNextTickerMessage();
+    if (message && message[0] != '\0') {
+        ImGui::TextWrapped("%s", message);
+    }
+    
+    ImGui::EndChild();
+    
     ImGui::End();
+}
+
+// Python integration methods
+void Application::startTickerMonitor(const char* ticker, float entryPrice)
+{
+#ifdef __ANDROID__
+    if (m_tickerMonitorId >= 0) {
+        stopTickerMonitor();
+    }
+    
+    m_tickerMonitorId = pythonBridgeCreateTickerMonitor(ticker, entryPrice, "intraday", 1.0f, 0.05f);
+    std::cout << "Started ticker monitor with ID: " << m_tickerMonitorId << std::endl;
+#else
+    std::cout << "Ticker monitoring is only supported on Android" << std::endl;
+#endif
+}
+
+void Application::stopTickerMonitor()
+{
+#ifdef __ANDROID__
+    if (m_tickerMonitorId >= 0) {
+        pythonBridgeStopTickerMonitor(m_tickerMonitorId);
+        m_tickerMonitorId = -1;
+        std::cout << "Stopped ticker monitor" << std::endl;
+    }
+#endif
+}
+
+const char* Application::getNextTickerMessage()
+{
+#ifdef __ANDROID__
+    return pythonBridgeGetNextMessage();
+#else
+    return "";
+#endif
 }
