@@ -43,11 +43,11 @@ if(ANDROID)
         # For Android, use the Python headers from Chaquopy or a specific location
         # Try several possible locations for Python headers
         set(POSSIBLE_PYTHON_INCLUDE_DIRS
-            "${ANDROID_NDK}/sources/python/3.12/include/python"
-            "${ANDROID_NDK}/sources/python/3.12/include"
+            "${ANDROID_NDK}/sources/python/3.11/include/python"
+            "${ANDROID_NDK}/sources/python/3.11/include"
             "${CMAKE_CURRENT_SOURCE_DIR}/android/app/src/main/python/include"
             "${CMAKE_CURRENT_SOURCE_DIR}/android/app/.cxx/python/include"
-            "$ENV{HOME}/.chaquopy/3.12/include/python3.12"
+            "$ENV{HOME}/.chaquopy/3.11/include/python3.11"
         )
         
         # Find the first valid Python include directory
