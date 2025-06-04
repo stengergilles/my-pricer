@@ -15,8 +15,8 @@ android {
                 arguments "-DANDROID=ON"
                 // Point to the Python include directory from Chaquopy
                 arguments "-DPYTHON_INCLUDE_DIR=${project.buildDir}/generated/chaquopy/include/python3.11"
-                // Tell CMake where to find the Python library
-                arguments "-DPYTHON_LIB_DIR=${project.buildDir}/intermediates/merged_native_libs/debug/out/lib/${ANDROID_ABI}"
+                // Tell CMake where to find the Python library - using each ABI
+                arguments "-DPYTHON_LIB_DIR=${project.buildDir}/intermediates/merged_native_libs/debug/out/lib"
             }
         }
         

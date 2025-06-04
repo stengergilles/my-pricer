@@ -122,7 +122,13 @@ if(ANDROID)
     
     # Find and link Python library
     if(DEFINED PYTHON_LIB_DIR)
-        find_library(PYTHON_LIBRARY python3.11 PATHS ${PYTHON_LIB_DIR} NO_DEFAULT_PATH)
+        find_library(PYTHON_LIBRARY python3.11 
+                    PATHS "${PYTHON_LIB_DIR}/${ANDROID_ABI}"
+                          "${PYTHON_LIB_DIR}/arm64-v8a"
+                          "${PYTHON_LIB_DIR}/armeabi-v7a"
+                          "${PYTHON_LIB_DIR}/x86"
+                          "${PYTHON_LIB_DIR}/x86_64"
+                    NO_DEFAULT_PATH)
         if(PYTHON_LIBRARY)
             message(STATUS "Found Python library: ${PYTHON_LIBRARY}")
             list(APPEND PLATFORM_LIBS ${PYTHON_LIBRARY})
