@@ -11,7 +11,7 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
 # Include directories
 include_directories(
-    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/include
     ${CMAKE_CURRENT_SOURCE_DIR}/external/imgui
     ${CMAKE_CURRENT_SOURCE_DIR}/external/imgui/backends
 )
@@ -48,6 +48,7 @@ if(ANDROID)
             "${CMAKE_CURRENT_SOURCE_DIR}/android/app/src/main/python/include"
             "${CMAKE_CURRENT_SOURCE_DIR}/android/app/.cxx/python/include"
             "$ENV{HOME}/.chaquopy/3.11/include/python3.11"
+	    "$ENV{PREFIX}/include/python3.11"
         )
         
         # Find the first valid Python include directory

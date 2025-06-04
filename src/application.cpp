@@ -4,8 +4,8 @@
 
 #ifdef __ANDROID__
 #include "platform/android/keyboard_helper.h"
-#include "../include/python_bridge.h"
 #endif
+#include "python_bridge.h"
 
 // Initialize static instance
 Application* Application::s_instance = nullptr;
