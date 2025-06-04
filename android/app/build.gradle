@@ -2,6 +2,7 @@ apply plugin: 'com.android.application'
 apply plugin: 'com.chaquo.python'  // Add Chaquopy Python plugin
 
 android {
+    namespace "com.example.imguihelloworld"  // Add this line to set the namespace
     compileSdkVersion 33
     defaultConfig {
         applicationId "com.example.imguihelloworld"
@@ -98,7 +99,33 @@ android {
         }
     }
     
+    // Make sure Python libraries are properly included in the APK
     packagingOptions {
         pickFirst 'lib/*/libpython*.so'
+        pickFirst 'lib/*/libchaquopy*.so'
+    }
+    
+    // Add a task to copy Python libraries to the expected location
+    tasks.register('copyPythonLibs') {
+        doLast {
+            def pythonLibDir = new File("${project.buildDir}/intermediates/python/debug/chaquopy/lib")
+            if (pythonLibDir.exists()) {
+                copy {
+                    from pythonLibDir
+                    into "${project.buildDir}/intermediates/merged_native_libs/debug/out/lib"
+                    include "**/*.so"
+                }
+                println "Copied Python libraries to ${project.buildDir}/intermediates/merged_native_libs/debug/out/lib"
+            } else {
+                println "Python libraries directory not found: ${pythonLibDir}"
+            }
+        }
+    }
+    
+    // Run the copy task before CMake build
+    tasks.whenTaskAdded { task ->
+        if (task.name.contains('externalNativeBuild')) {
+            task.dependsOn(copyPythonLibs)
+        }
     }
 }
