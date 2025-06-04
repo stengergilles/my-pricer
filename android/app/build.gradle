@@ -28,9 +28,7 @@ android {
         // Configure Python packages from requirements.txt
         python {
             version "3.11"  // Use Python 3.11
-            
-            // Tell Chaquopy to download and use its own Python distribution
-            buildPython "3.11"
+        }
             
             pip {
                 // Core dependencies for TickerMonitor
