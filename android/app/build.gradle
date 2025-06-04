@@ -28,7 +28,6 @@ android {
         // Configure Python packages from requirements.txt
         python {
             version "3.11"  // Use Python 3.11
-        }
             
             pip {
                 // Core dependencies for TickerMonitor
@@ -40,7 +39,7 @@ android {
                 install "setuptools"
                 
                 // Mobile-specific dependencies
-//                install "pyjnius"
+                // install "pyjnius"
                 install "plyer"
                 
                 // Additional dependencies that might be needed
@@ -54,18 +53,21 @@ android {
             }
         }
     }
+    
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
+    
     externalNativeBuild {
         cmake {
             path "../../CMakeLists.txt"
-	    version "3.25.1"
+            version "3.25.1"
         }
     }
+    
     sourceSets {
         main {
             assets.srcDirs = ['src/main/assets', '../../stock_monitoring_app']
@@ -76,10 +78,12 @@ android {
             jniLibs.srcDirs = ['src/main/jniLibs', "${project.buildDir}/intermediates/merged_native_libs/debug/out/lib"]
         }
     }
+    
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
     }
+    
     ndkVersion '26.1.10909125'
     
     // Make sure to extract Chaquopy's Python headers
