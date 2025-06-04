@@ -60,6 +60,9 @@ android {
 def opensslVersion = "3.0.4"
 def opensslArchiveUrl = "https://www.openssl.org/source/openssl-${opensslVersion}.tar.gz"
 
+// Add a debug message at configuration time
+println "Configuring OpenSSL build tasks for version ${opensslVersion}"
+
 // Task to download OpenSSL source - only executed when needed, not during clean
 task downloadOpenSSL(type: Download) {
     src opensslArchiveUrl
@@ -68,6 +71,10 @@ task downloadOpenSSL(type: Download) {
     
     // Skip during clean task
     onlyIf { !gradle.startParameter.taskNames.any { it.contains('clean') } }
+    
+    doFirst {
+        println "Downloading OpenSSL ${opensslVersion} from ${opensslArchiveUrl}"
+    }
 }
 
 // Task to extract OpenSSL source - only executed when needed, not during clean
@@ -183,10 +190,54 @@ task buildOpenSSL {
     }
 }
 
-// Make sure OpenSSL is built before the native build
-tasks.whenTaskAdded { task ->
-    if (task.name.startsWith('externalNativeBuild') && !gradle.startParameter.taskNames.any { it.contains('clean') }) {
-        task.dependsOn buildOpenSSL
+// Make sure OpenSSL is built before the native build - with logging
+gradle.taskGraph.whenReady { taskGraph ->
+    println "Task graph is ready, checking for externalNativeBuild tasks"
+    taskGraph.allTasks.each { task ->
+        if (task.name.startsWith('externalNativeBuild')) {
+            println "Found externalNativeBuild task: ${task.name}, adding buildOpenSSL dependency"
+            task.dependsOn buildOpenSSL
+        }
+    }
+}
+
+// Create a specific task to print OpenSSL build status
+task checkOpenSSLBuildStatus {
+    doLast {
+        println "OpenSSL build status check:"
+        println "Download file exists: ${new File(buildDir, "openssl-${opensslVersion}.tar.gz").exists()}"
+        println "Extracted directory exists: ${new File(buildDir, "openssl-${opensslVersion}").exists()}"
+        
+        android.defaultConfig.ndk.abiFilters.each { abi ->
+            def installDir = "${buildDir}/openssl/${abi}"
+            println "OpenSSL for ${abi} installed: ${new File(installDir).exists()}"
+            if (new File(installDir).exists()) {
+                println "  - lib directory exists: ${new File("${installDir}/lib").exists()}"
+                println "  - include directory exists: ${new File("${installDir}/include").exists()}"
+            }
+        }
+    }
+}
+
+// Add a task to explicitly build OpenSSL with verbose output
+task buildOpenSSLVerbose {
+    dependsOn buildOpenSSL
+    
+    doLast {
+        println "OpenSSL build completed with verbose logging"
+        println "Check the build logs for any errors"
+    }
+}
+
+// Also add direct dependency to the preBuild task
+afterEvaluate {
+    println "Adding buildOpenSSL dependency to preBuild task"
+    tasks.preBuild.dependsOn(buildOpenSSL)
+    
+    // Print all tasks in the build
+    println "All tasks in the build:"
+    tasks.each { task ->
+        println " - ${task.name}"
     }
 }
 
@@ -212,6 +263,28 @@ class Download extends DefaultTask {
         
         dest.parentFile.mkdirs()
         
-        ant.get(src: src, dest: dest, skipexisting: !overwrite)
+        // Use URL connection instead of ant.get for better error handling
+        try {
+            URL url = new URL(src)
+            URLConnection connection = url.openConnection()
+            connection.connect()
+            
+            InputStream input = connection.getInputStream()
+            OutputStream output = new FileOutputStream(dest)
+            
+            byte[] buffer = new byte[8192]
+            int bytesRead
+            while ((bytesRead = input.read(buffer)) != -1) {
+                output.write(buffer, 0, bytesRead)
+            }
+            
+            output.close()
+            input.close()
+            
+            logger.info("Download complete: ${dest}")
+        } catch (Exception e) {
+            logger.error("Download failed: ${e.message}")
+            throw e
+        }
     }
 }
