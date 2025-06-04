@@ -122,7 +122,6 @@ if(ANDROID)
     
     # Find and link Python library
     if(DEFINED PYTHON_LIB_DIR)
-        # Look for Python library in multiple possible locations
         find_library(PYTHON_LIBRARY 
                     NAMES python3.11 python3 python
                     PATHS "${PYTHON_LIB_DIR}/${ANDROID_ABI}"
@@ -130,30 +129,21 @@ if(ANDROID)
                           "${PYTHON_LIB_DIR}/armeabi-v7a"
                           "${PYTHON_LIB_DIR}/x86"
                           "${PYTHON_LIB_DIR}/x86_64"
-                          "${CMAKE_CURRENT_SOURCE_DIR}/android/app/build/intermediates/cxx/Debug/*/obj/${ANDROID_ABI}"
-                          "${CMAKE_CURRENT_SOURCE_DIR}/android/app/build/intermediates/python/debug/chaquopy/lib/${ANDROID_ABI}"
-                          "${CMAKE_CURRENT_SOURCE_DIR}/android/app/build/python/lib/${ANDROID_ABI}"
-                          "$ENV{HOME}/.chaquopy/3.11/lib"
                     NO_DEFAULT_PATH)
         if(PYTHON_LIBRARY)
             message(STATUS "Found Python library: ${PYTHON_LIBRARY}")
             list(APPEND PLATFORM_LIBS ${PYTHON_LIBRARY})
         else()
-            message(WARNING "Python library not found in specified directories")
+            message(WARNING "Python library not found in ${PYTHON_LIB_DIR}")
             # Try to find it in system paths
-            find_library(PYTHON_LIBRARY NAMES python3.11 python3 python)
+            find_library(PYTHON_LIBRARY python3.11)
             if(PYTHON_LIBRARY)
                 message(STATUS "Found Python library in system paths: ${PYTHON_LIBRARY}")
                 list(APPEND PLATFORM_LIBS ${PYTHON_LIBRARY})
             else()
                 message(WARNING "Python library not found. Python functionality will not be available.")
-                # Continue the build without Python support
-                add_definitions(-DNO_PYTHON)
             endif()
         endif()
-    else()
-        message(WARNING "PYTHON_LIB_DIR not defined. Python functionality will not be available.")
-        add_definitions(-DNO_PYTHON)
     endif()
     
     # Set to build a shared library for Android
