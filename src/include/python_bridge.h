@@ -1,28 +1,27 @@
 #pragma once
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+#include <string>
+
+// C++ interface for Python bridge
+namespace PythonBridge {
 
 // Initialize the Python bridge
-bool pythonBridgeInitialize();
-
-// Create a new TickerMonitor
-int pythonBridgeCreateTickerMonitor(const char* ticker, float entryPrice, 
-                                   const char* scope, float leverage, float stopLoss);
-
-// Stop a TickerMonitor
-bool pythonBridgeStopTickerMonitor(int monitorId);
-
-// Get the next message (non-blocking)
-const char* pythonBridgeGetNextMessage();
-
-// Wait for a message with timeout
-const char* pythonBridgeWaitForMessage(int timeoutMs);
+bool initialize();
 
 // Clean up resources
-void pythonBridgeCleanup();
+void cleanup();
 
-#ifdef __cplusplus
-}
-#endif
+// Create a new TickerMonitor
+int createTickerMonitor(const std::string& ticker, float entryPrice, 
+                        const std::string& scope, float leverage, float stopLoss);
+
+// Stop a TickerMonitor
+bool stopTickerMonitor(int monitorId);
+
+// Get the next message (non-blocking)
+std::string getNextMessage();
+
+// Wait for a message with timeout
+std::string waitForMessage(int timeoutMs);
+
+} // namespace PythonBridge

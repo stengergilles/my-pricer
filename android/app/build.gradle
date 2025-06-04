@@ -1,5 +1,4 @@
 apply plugin: 'com.android.application'
-apply plugin: 'com.chaquo.python'  // Add Chaquopy Python plugin
 
 android {
     namespace "com.example.imguihelloworld"  // Add this line to set the namespace
@@ -14,44 +13,12 @@ android {
             cmake {
                 cppFlags "-std=c++17"
                 arguments "-DANDROID=ON"
-                // Point to the Python include directory from Chaquopy
-                arguments "-DPYTHON_INCLUDE_DIR=${project.buildDir}/generated/chaquopy/include/python3.11"
-                // Tell CMake where to find the Python library - using each ABI
-                arguments "-DPYTHON_LIB_DIR=${project.buildDir}/intermediates/merged_native_libs/debug/out/lib"
             }
         }
         
-        // Add Python support
+        // Add ABI filters
         ndk {
             abiFilters 'armeabi-v7a', 'arm64-v8a', 'x86', 'x86_64'
-        }
-        
-        // Configure Python packages from requirements.txt
-        python {
-            version "3.11"  // Use Python 3.11
-            
-            pip {
-                // Core dependencies for TickerMonitor
-                install "pandas"
-                install "numpy"
-                install "requests"
-                
-                // Testing dependencies (not needed for runtime, but included for completeness)
-                install "setuptools"
-                
-                // Mobile-specific dependencies
-                // install "pyjnius"
-                install "plyer"
-                
-                // Additional dependencies that might be needed
-                install "python-dateutil"
-                install "pytz"
-                install "six"
-                
-                // Explicitly install pip dependencies
-                install "wheel"
-                install "setuptools"
-            }
         }
     }
     
@@ -71,12 +38,7 @@ android {
     
     sourceSets {
         main {
-            assets.srcDirs = ['src/main/assets', '../../stock_monitoring_app']
-            python {
-                srcDir "../../stock_monitoring_app"
-            }
-            // Include Chaquopy's Python libraries
-            jniLibs.srcDirs = ['src/main/jniLibs', "${project.buildDir}/intermediates/merged_native_libs/debug/out/lib"]
+            assets.srcDirs = ['src/main/assets']
         }
     }
     
@@ -87,88 +49,8 @@ android {
     
     ndkVersion '26.1.10909125'
     
-    // Make sure to extract Chaquopy's Python headers
-    tasks.whenTaskAdded { task ->
-        if (task.name == 'preBuild') {
-            task.doFirst {
-                def pythonIncludeDir = new File("${project.buildDir}/generated/chaquopy/include/python3.11")
-                if (!pythonIncludeDir.exists()) {
-                    pythonIncludeDir.mkdirs()
-                }
-            }
-        }
-    }
-    
     // Make sure Python libraries are properly included in the APK
     packagingOptions {
-        pickFirst 'lib/*/libpython*.so'
-        pickFirst 'lib/*/libchaquopy*.so'
-    }
-    
-    // Add a task to copy Python libraries to the expected location with enhanced logging
-    tasks.register('copyPythonLibs') {
-        doLast {
-            println ">>> Starting copyPythonLibs task"
-            def pythonLibDir = new File("${project.buildDir}/intermediates/python/debug/chaquopy/lib")
-            println ">>> Looking for Python libraries in: ${pythonLibDir.absolutePath}"
-            
-            if (pythonLibDir.exists()) {
-                println ">>> Directory exists, listing contents:"
-                pythonLibDir.eachFileRecurse { file ->
-                    println ">>>   Found: ${file.absolutePath}"
-                }
-                
-                copy {
-                    from pythonLibDir
-                    into "${project.buildDir}/intermediates/merged_native_libs/debug/out/lib"
-                    include "**/*.so"
-                }
-                println ">>> Copied Python libraries to ${project.buildDir}/intermediates/merged_native_libs/debug/out/lib"
-                
-                // Verify the files were copied
-                def destDir = new File("${project.buildDir}/intermediates/merged_native_libs/debug/out/lib")
-                println ">>> Destination directory contents:"
-                destDir.eachFileRecurse { file ->
-                    if (file.name.contains("python")) {
-                        println ">>>   Copied: ${file.absolutePath}"
-                    }
-                }
-            } else {
-                println ">>> Python libraries directory not found: ${pythonLibDir.absolutePath}"
-                
-                // Try to find Python libraries in other locations
-                def alternativeDirs = [
-                    new File("${project.buildDir}/intermediates/python/debug/lib"),
-                    new File("${project.buildDir}/python/lib"),
-                    new File("${project.buildDir}/chaquopy/lib")
-                ]
-                
-                alternativeDirs.each { dir ->
-                    if (dir.exists()) {
-                        println ">>> Found alternative Python lib directory: ${dir.absolutePath}"
-                        dir.eachFileRecurse { file ->
-                            println ">>>   Found: ${file.absolutePath}"
-                        }
-                    }
-                }
-            }
-            println ">>> copyPythonLibs task completed"
-        }
-    }
-    
-    // Make sure the task runs before CMake configuration
-    tasks.whenTaskAdded { task ->
-        if (task.name.contains('configureCMake')) {
-            task.dependsOn(copyPythonLibs)
-            println ">>> Added copyPythonLibs dependency to ${task.name}"
-        }
-    }
-
-    // Also run it before the build task
-    tasks.whenTaskAdded { task ->
-        if (task.name == 'preBuild') {
-            task.dependsOn(copyPythonLibs)
-            println ">>> Added copyPythonLibs dependency to preBuild"
-        }
+        pickFirst 'lib/*/lib*.so'
     }
 }
