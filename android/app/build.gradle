@@ -94,7 +94,6 @@ android {
         }
     }
     
-    // Make sure Python libraries are properly included in the APK
     packagingOptions {
         pickFirst 'lib/*/libpython*.so'
     }
