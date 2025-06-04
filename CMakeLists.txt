@@ -48,6 +48,7 @@ if(ANDROID)
         src/platform/android/android_main.cpp
         src/platform/android/imgui_impl_android.cpp
         src/platform/android/keyboard_helper.cpp
+        src/openssl_wrapper.cpp
         external/imgui/backends/imgui_impl_opengl3.cpp
     )
     
@@ -57,6 +58,27 @@ if(ANDROID)
         ${ANDROID_NDK}/sources/android/native_app_glue
     )
     
+    # Find OpenSSL
+    if(DEFINED OPENSSL_ROOT_DIR)
+        message(STATUS "Using OpenSSL from: ${OPENSSL_ROOT_DIR}")
+        
+        # Set OpenSSL include and library paths based on the current ABI
+        if(ANDROID_ABI)
+            set(OPENSSL_INCLUDE_DIR "${OPENSSL_ROOT_DIR}/${ANDROID_ABI}/include")
+            set(OPENSSL_CRYPTO_LIBRARY "${OPENSSL_ROOT_DIR}/${ANDROID_ABI}/lib/libcrypto.a")
+            set(OPENSSL_SSL_LIBRARY "${OPENSSL_ROOT_DIR}/${ANDROID_ABI}/lib/libssl.a")
+            
+            include_directories(${OPENSSL_INCLUDE_DIR})
+            message(STATUS "OpenSSL include dir: ${OPENSSL_INCLUDE_DIR}")
+            message(STATUS "OpenSSL crypto library: ${OPENSSL_CRYPTO_LIBRARY}")
+            message(STATUS "OpenSSL SSL library: ${OPENSSL_SSL_LIBRARY}")
+        else()
+            message(WARNING "ANDROID_ABI not defined, cannot set OpenSSL paths correctly")
+        endif()
+    else()
+        message(WARNING "OPENSSL_ROOT_DIR not defined, OpenSSL support will be disabled")
+    endif()
+    
     # Android-specific libraries
     set(PLATFORM_LIBS
         android
@@ -64,6 +86,11 @@ if(ANDROID)
         GLESv3
         log
     )
+    
+    # Add OpenSSL libraries if available
+    if(DEFINED OPENSSL_CRYPTO_LIBRARY AND DEFINED OPENSSL_SSL_LIBRARY)
+        list(APPEND PLATFORM_LIBS ${OPENSSL_SSL_LIBRARY} ${OPENSSL_CRYPTO_LIBRARY})
+    endif()
     
     # Set to build a shared library for Android
     add_library(${PROJECT_NAME} SHARED ${SOURCES} ${IMGUI_SOURCES} ${PLATFORM_SOURCES})

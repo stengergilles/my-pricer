@@ -39,6 +39,10 @@ public class MainActivity extends ImGuiKeyboardHelper {
         
         Log.d(TAG, "MainActivity created");
         
+        // Load OpenSSL libraries
+        boolean opensslLoaded = OpenSSLLoader.loadOpenSSL(this);
+        Log.d(TAG, "OpenSSL loaded: " + opensslLoaded);
+        
         // Copy requirements.txt to a location accessible by the Python interpreter
         copyRequirementsFile();
         

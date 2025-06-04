@@ -12,7 +12,7 @@ android {
         externalNativeBuild {
             cmake {
                 cppFlags "-std=c++17"
-                arguments "-DANDROID=ON"
+                arguments "-DANDROID=ON", "-DOPENSSL_ROOT_DIR=${project.buildDir}/openssl"
             }
         }
         
@@ -39,6 +39,7 @@ android {
     sourceSets {
         main {
             assets.srcDirs = ['src/main/assets']
+            jniLibs.srcDirs = ['src/main/jniLibs', "${project.buildDir}/openssl/lib"]
         }
     }
     
@@ -52,5 +53,150 @@ android {
     // Make sure Python libraries are properly included in the APK
     packagingOptions {
         pickFirst 'lib/*/lib*.so'
+    }
+}
+
+// Define OpenSSL version and download URL
+def opensslVersion = "3.0.4"
+def opensslArchiveUrl = "https://www.openssl.org/source/openssl-${opensslVersion}.tar.gz"
+
+// Task to download OpenSSL source
+task downloadOpenSSL(type: Download) {
+    src opensslArchiveUrl
+    dest new File(buildDir, "openssl-${opensslVersion}.tar.gz")
+    overwrite false
+}
+
+// Task to extract OpenSSL source
+task extractOpenSSL(type: Copy, dependsOn: downloadOpenSSL) {
+    from tarTree(downloadOpenSSL.dest)
+    into buildDir
+    doLast {
+        file("${buildDir}/openssl").mkdirs()
+    }
+}
+
+// Task to build OpenSSL for each ABI
+android.defaultConfig.ndk.abiFilters.each { abi ->
+    def abiName = abi
+    def taskName = "buildOpenSSL${abiName.capitalize()}"
+    
+    task "$taskName"(type: Exec, dependsOn: extractOpenSSL) {
+        workingDir "${buildDir}/openssl-${opensslVersion}"
+        
+        // Set up environment variables and configure command based on ABI
+        def androidApi = android.defaultConfig.minSdkVersion.apiLevel
+        def ndkDir = android.ndkDirectory
+        
+        // Map Android ABI to OpenSSL target
+        def opensslTarget
+        def androidToolchain = "${ndkDir}/toolchains/llvm/prebuilt/linux-x86_64"
+        
+        switch (abiName) {
+            case 'armeabi-v7a':
+                opensslTarget = "android-arm"
+                environment "ANDROID_NDK_HOME", ndkDir
+                environment "PATH", "${androidToolchain}/bin:${System.env.PATH}"
+                environment "CC", "armv7a-linux-androideabi${androidApi}-clang"
+                break
+            case 'arm64-v8a':
+                opensslTarget = "android-arm64"
+                environment "ANDROID_NDK_HOME", ndkDir
+                environment "PATH", "${androidToolchain}/bin:${System.env.PATH}"
+                environment "CC", "aarch64-linux-android${androidApi}-clang"
+                break
+            case 'x86':
+                opensslTarget = "android-x86"
+                environment "ANDROID_NDK_HOME", ndkDir
+                environment "PATH", "${androidToolchain}/bin:${System.env.PATH}"
+                environment "CC", "i686-linux-android${androidApi}-clang"
+                break
+            case 'x86_64':
+                opensslTarget = "android-x86_64"
+                environment "ANDROID_NDK_HOME", ndkDir
+                environment "PATH", "${androidToolchain}/bin:${System.env.PATH}"
+                environment "CC", "x86_64-linux-android${androidApi}-clang"
+                break
+        }
+        
+        def installDir = "${buildDir}/openssl/${abiName}"
+        
+        // Configure OpenSSL
+        commandLine 'bash', '-c', """
+            ./Configure ${opensslTarget} -D__ANDROID_API__=${androidApi} \\
+            --prefix=${installDir} \\
+            --openssldir=${installDir} \\
+            no-shared no-tests
+        """
+        
+        doFirst {
+            println "Building OpenSSL ${opensslVersion} for ${abiName}"
+        }
+    }
+    
+    // Task to make and install OpenSSL
+    task "makeOpenSSL${abiName.capitalize()}"(type: Exec, dependsOn: "$taskName") {
+        workingDir "${buildDir}/openssl-${opensslVersion}"
+        
+        commandLine 'bash', '-c', "make -j8 && make install_sw"
+        
+        doLast {
+            // Copy the built libraries to jniLibs directory
+            def targetDir = new File("${project.projectDir}/src/main/jniLibs/${abiName}")
+            targetDir.mkdirs()
+            
+            // Copy static libraries
+            copy {
+                from "${buildDir}/openssl/${abiName}/lib"
+                include "*.a"
+                into targetDir
+            }
+            
+            println "OpenSSL ${opensslVersion} built and installed for ${abiName}"
+        }
+    }
+}
+
+// Task to build OpenSSL for all ABIs
+task buildOpenSSL {
+    dependsOn = android.defaultConfig.ndk.abiFilters.collect { abi ->
+        "makeOpenSSL${abi.capitalize()}"
+    }
+    
+    doLast {
+        println "OpenSSL ${opensslVersion} built for all ABIs"
+    }
+}
+
+// Make sure OpenSSL is built before the native build
+tasks.whenTaskAdded { task ->
+    if (task.name.startsWith('externalNativeBuild')) {
+        task.dependsOn buildOpenSSL
+    }
+}
+
+// Define Download task class
+class Download extends DefaultTask {
+    @Input
+    String src
+    
+    @OutputFile
+    File dest
+    
+    @Input
+    boolean overwrite = true
+    
+    @TaskAction
+    void download() {
+        if (dest.exists() && !overwrite) {
+            logger.info("${dest} exists and overwrite is false, skipping download")
+            return
+        }
+        
+        logger.info("Downloading ${src} to ${dest}")
+        
+        dest.parentFile.mkdirs()
+        
+        ant.get(src: src, dest: dest, skipexisting: !overwrite)
     }
 }
