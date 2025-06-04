@@ -60,20 +60,26 @@ android {
 def opensslVersion = "3.0.4"
 def opensslArchiveUrl = "https://www.openssl.org/source/openssl-${opensslVersion}.tar.gz"
 
-// Task to download OpenSSL source
+// Task to download OpenSSL source - only executed when needed, not during clean
 task downloadOpenSSL(type: Download) {
     src opensslArchiveUrl
     dest new File(buildDir, "openssl-${opensslVersion}.tar.gz")
     overwrite false
+    
+    // Skip during clean task
+    onlyIf { !gradle.startParameter.taskNames.any { it.contains('clean') } }
 }
 
-// Task to extract OpenSSL source
+// Task to extract OpenSSL source - only executed when needed, not during clean
 task extractOpenSSL(type: Copy, dependsOn: downloadOpenSSL) {
     from tarTree(downloadOpenSSL.dest)
     into buildDir
     doLast {
         file("${buildDir}/openssl").mkdirs()
     }
+    
+    // Skip during clean task
+    onlyIf { !gradle.startParameter.taskNames.any { it.contains('clean') } }
 }
 
 // Task to build OpenSSL for each ABI
@@ -83,6 +89,9 @@ android.defaultConfig.ndk.abiFilters.each { abi ->
     
     task "$taskName"(type: Exec, dependsOn: extractOpenSSL) {
         workingDir "${buildDir}/openssl-${opensslVersion}"
+        
+        // Skip during clean task
+        onlyIf { !gradle.startParameter.taskNames.any { it.contains('clean') } }
         
         // Set up environment variables and configure command based on ABI
         def androidApi = android.defaultConfig.minSdkVersion.apiLevel
@@ -138,6 +147,9 @@ android.defaultConfig.ndk.abiFilters.each { abi ->
     task "makeOpenSSL${abiName.capitalize()}"(type: Exec, dependsOn: "$taskName") {
         workingDir "${buildDir}/openssl-${opensslVersion}"
         
+        // Skip during clean task
+        onlyIf { !gradle.startParameter.taskNames.any { it.contains('clean') } }
+        
         commandLine 'bash', '-c', "make -j8 && make install_sw"
         
         doLast {
@@ -163,6 +175,9 @@ task buildOpenSSL {
         "makeOpenSSL${abi.capitalize()}"
     }
     
+    // Skip during clean task
+    onlyIf { !gradle.startParameter.taskNames.any { it.contains('clean') } }
+    
     doLast {
         println "OpenSSL ${opensslVersion} built for all ABIs"
     }
@@ -170,7 +185,7 @@ task buildOpenSSL {
 
 // Make sure OpenSSL is built before the native build
 tasks.whenTaskAdded { task ->
-    if (task.name.startsWith('externalNativeBuild')) {
+    if (task.name.startsWith('externalNativeBuild') && !gradle.startParameter.taskNames.any { it.contains('clean') }) {
         task.dependsOn buildOpenSSL
     }
 }
