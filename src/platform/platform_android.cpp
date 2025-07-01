@@ -200,8 +200,9 @@ bool PlatformAndroid::platformHandleEvents() {
     int events;
     android_poll_source* source;
     
-    // Poll for events
-    if (ALooper_pollAll(0, nullptr, &events, (void**)&source) >= 0) {
+    // Poll for events. A timeout of 0 means we don't block, and -1 means we block indefinitely.
+    // We use a timeout of 0 for non-blocking event processing.
+    if (ALooper_pollOnce(0, nullptr, &events, (void**)&source) >= 0) {
         if (source != nullptr) {
             source->process(app, source);
         }

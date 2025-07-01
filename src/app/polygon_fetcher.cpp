@@ -5,9 +5,21 @@
 #include <iomanip>
 #include <sstream>
 #include <algorithm>
+#include <thread>
+#include <random>
+#include <iostream>
+#include <cmath>
 
 // Include nlohmann/json and PlatformHttpClient implementation headers
 #include <nlohmann/json.hpp>
+
+// Helper function for random number generation
+static double random_uniform() {
+    static std::random_device rd;
+    static std::mt19937 gen(rd());
+    static std::uniform_real_distribution<> dist(0.0, 1.0);
+    return dist(gen);
+}
 
 PolygonFetcher::PolygonFetcher(const std::string& api_key)
     : api_key_(api_key)
@@ -41,10 +53,33 @@ DataFrame PolygonFetcher::fetch_data(const std::string& identifier,
     };
 
     PlatformHttpClient client;
-    HttpResponse resp = client.get(url, params, {});
+    HttpResponse resp;
 
-    if (resp.status_code != 200) {
-        throw std::runtime_error("Polygon.io HTTP error: " + std::to_string(resp.status_code));
+    constexpr int MAX_RETRIES = 5;
+    constexpr int INITIAL_BACKOFF_SECONDS = 1;
+    constexpr int BACKOFF_FACTOR = 2;
+    int retries = 0;
+
+    while (retries < MAX_RETRIES) {
+        resp = client.get(url, params, {});
+
+        if (resp.status_code == 429) {
+            if (retries < MAX_RETRIES - 1) {
+                double backoff = INITIAL_BACKOFF_SECONDS * std::pow(BACKOFF_FACTOR, retries) + random_uniform();
+                std::cerr << "WARN [" << get_service_name() << "]: Request for "
+                          << ticker << " failed with " << resp.status_code
+                          << ". Retrying in " << backoff << "s..." << std::endl;
+                std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<int>(backoff * 1000)));
+                retries++;
+            } else {
+                throw std::runtime_error("Max retries reached for " + ticker + " due to 429 errors.");
+            }
+        } else if (resp.status_code != 200) {
+            throw std::runtime_error("Polygon.io HTTP error: " + std::to_string(resp.status_code));
+        } else {
+            // Success
+            break;
+        }
     }
 
     nlohmann::json data = nlohmann::json::parse(resp.text);

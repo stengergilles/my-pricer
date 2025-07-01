@@ -56,16 +56,18 @@ std::string CoinGeckoFetcher::fetch_raw_response(
         try {
             auto response = http_client.get(api_url, params, headers);
             if (response.status_code >= 400) {
-                if (response.status_code == 429 || (response.status_code == 401 && api_key_.empty())) {
+                if (response.status_code == 429) {
                     if (retries < MAX_RETRIES - 1) {
                         double backoff = INITIAL_BACKOFF_SECONDS * std::pow(BACKOFF_FACTOR, retries) + random_uniform();
                         std::cerr << "WARN [" << get_service_name() << "]: Request for "
                                   << coin_id << " failed with " << response.status_code
                                   << ". Retrying in " << backoff << "s..." << std::endl;
                         std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<int>(backoff * 1000)));
-                    } else throw std::runtime_error("Max retries reached");
+                    } else {
+                        throw std::runtime_error("Max retries reached for " + coin_id + " due to 429 errors.");
+                    }
                 } else {
-                    throw std::runtime_error("HTTP error " + std::to_string(response.status_code));
+                    throw std::runtime_error("HTTP error " + std::to_string(response.status_code) + " for " + coin_id);
                 }
             }
             if (response.text.empty()) {

@@ -4,6 +4,7 @@
 #include "app/coingecko_fetcher.hpp"
 #include "app/polygon_fetcher.hpp"
 #include "app/base_fetcher.hpp"
+#include "worker.hpp"
 #include <memory>
 #include <vector>
 
@@ -19,6 +20,7 @@ static int selected_interval_index = 8;
 static DataFrame fetched_data;
 static std::string error_message;
 static bool data_fetched = false;
+static Worker<DataFrame> fetch_worker;
 
 // --- Helper Functions ---
 void initialize_fetchers() {
@@ -27,23 +29,8 @@ void initialize_fetchers() {
     fetchers.push_back(std::make_unique<PolygonFetcher>(api_key_buffer));
 }
 
-void fetch_data() {
-    if (selected_fetcher_index < 0 || selected_fetcher_index >= fetchers.size()) {
-        error_message = "Invalid fetcher selected.";
-        return;
-    }
-    try {
-        fetched_data = fetchers[selected_fetcher_index]->fetch_data(
-            identifier_buffer,
-            periods[selected_period_index],
-            intervals[selected_interval_index]
-        );
-        data_fetched = true;
-        error_message.clear();
-    } catch (const std::exception& e) {
-        error_message = e.what();
-        data_fetched = false;
-    }
+DataFrame fetch_data_task(Fetcher* fetcher, std::string identifier, std::string period, std::string interval) {
+    return fetcher->fetch_data(identifier, period, interval);
 }
 
 // --- ImGui Rendering ---
@@ -83,7 +70,29 @@ void Application::renderImGui() {
     ImGui::Combo("Interval", &selected_interval_index, intervals, IM_ARRAYSIZE(intervals));
 
     if (ImGui::Button("Fetch Data")) {
-        fetch_data();
+        if (!fetch_worker.is_running()) {
+            fetch_worker.start(fetch_data_task, 
+                               fetchers[selected_fetcher_index].get(), 
+                               identifier_buffer, 
+                               periods[selected_period_index], 
+                               intervals[selected_interval_index]);
+        }
+    }
+
+    // --- Worker Status ---
+    if (fetch_worker.is_running()) {
+        ImGui::Text("Work in progress...");
+    } else {
+        if (data_fetched) {
+            // a fetch has been completed
+            try {
+                fetched_data = fetch_worker.get();
+                error_message.clear();
+            } catch (const std::exception& e) {
+                error_message = e.what();
+                data_fetched = false;
+            }
+        }
     }
 
     // --- Display Error Message ---
