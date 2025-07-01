@@ -196,7 +196,6 @@ if(BUILD_TESTS)
   )
 
   target_link_libraries(app PUBLIC
-      ${CMAKE_CURRENT_SOURCE_DIR}/external/json/lib/libjson.a
       CURL::libcurl
       OpenSSL::SSL
       OpenSSL::Crypto

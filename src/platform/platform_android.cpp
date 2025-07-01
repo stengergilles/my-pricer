@@ -95,6 +95,7 @@ bool PlatformAndroid::initWithWindow(ANativeWindow* window) {
             LOGE("Failed to create ImGui context");
             return false;
         }
+        ImGui::SetCurrentContext(m_imguiContext); // Set the newly created context as current
     }
     
     // Configure ImGui style
@@ -217,6 +218,7 @@ void PlatformAndroid::platformShutdown() {
     
     // Only destroy the ImGui context if it exists
     if (m_imguiContext) {
+        ImGui::SetCurrentContext(m_imguiContext); // Set the context as current before destroying
         ImGui::DestroyContext(m_imguiContext);
         m_imguiContext = nullptr;
         LOGI("ImGui context destroyed");
