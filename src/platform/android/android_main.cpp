@@ -1,5 +1,7 @@
 #include <android/log.h>
 #include <android_native_app_glue.h>
+#include <unistd.h> // For chdir
+#include <sys/stat.h> // For mkdir
 #include "../../include/platform/platform_android.h"
 #include "../../include/application.h"
 
@@ -111,6 +113,24 @@ static int32_t handle_input(android_app* app, AInputEvent* event) {
 void android_main(struct android_app* app) {
     // Make sure glue isn't stripped
     app_dummy();
+
+    // Change the current directory to the app's internal data directory
+    if (app->activity->internalDataPath != nullptr) {
+        const char* path = app->activity->internalDataPath;
+        LOGI("Attempting to change directory to: %s", path);
+        // Create the directory if it doesn't exist
+        struct stat st = {0};
+        if (stat(path, &st) == -1) {
+            mkdir(path, 0700);
+        }
+        if (chdir(path) == 0) {
+            LOGI("Successfully changed directory to: %s", path);
+        } else {
+            LOGE("Failed to change directory to: %s", path);
+        }
+    } else {
+        LOGE("Internal data path is null, cannot change directory.");
+    }
     
     // Set callbacks
     app->onAppCmd = handle_cmd;

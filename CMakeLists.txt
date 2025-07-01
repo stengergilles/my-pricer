@@ -2,18 +2,21 @@ cmake_minimum_required(VERSION 3.10)
 project(imgui_hello_world)
 set(PROJECT_ROOT ${CMAKE_SOURCE_DIR})
 
-if(NOT ANDROID)
-    # Execute setup-hooks script
-    execute_process(
-        COMMAND ${CMAKE_COMMAND} -E chdir ${PROJECT_ROOT} bash setup-hooks
-        RESULT_VARIABLE SETUP_HOOKS_RESULT
-        COMMAND_ERROR_IS_FATAL ANY
-    )
-endif()
-
+option(BUILD_TESTS "Build tests" OFF)
 
 # For tests
-option(BUILD_TESTS "Build tests" OFF)
+# Automatically detect if there are any test files
+file(GLOB_RECURSE TEST_FILES
+    "tests/test_*.cpp"
+    "tests/integration_*.cpp"
+)
+
+if(BUILD_TESTS AND NOT TEST_FILES)
+    message(FATAL_ERROR "BUILD_TESTS is ON, but no test files found in 'tests/' directory. Aborting configuration.")
+elseif(NOT TEST_FILES)
+    message(STATUS "No test files found in 'tests/' directory. Disabling BUILD_TESTS.")
+    set(BUILD_TESTS OFF CACHE BOOL "Build tests" FORCE)
+endif()
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -72,8 +75,6 @@ set(SOURCES
     src/application.cpp
     src/platform/platform_base.cpp
     src/main.cpp
-    src/app/coingecko_fetcher.cpp
-    src/app/polygon_fetcher.cpp
     src/http_client_curl.cpp
     src/write_cacert.cpp
     src/tempfile.cpp
@@ -98,8 +99,10 @@ file(GLOB APP_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/app/*.cpp")
 if(EXISTS ${APP_MAIN_FILE})
     list(REMOVE_ITEM APP_SOURCES ${APP_MAIN_FILE})
 endif()
-add_library(appcode STATIC ${APP_SOURCES})
-target_include_directories(appcode PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include/app)
+if(APP_SOURCES)
+    add_library(appcode STATIC ${APP_SOURCES})
+    target_include_directories(appcode PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include/app)
+endif()
 
 add_subdirectory(external/json)
 
@@ -193,12 +196,15 @@ if(BUILD_TESTS)
   )
 
   target_link_libraries(app PUBLIC
-      appcode
+      ${CMAKE_CURRENT_SOURCE_DIR}/external/json/lib/libjson.a
       CURL::libcurl
       OpenSSL::SSL
       OpenSSL::Crypto
       nlohmann_json::nlohmann_json
   )
+  if(TARGET appcode)
+      target_link_libraries(app PUBLIC appcode)
+  endif()
 
   # Automatically discover and add tests
   file(GLOB_RECURSE TEST_SOURCES 
@@ -219,7 +225,7 @@ if(BUILD_TESTS)
       add_test(NAME ${TEST_NAME} COMMAND ${TEST_NAME})
 
       # Add dependency on cacert header for fetcher integration tests
-      if (TEST_SOURCE MATCHES "integration_.*_fetcher\\.cpp")
+      if (TEST_SOURCE MATCHES "integration_.*_fetcher\.cpp")
           add_dependencies(${TEST_NAME} gen_cacert_header)
       endif()
   endforeach()
@@ -247,11 +253,6 @@ add_custom_command(
 
 add_custom_target(gen_cacert_header ALL DEPENDS ${CACERT_HEADER})
 
-if(BUILD_TESTS)
-add_dependencies(integration_coingecko_fetcher gen_cacert_header)
-add_dependencies(integration_polygon_fetcher gen_cacert_header)
-endif()
-
 if(ANDROID AND NOT BUILD_TESTS)
     set(PLATFORM_SOURCES
         src/platform/platform_android.cpp
@@ -261,15 +262,6 @@ if(ANDROID AND NOT BUILD_TESTS)
         src/platform/android/imgui_impl_android.cpp
         src/platform/android/keyboard_helper.cpp
         external/imgui/backends/imgui_impl_opengl3.cpp
-        src/app/atr_indicator.cpp
-        src/app/bollinger_indicator.cpp
-        src/app/breakout_indicator.cpp
-        src/app/coingecko_fetcher.cpp
-        src/app/ma_indicator.cpp
-        src/app/macd_indicator.cpp
-        src/app/polygon_fetcher.cpp
-        src/app/rsi_indicator.cpp
-        src/app/volume_spike_indicator.cpp
     )
     include_directories(
         ${CMAKE_CURRENT_SOURCE_DIR}/src/platform/android
@@ -289,7 +281,10 @@ if(ANDROID AND NOT BUILD_TESTS)
         OpenSSL::Crypto
     )
     add_library(${PROJECT_NAME} SHARED ${SOURCES} ${IMGUI_SOURCES} ${PLATFORM_SOURCES})
-    target_link_libraries(${PROJECT_NAME} PRIVATE appcode ${PLATFORM_LIBS})
+    target_link_libraries(${PROJECT_NAME} PRIVATE ${PLATFORM_LIBS})
+    if(TARGET appcode)
+        target_link_libraries(${PROJECT_NAME} PRIVATE appcode)
+    endif()
     add_dependencies(${PROJECT_NAME} gen_cacert_header)
 
 elseif(EMSCRIPTEN AND NOT BUILD_TESTS)
@@ -302,10 +297,12 @@ elseif(EMSCRIPTEN AND NOT BUILD_TESTS)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -s USE_SDL=2 -s WASM=1 -s ALLOW_MEMORY_GROWTH=1 -s USE_WEBGL2=1")
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} --shell-file ${CMAKE_CURRENT_SOURCE_DIR}/src/platform/wasm/shell.html")
     set(PLATFORM_LIBS
-        appcode
     )
     add_executable(${PROJECT_NAME} ${SOURCES} ${IMGUI_SOURCES} ${PLATFORM_SOURCES})
     target_link_libraries(${PROJECT_NAME} PRIVATE ${PLATFORM_LIBS})
+    if(TARGET appcode)
+        target_link_libraries(${PROJECT_NAME} PRIVATE appcode)
+    endif()
     add_dependencies(${PROJECT_NAME} gen_cacert_header)
 else()
     if(NOT BUILD_TESTS)
@@ -324,8 +321,10 @@ else()
         CURL::libcurl
         OpenSSL::SSL
         OpenSSL::Crypto
-        appcode
       )
+      if(TARGET appcode)
+          list(APPEND PLATFORM_LIBS appcode)
+      endif()
       if(APPLE AND NOT BUILD_TESTS)
         find_library(COCOA_LIBRARY Cocoa)
         find_library(IOKIT_LIBRARY IOKit)
