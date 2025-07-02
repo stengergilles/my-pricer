@@ -78,7 +78,6 @@ set(SOURCES
     src/http_client_curl.cpp
     src/write_cacert.cpp
     src/tempfile.cpp
-    src/worker.cpp
 )
 
 set(IMGUI_SOURCES

@@ -19,20 +19,26 @@ task buildOpensslArm64 {
 	requiredFiles.each { println "${it}: ${file(it).absolutePath} exists? ${file(it).exists()}" }
     }
     doLast {
-      exec {
-      commandLine "bash", "-c", """
-        set -e && \
-	rm -rf ${opensslSourceDir} && \
-	git clone https://github.com/openssl/openssl.git ${opensslSourceDir} && \
-        cd ${opensslSourceDir} && \
-        ./Configure android-arm64 no-tests --prefix=${opensslBuildDir} && \
-	ls include/openssl/opensslconf.h && \
-        make -j\$(nproc) && \
-        make install_sw
-      """
-      }
+        def allFilesExist = requiredFiles.every { file(it).exists() }
+        if (!allFilesExist) {
+            exec {
+                commandLine "bash", "-c", """
+                    set -e && \
+                    if [ ! -d "${opensslSourceDir}" ]; then \
+                        git clone https://github.com/openssl/openssl.git ${opensslSourceDir}; \
+                    fi && \
+                    cd ${opensslSourceDir} && \
+                    ./Configure android-arm64 no-tests --prefix=${opensslBuildDir} && \
+                    ls include/openssl/opensslconf.h && \
+                    make -j\$(nproc) && \
+                    make install_sw
+                """
+            }
+        } else {
+            println "OpenSSL build artifacts are up-to-date. Skipping build."
+        }
     }
-    outputs.dir opensslBuildDir
+    
 }
 
 preBuild.dependsOn buildOpensslArm64
