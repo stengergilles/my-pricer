@@ -1,0 +1,10 @@
+Flask==2.3.3
+Flask-CORS==4.0.0
+Flask-RESTful==0.3.10
+authlib==1.2.1
+requests==2.31.0
+python-dotenv==1.0.0
+python-jose[cryptography]==3.3.0
+six==1.16.0
+werkzeug==2.3.7
+gunicorn==21.2.0

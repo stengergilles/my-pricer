@@ -1,0 +1,118 @@
+"""
+Complete Flask backend with Auth0 authentication for Crypto Trading System.
+"""
+
+import os
+import sys
+import logging
+from datetime import datetime
+from flask import Flask, jsonify, request, send_from_directory
+from flask_cors import CORS
+from flask_restful import Api
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
+
+# Add core module to path
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
+
+from core.trading_engine import TradingEngine
+from core.config import Config
+from auth.middleware import AuthError, requires_auth
+from auth.decorators import auth_required
+from api.crypto import CryptoAPI
+from api.analysis import AnalysisAPI
+from api.backtest import BacktestAPI
+from api.strategies import StrategiesAPI
+from api.results import ResultsAPI
+from utils.error_handlers import register_error_handlers
+
+# Initialize Flask app
+app = Flask(__name__)
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-secret-key-change-this')
+
+# Enable CORS for frontend
+CORS(app, origins=[os.getenv('FRONTEND_URL', 'http://localhost:3000')])
+
+# Initialize Flask-RESTful
+api = Api(app)
+
+# Initialize core components
+config = Config()
+trading_engine = TradingEngine(config)
+
+# Set up logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler(os.path.join(config.LOGS_DIR, 'backend.log')),
+        logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger(__name__)
+
+# Register error handlers
+register_error_handlers(app)
+
+# Health check endpoint (no auth required)
+@app.route('/api/health')
+def health_check():
+    """System health check endpoint."""
+    try:
+        health = trading_engine.health_check()
+        return jsonify(health), 200 if health['status'] == 'healthy' else 503
+    except Exception as e:
+        logger.error(f"Health check failed: {str(e)}")
+        return jsonify({
+            'status': 'error',
+            'message': 'Health check failed',
+            'timestamp': datetime.now().isoformat()
+        }), 500
+
+# Auth test endpoint
+@app.route('/api/auth/test')
+@auth_required
+def auth_test():
+    """Test Auth0 authentication."""
+    return jsonify({
+        'message': 'Authentication successful',
+        'user': getattr(request, 'current_user', {}),
+        'timestamp': datetime.now().isoformat()
+    })
+
+# Register API resources with Auth0 protection
+api.add_resource(CryptoAPI, '/api/cryptos', '/api/cryptos/<string:crypto_id>')
+api.add_resource(AnalysisAPI, '/api/analysis', '/api/analysis/<string:analysis_id>')
+api.add_resource(BacktestAPI, '/api/backtest', '/api/backtest/<string:backtest_id>')
+api.add_resource(StrategiesAPI, '/api/strategies', '/api/strategies/<string:strategy_name>')
+api.add_resource(ResultsAPI, '/api/results', '/api/results/<string:result_type>')
+
+# Serve frontend static files (for production)
+@app.route('/', defaults={'path': ''})
+@app.route('/<path:path>')
+def serve_frontend(path):
+    """Serve Next.js frontend files."""
+    frontend_build_dir = os.path.join(os.path.dirname(__file__), '..', 'frontend', 'out')
+    
+    if os.path.exists(frontend_build_dir):
+        if path and os.path.exists(os.path.join(frontend_build_dir, path)):
+            return send_from_directory(frontend_build_dir, path)
+        return send_from_directory(frontend_build_dir, 'index.html')
+    else:
+        return jsonify({
+            'message': 'Frontend not built. Run in development mode.',
+            'frontend_url': os.getenv('FRONTEND_URL', 'http://localhost:3000')
+        })
+
+if __name__ == '__main__':
+    logger.info("Starting Crypto Trading Backend...")
+    logger.info(f"Auth0 Domain: {os.getenv('AUTH0_DOMAIN')}")
+    logger.info(f"API Audience: {os.getenv('AUTH0_API_AUDIENCE')}")
+    
+    app.run(
+        host=os.getenv('API_HOST', 'localhost'),
+        port=int(os.getenv('API_PORT', 5000)),
+        debug=os.getenv('FLASK_DEBUG', 'True').lower() == 'true'
+    )
