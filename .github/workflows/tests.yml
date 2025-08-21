@@ -24,7 +24,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install numpy pandas optuna requests tqdm cython psutil ta
+        pip install -r requirements.txt
     
     - name: Compile Cython backtester
       run: |
