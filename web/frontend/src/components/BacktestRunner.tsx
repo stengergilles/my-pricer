@@ -4,8 +4,8 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import toast from 'react-hot-toast'
-import { apiClient } from '@/lib/api'
-import { Crypto, Strategy, BacktestFormData, BacktestResponse } from '@/lib/types'
+import { apiClient } from '../utils/api.ts'
+import { Crypto, Strategy, BacktestFormData, BacktestResponse } from '../utils/types.ts'
 
 export function BacktestRunner() {
   const queryClient = useQueryClient()

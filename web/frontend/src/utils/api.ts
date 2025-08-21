@@ -5,7 +5,7 @@ class ApiClient {
 
   constructor() {
     this.client = axios.create({
-      baseURL: process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000',
+      baseURL: process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000',
       timeout: 30000,
       headers: {
         'Content-Type': 'application/json',
@@ -15,18 +15,18 @@ class ApiClient {
     // Request interceptor to add auth token
     this.client.interceptors.request.use(
       async (config) => {
-        try {
-          // Get token from Auth0 (client-side)
-          const response = await fetch('/api/auth/token')
-          if (response.ok) {
-            const { accessToken } = await response.json()
-            if (accessToken) {
-              config.headers.Authorization = `Bearer ${accessToken}`
-            }
-          }
-        } catch (error) {
-          console.warn('Could not get access token:', error)
-        }
+        // try {
+        //   // Get token from Auth0 (client-side)
+        //   const response = await fetch('/api/auth/token')
+        //   if (response.ok) {
+        //     const { accessToken } = await response.json()
+        //     if (accessToken) {
+        //       config.headers.Authorization = `Bearer ${accessToken}`
+        //     }
+        //   }
+        // } catch (error) {
+        //   console.warn('Could not get access token:', error)
+        // }
         return config
       },
       (error) => Promise.reject(error)
@@ -36,10 +36,10 @@ class ApiClient {
     this.client.interceptors.response.use(
       (response) => response,
       (error) => {
-        if (error.response?.status === 401) {
-          // Redirect to login on unauthorized
-          window.location.href = '/api/auth/login'
-        }
+        // if (error.response?.status === 401) {
+        //   // Redirect to login on unauthorized
+        //   window.location.href = '/api/auth/login'
+        // }
         return Promise.reject(error)
       }
     )

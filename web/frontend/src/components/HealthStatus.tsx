@@ -1,8 +1,8 @@
 'use client'
 
 import { useQuery } from '@tanstack/react-query'
-import { apiClient } from '@/lib/api'
-import { HealthCheck } from '@/lib/types'
+import { apiClient } from '../utils/api.ts'
+import { HealthCheck } from '../utils/types.ts'
 
 export function HealthStatus() {
   const { data: health, isLoading } = useQuery<HealthCheck>({
