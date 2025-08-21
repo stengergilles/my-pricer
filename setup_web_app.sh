@@ -35,21 +35,20 @@ fi
 print_status "Setting up backend environment..."
 
 # Create Python virtual environment for backend
-cd web/backend
-if [ ! -d "venv" ]; then
-    print_status "Creating Python virtual environment..."
-    python3 -m venv venv
+if [ ! -d "web/backend/venv" ]; then
+    print_status "Creating Python virtual environment in web/backend/venv..."
+    python3 -m venv web/backend/venv
 fi
 
 # Activate virtual environment
-source venv/bin/activate
+source web/backend/venv/bin/activate
 
 # Install Python dependencies
 print_status "Installing Python dependencies..."
 pip install -r requirements.txt
 
-# Go back to root
-cd ../..
+# No need to cd back to root here as we didn't cd into web/backend
+
 
 print_status "Setting up frontend environment..."
 
