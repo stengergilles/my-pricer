@@ -33,6 +33,18 @@ python manage_results.py --top
 python optimize_bayesian.py --crypto okb --strategy EMA_Only --n-trials 50
 ```
 
+### 5. Run Web Application (Optional)
+```bash
+# See WEB_APP_README.md for detailed setup instructions
+./start_dev_servers.sh
+```
+
+### 6. Run Tests
+```bash
+# See TESTING.md for comprehensive testing documentation
+python run_tests.py --all
+```
+
 ## 📊 System Performance
 
 **Best Known Result:**
@@ -40,6 +52,15 @@ python optimize_bayesian.py --crypto okb --strategy EMA_Only --n-trials 50
 - **Strategy**: EMA_Only with hybrid position sizing
 - **Performance**: +122.42% profit (6 trades, 33% win rate)
 - **Key**: High volatility triggered fixed 95% position sizing
+
+## 📚 Documentation
+
+| Document | Purpose |
+|----------|---------|
+| [README.md](README.md) | Main project overview and quick start guide |
+| [TESTING.md](TESTING.md) | Comprehensive testing framework documentation |
+| [WEB_APP_README.md](WEB_APP_README.md) | Web application setup and usage guide |
+| [docs/](docs/) | Detailed technical documentation for all components |
 
 ## 🏗️ Architecture
 
@@ -84,6 +105,8 @@ The system automatically adjusts position sizing based on market volatility:
 ```
 my-pricer/
 ├── README.md                          # This file
+├── TESTING.md                         # Testing framework documentation
+├── WEB_APP_README.md                  # Web application setup guide
 ├── docs/                              # Detailed documentation
 │   ├── backtester.md
 │   ├── bayesian_optimization.md
@@ -95,6 +118,14 @@ my-pricer/
 │       ├── bb_breakout.md
 │       ├── bb_rsi.md
 │       └── combined_trigger_verifier.md
+├── tests/                             # Testing framework
+│   ├── test_unit.py
+│   ├── test_integration.py
+│   ├── test_functional.py
+│   └── test_performance.py
+├── web/                               # Web application
+│   ├── backend/                       # Flask API
+│   └── frontend/                      # Next.js frontend
 ├── backtest_results/                  # All optimization results
 │   ├── best_params_*.json
 │   ├── volatile_optimization_results_*.json
@@ -104,6 +135,7 @@ my-pricer/
 ├── volatile_crypto_optimizer.py       # Batch volatile crypto optimization
 ├── get_volatile_cryptos.py           # Volatile crypto discovery
 ├── manage_results.py                 # Results management
+├── run_tests.py                      # Main test runner
 └── config.py                         # Strategy configurations
 ```
 
