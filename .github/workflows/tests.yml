@@ -1,0 +1,51 @@
+# GitHub Actions workflow for automated testing
+# This runs the test suite on every push and pull request
+
+name: Regression Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install numpy pandas optuna requests tqdm cython psutil
+    
+    - name: Compile Cython backtester
+      run: |
+        python setup.py build_ext --inplace
+    
+    - name: Run quick tests
+      run: |
+        python run_tests.py --quick
+    
+    - name: Run unit tests
+      run: |
+        python run_tests.py --unit
+    
+    - name: Run integration tests
+      run: |
+        python run_tests.py --integration
+      continue-on-error: true  # API calls may fail in CI
+    
+    - name: Upload test results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: test-results
+        path: tests/test_results/

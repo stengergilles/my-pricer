@@ -1,0 +1,30 @@
+{
+  "summary": {
+    "total_tests": 4,
+    "passed": 0,
+    "failed": 4,
+    "all_passed": false
+  },
+  "results": [
+    {
+      "test": "volatile_cryptos_discovery",
+      "passed": false,
+      "timestamp": "2025-08-21T13:32:39.398442"
+    },
+    {
+      "test": "backtester_ethereum_strict",
+      "passed": false,
+      "timestamp": "2025-08-21T13:32:40.336732"
+    },
+    {
+      "test": "bayesian_optimization_sample",
+      "passed": false,
+      "timestamp": "2025-08-21T13:32:43.471231"
+    },
+    {
+      "test": "backtester_bitcoin_ema_only",
+      "passed": false,
+      "timestamp": "2025-08-21T13:32:44.501930"
+    }
+  ]
+}

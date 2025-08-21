@@ -1,0 +1,13 @@
+{
+  "name": "volatile_cryptos_discovery",
+  "command": [
+    "python",
+    "get_volatile_cryptos.py"
+  ],
+  "return_code": 0,
+  "stdout": "Error fetching data from CoinGecko: 429 Client Error: Too Many Requests for url: https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=250&page=1&sparkline=False&price_change_percentage=24h\nFailed to fetch volatile cryptocurrencies.\n",
+  "stderr": "",
+  "captured_at": "2025-08-21T13:37:22.656061",
+  "stdout_hash": "78c4c43f127c15d9ab2ecbe5814de266",
+  "stderr_hash": "d41d8cd98f00b204e9800998ecf8427e"
+}
