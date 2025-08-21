@@ -190,4 +190,6 @@ This system is designed for educational and research purposes. Cryptocurrency tr
 
 ---
 
-**Built for high-spread environments. Optimized for volatile markets. Ready for production.**
+**⚠️ DISCLAIMER: This is a toy/fun project for educational and research purposes only. This system is NOT intended for real trading or production use. Cryptocurrency trading involves substantial risk of loss. Always conduct thorough testing and risk assessment before any live trading.**
+
+---
