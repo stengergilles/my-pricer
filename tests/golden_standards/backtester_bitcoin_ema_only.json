@@ -31,10 +31,10 @@
     "--macd-signal-period",
     "9"
   ],
-  "return_code": 0,
+  "return_code": 1,
   "stdout": "",
-  "stderr": "TIMESTAMP - ERROR - --- cython import error: NORMALIZED ---\nTIMESTAMP - INFO - Successfully fetched OHLC data for bitcoin from CoinGecko.\nTIMESTAMP - INFO - Fetched 180 data points for bitcoin\nTIMESTAMP - ERROR - Cython backtester not available. Please compile it first.\nTIMESTAMP - INFO - No profitable parameters found.\n",
-  "captured_at": "2025-08-21T13:37:21.330462",
+  "stderr": "TIMESTAMP - INFO - --- cython imported successfully ---\nTIMESTAMP - INFO - Successfully fetched OHLC data for bitcoin from CoinGecko.\nTIMESTAMP - INFO - Fetched 180 data points for bitcoin\nTraceback (most recent call last):\n  File \"/data/data/com.termux/files/home/Work/my-pricer/backtester.py\", line 252, in <module>\n    run_single_backtest(args)\n  File \"/data/data/com.termux/files/home/Work/my-pricer/backtester.py\", line 197, in run_single_backtest\n    results = backtester.run_backtest(params)\n              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/data/data/com.termux/files/home/Work/my-pricer/backtester.py\", line 48, in run_backtest\n    long_entry, short_entry, long_exit, short_exit = self.strategy.generate_signals(self.data, params)\n                                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/data/data/com.termux/files/home/Work/my-pricer/strategy.py\", line 121, in generate_signals\n    return get_trade_signal(data, self.config, params)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/data/data/com.termux/files/home/Work/my-pricer/strategy.py\", line 18, in get_trade_signal\n    short_sma = calculate_sma(df_copy, params['short_sma_period'])\n                                       ~~~~~~^^^^^^^^^^^^^^^^^^^^\nKeyError: 'short_sma_period'\n",
+  "captured_at": "2025-08-22T12:37:18.876080",
   "stdout_hash": "d41d8cd98f00b204e9800998ecf8427e",
-  "stderr_hash": "ee0db804d784a10c4d1bf717a749940e"
+  "stderr_hash": "9c856b11e01a6d0da0ecda501b2b60da"
 }

@@ -34,15 +34,6 @@ fi
 
 print_status "Setting up backend environment..."
 
-# Create Python virtual environment for backend
-if [ ! -d "web/backend/venv" ]; then
-    print_status "Creating Python virtual environment in web/backend/venv..."
-    python3 -m venv web/backend/venv
-fi
-
-# Activate virtual environment
-source web/backend/venv/bin/activate
-
 # Install Python dependencies
 print_status "Installing Python dependencies..."
 pip install -r requirements.txt
@@ -63,7 +54,7 @@ cd ../..
 # Create environment files if they don't exist
 print_status "Setting up environment configuration..."
 
-if [ ! -f ".env" ]; then
+if [ ! -f "web/backend/.env" ]; then
     print_warning "Creating .env file from template..."
     cp .env.example .env
     print_warning "Please edit .env file with your Auth0 credentials"
@@ -89,7 +80,6 @@ echo "   - Edit web/frontend/.env.local with your Auth0 credentials"
 echo ""
 echo "2. Start the backend server:"
 echo "   cd web/backend"
-echo "   source venv/bin/activate"
 echo "   python run.py"
 echo ""
 echo "3. Start the frontend server (in another terminal):"

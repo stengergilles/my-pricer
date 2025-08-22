@@ -32,9 +32,9 @@
     "9"
   ],
   "return_code": 0,
-  "stdout": "",
-  "stderr": "TIMESTAMP - ERROR - --- cython import error: NORMALIZED ---\nTIMESTAMP - INFO - Successfully fetched OHLC data for ethereum from CoinGecko.\nTIMESTAMP - INFO - Fetched 180 data points for ethereum\nTIMESTAMP - ERROR - Cython backtester not available. Please compile it first.\nTIMESTAMP - INFO - No profitable parameters found.\n",
-  "captured_at": "2025-08-21T13:37:22.332614",
-  "stdout_hash": "d41d8cd98f00b204e9800998ecf8427e",
-  "stderr_hash": "ad509777875c17dfe733c418337b1dac"
+  "stdout": "OPTIMIZER_RESULTS:{\"final_capital\": 100.0, \"total_profit_loss\": 0.0, \"total_trades\": 0, \"winning_trades\": 0, \"losing_trades\": 0, \"win_rate\": 0.0, \"long_profit\": 0.0, \"short_profit\": 0.0, \"num_long_trades\": 0, \"num_short_trades\": 0}\n",
+  "stderr": "TIMESTAMP - INFO - --- cython imported successfully ---\nTIMESTAMP - INFO - Successfully fetched OHLC data for ethereum from CoinGecko.\nTIMESTAMP - INFO - Fetched 180 data points for ethereum\nTIMESTAMP - INFO -   Initial Capital: 100.00\nTIMESTAMP - INFO -   Final Capital: 100.00\nTIMESTAMP - INFO -   Total Profit/Loss: 0.00\nTIMESTAMP - INFO -   Sharpe Ratio: N/A\nTIMESTAMP - INFO -   Total Trades: 0\nTIMESTAMP - INFO -   Winning Trades: 0\nTIMESTAMP - INFO -   Losing Trades: 0\nTIMESTAMP - INFO -   Win Rate: 0.00%\nTIMESTAMP - INFO -   Long Trades: 0, Profit: 0.00\nTIMESTAMP - INFO -   Short Trades: 0, Profit: 0.00\nTIMESTAMP - INFO -   Parameters:\nTIMESTAMP - INFO -     short_sma_period: 20\nTIMESTAMP - INFO -     long_sma_period: 50\nTIMESTAMP - INFO -     rsi_oversold: 25\nTIMESTAMP - INFO -     rsi_overbought: 75\nTIMESTAMP - INFO -     atr_period: 14\nTIMESTAMP - INFO -     atr_multiple: 1.5000\nTIMESTAMP - INFO -     fixed_stop_loss_percentage: 0.0300\nTIMESTAMP - INFO -     take_profit_multiple: 3.0000\nTIMESTAMP - INFO -     macd_fast_period: 12\nTIMESTAMP - INFO -     macd_slow_period: 26\nTIMESTAMP - INFO -     macd_signal_period: 9\nTIMESTAMP - INFO -     spread_percentage: 0.0100\nTIMESTAMP - INFO -     slippage_percentage: 0.0005\nTIMESTAMP - INFO -     short_sma: 10\nTIMESTAMP - INFO -     long_sma: 30\nTIMESTAMP - INFO -     short_ema: 10\nTIMESTAMP - INFO -     long_ema: 30\nTIMESTAMP - INFO -     volume_sma: 20\nTIMESTAMP - INFO -     rsi_period: 14\nTIMESTAMP - INFO -     bb_period: 20\nTIMESTAMP - INFO -     bb_std_dev: 2\n",
+  "captured_at": "2025-08-22T12:37:19.782641",
+  "stdout_hash": "4e20b1f6ecf3e58d84dd463307933610",
+  "stderr_hash": "11a585db5044babca3a77d92c5804b29"
 }

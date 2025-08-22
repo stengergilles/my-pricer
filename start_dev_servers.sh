@@ -22,7 +22,7 @@ print_warning() {
 }
 
 # Check if environment files exist
-if [ ! -f ".env" ]; then
+if [ ! -f "web/backend/.env" ]; then
     print_warning "No .env file found. Please run setup_web_app.sh first"
     exit 1
 fi
@@ -37,14 +37,6 @@ start_backend() {
     print_info "Starting Flask backend server..."
     cd web/backend
     
-    # Check if virtual environment exists
-    if [ ! -d "venv" ]; then
-        print_warning "Virtual environment not found. Please run setup_web_app.sh first"
-        exit 1
-    fi
-    
-    # Activate virtual environment and start server
-    source venv/bin/activate
     python run.py &
     BACKEND_PID=$!
     
@@ -63,7 +55,7 @@ start_frontend() {
         exit 1
     fi
     
-    npm run dev &
+    npm start &
     FRONTEND_PID=$!
     
     cd ../..

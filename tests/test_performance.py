@@ -46,12 +46,19 @@ class TestPerformanceBaselines(unittest.TestCase):
         })
         
         self.test_params = {
+            'short_sma_period': 10,
+            'long_sma_period': 30,
             'short_ema_period': 10,
             'long_ema_period': 30,
             'rsi_oversold': 30,
             'rsi_overbought': 70,
             'atr_period': 14,
-            'atr_multiple': 2.0
+            'atr_multiple': 2.0,
+            'macd_fast_period': 12,
+            'macd_slow_period': 26,
+            'macd_signal_period': 9,
+            'spread_percentage': 0.01,
+            'slippage_percentage': 0.0005
         }
     
     def test_indicators_performance(self):
@@ -62,7 +69,12 @@ class TestPerformanceBaselines(unittest.TestCase):
         start_memory = psutil.Process().memory_info().rss / 1024 / 1024  # MB
         
         # Run indicators calculation
-        indicators = Indicators(self.large_dataset)
+        indicators = Indicators()
+        indicators.get_indicator('sma', self.large_dataset, self.test_params)
+        indicators.get_indicator('ema', self.large_dataset, self.test_params)
+        indicators.get_indicator('rsi', self.large_dataset, self.test_params)
+        indicators.get_indicator('macd', self.large_dataset, self.test_params)
+        indicators.get_indicator('bbands', self.large_dataset, self.test_params)
         
         end_time = time.time()
         end_memory = psutil.Process().memory_info().rss / 1024 / 1024  # MB
@@ -82,10 +94,12 @@ class TestPerformanceBaselines(unittest.TestCase):
     def test_strategy_signal_generation_performance(self):
         """Test strategy signal generation performance"""
         from strategy import Strategy
+        from indicators import Indicators
         from config import strategy_configs
         
         config = strategy_configs['EMA_Only']
-        strategy = Strategy(config)
+        indicators = Indicators()
+        strategy = Strategy(indicators, config)
         
         start_time = time.time()
         start_memory = psutil.Process().memory_info().rss / 1024 / 1024
@@ -112,13 +126,15 @@ class TestPerformanceBaselines(unittest.TestCase):
         try:
             from backtester import Backtester, CYTHON_AVAILABLE
             from strategy import Strategy
+            from indicators import Indicators
             from config import strategy_configs
             
             if not CYTHON_AVAILABLE:
                 self.skipTest("Cython backtester not available")
             
             config = strategy_configs['EMA_Only']
-            strategy = Strategy(config)
+            indicators = Indicators()
+            strategy = Strategy(indicators, config)
             backtester = Backtester(self.large_dataset, strategy, config)
             
             start_time = time.time()
@@ -147,16 +163,18 @@ class TestPerformanceBaselines(unittest.TestCase):
     def test_multiple_strategy_performance(self):
         """Test performance with multiple strategies"""
         from strategy import Strategy
+        from indicators import Indicators
         from config import strategy_configs
         
         strategies_to_test = ['EMA_Only', 'Strict', 'BB_Breakout']
+        indicators = Indicators()
         
         start_time = time.time()
         start_memory = psutil.Process().memory_info().rss / 1024 / 1024
         
         for strategy_name in strategies_to_test:
             config = strategy_configs[strategy_name]
-            strategy = Strategy(config)
+            strategy = Strategy(indicators, config)
             signals = strategy.generate_signals(self.large_dataset, self.test_params)
         
         end_time = time.time()
@@ -203,7 +221,8 @@ class TestScalabilityBaselines(unittest.TestCase):
             })
             
             start_time = time.time()
-            indicators = Indicators(data)
+            indicators = Indicators()
+            indicators.get_indicator('sma', data, {'short_sma_period': 10})
             end_time = time.time()
             
             times.append(end_time - start_time)
@@ -252,7 +271,8 @@ class TestMemoryBaselines(unittest.TestCase):
         
         # Perform repeated operations
         for i in range(10):
-            indicators = Indicators(data)
+            indicators = Indicators()
+            indicators.get_indicator('sma', data, {'short_sma_period': 10})
             del indicators  # Explicit cleanup
         
         # Measure memory after

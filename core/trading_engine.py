@@ -16,6 +16,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 try:
     from config import strategy_configs, indicator_defaults
     from data import get_crypto_data
+    from pricer_refactored import analyze_crypto_with_existing_system
     CLI_AVAILABLE = True
 except ImportError as e:
     logging.warning(f"CLI modules not available: {e}")
@@ -110,7 +111,9 @@ class TradingEngine:
             'Strict': 'Multi-indicator confirmation strategy',
             'BB_Breakout': 'Bollinger Band breakout strategy',
             'BB_RSI': 'Bollinger Bands with RSI filter',
-            'Combined_Trigger_Verifier': 'Advanced multi-signal strategy'
+            'Combined_Trigger_Verifier': 'Advanced multi-signal strategy',
+            'Debug_Single_Long_Entry': 'Debug strategy for single long entry',
+            'Debug_EMA_Only': 'Debug strategy for EMA only',
         }
         return descriptions.get(strategy_name, 'Custom trading strategy')
     
@@ -157,18 +160,17 @@ class TradingEngine:
         self.logger.info(f"Starting analysis for {crypto_id} with strategy {strategy_name}")
         
         try:
-            # Mock analysis result for now (replace with actual CLI integration)
-            result = {
-                'crypto_id': crypto_id,
-                'strategy_used': strategy_name or 'EMA_Only',
-                'current_signal': 'HOLD',
-                'current_price': 50000.0,
-                'analysis_timestamp': datetime.now().isoformat(),
-                'active_resistance_lines': [],
-                'active_support_lines': [],
-                'backtest_result': None,
-                'next_move_prediction': None
-            }
+            # Call the actual analysis function from the CLI
+            result = analyze_crypto_with_existing_system(
+                crypto_id=crypto_id,
+                timeframe=timeframe,
+                strategy_name=strategy_name,
+                use_best_params=not custom_params  # Use best if no custom params
+            )
+
+            if not result:
+                self.logger.error(f"Analysis for {crypto_id} returned no result.")
+                return None
             
             # Enhance result with additional metadata
             enhanced_result = {
