@@ -9,12 +9,15 @@ from urllib.request import urlopen
 from flask import request, jsonify, _request_ctx_stack
 from jose import jwt
 from dotenv import load_dotenv
+import logging # Ensure logging is imported
 
 load_dotenv()
 
 AUTH0_DOMAIN = os.getenv('AUTH0_DOMAIN')
 API_AUDIENCE = os.getenv('AUTH0_API_AUDIENCE')
 ALGORITHMS = ["RS256"]
+
+logger = logging.getLogger(__name__) # Explicitly set level to DEBUG
 
 class AuthError(Exception):
     """Auth0 authentication error."""
@@ -48,6 +51,7 @@ def get_token_auth_header():
 
 def verify_decode_jwt(token):
     """Verify and decode JWT token."""
+    logger.debug(f"Attempting to verify token: {token}")
     if not AUTH0_DOMAIN or not API_AUDIENCE:
         raise AuthError({"code": "configuration_error",
                         "description": "Auth0 configuration missing"}, 500)
@@ -55,11 +59,14 @@ def verify_decode_jwt(token):
     try:
         jsonurl = urlopen(f"https://{AUTH0_DOMAIN}/.well-known/jwks.json")
         jwks = json.loads(jsonurl.read())
+        logger.debug(f"Fetched JWKS: {jwks}")
     except Exception as e:
+        logger.error(f"Error fetching JWKS: {str(e)}")
         raise AuthError({"code": "jwks_error",
                         "description": f"Unable to fetch JWKS: {str(e)}"}, 500)
     
     unverified_header = jwt.get_unverified_header(token)
+    logger.debug(f"Unverified header: {unverified_header}")
     
     rsa_key = {}
     if "kid" not in unverified_header:
@@ -75,6 +82,7 @@ def verify_decode_jwt(token):
                 "n": key["n"],
                 "e": key["e"]
             }
+    logger.debug(f"RSA Key found: {rsa_key}")
     
     if rsa_key:
         try:
@@ -85,19 +93,24 @@ def verify_decode_jwt(token):
                 audience=API_AUDIENCE,
                 issuer=f"https://{AUTH0_DOMAIN}/"
             )
+            logger.debug(f"Token decoded successfully. Payload: {payload}")
             return payload
 
         except jwt.ExpiredSignatureError:
+            logger.warning("Token expired.")
             raise AuthError({"code": "token_expired",
                             "description": "Token expired."}, 401)
 
         except jwt.JWTClaimsError:
+            logger.warning("Incorrect claims. Please, check the audience and issuer.")
             raise AuthError({"code": "invalid_claims",
                             "description": "Incorrect claims. Please, check the audience and issuer."}, 401)
-        except Exception:
-            raise AuthError({"code": "invalid_header",
-                            "description": "Unable to parse authentication token."}, 400)
+        except Exception as e:
+            logger.error(f"Error decoding token: {str(e)}")
+            raise AuthError({"code": "invalid_token", # Corrected from invalid_header
+                            "description": "Unable to parse authentication token."}, 401) # Corrected status code
 
+    logger.warning("Unable to find the appropriate key.")
     raise AuthError({"code": "invalid_header",
                     "description": "Unable to find the appropriate key."}, 400)
 
@@ -116,12 +129,12 @@ def requires_auth(permission=''):
                 
                 return f(*args, **kwargs)
             except AuthError as e:
-                return jsonify(e.error), e.status_code
+                raise e
             except Exception as e:
-                return jsonify({
+                raise AuthError({
                     "code": "invalid_token",
                     "description": "Unable to validate token"
-                }), 401
+                }, 401)
                 
         return decorated
     return requires_auth_decorator

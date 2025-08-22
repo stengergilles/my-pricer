@@ -1,9 +1,9 @@
-import axios, { AxiosInstance } from 'axios'
+import axios, { AxiosInstance, InternalAxiosRequestConfig } from 'axios'
 
-class ApiClient {
+export class ApiClient {
   private client: AxiosInstance
 
-  constructor() {
+  constructor(getAccessToken?: () => Promise<string | undefined>) {
     this.client = axios.create({
       baseURL: process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000',
       timeout: 30000,
@@ -12,25 +12,22 @@ class ApiClient {
       },
     })
 
-    // Request interceptor to add auth token
     this.client.interceptors.request.use(
-      async (config) => {
-        // try {
-        //   // Get token from Auth0 (client-side)
-        //   const response = await fetch('/api/auth/token')
-        //   if (response.ok) {
-        //     const { accessToken } = await response.json()
-        //     if (accessToken) {
-        //       config.headers.Authorization = `Bearer ${accessToken}`
-        //     }
-        //   }
-        // } catch (error) {
-        //   console.warn('Could not get access token:', error)
-        // }
-        return config
+      async (config: InternalAxiosRequestConfig) => {
+        if (getAccessToken) {
+          try {
+            const token = await getAccessToken();
+            if (token) {
+              config.headers.Authorization = `Bearer ${token}`;
+            }
+          } catch (error) {
+            console.warn('Could not get access token:', error);
+          }
+        }
+        return config;
       },
       (error) => Promise.reject(error)
-    )
+    );
 
     // Response interceptor for error handling
     this.client.interceptors.response.use(

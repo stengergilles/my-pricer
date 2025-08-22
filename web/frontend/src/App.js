@@ -1,9 +1,7 @@
 import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { Box, CircularProgress, Typography, Container, Paper } from '@mui/material';
-import './App.css'; // For global styles, if any
-import './index.css'; // For global styles from CRA
-import './globals.css'; // From Next.js app
+import { Box, CircularProgress, Typography, Container, Paper, AppBar, Toolbar, Tabs, Tab } from '@mui/material';
+import { styled } from '@mui/system';
 
 // Import components that were in page.tsx
 import { LoginButton } from './components/auth/LoginButton.tsx';
@@ -14,10 +12,32 @@ import { HealthStatus } from './components/HealthStatus.tsx';
 
 import { useAuth0 } from '@auth0/auth0-react';
 
+// Styled components for navigation tabs
+const StyledTab = styled(Tab)(({ theme }) => ({
+  textTransform: 'none',
+  fontWeight: theme.typography.fontWeightMedium,
+  fontSize: theme.typography.pxToRem(14),
+  padding: theme.spacing(2, 1),
+  minWidth: 0, // Allow tabs to shrink
+  [theme.breakpoints.up('sm')]: {
+    minWidth: 0,
+  },
+  '&.Mui-selected': {
+    color: theme.palette.primary.main,
+  },
+  '&:hover': {
+    color: theme.palette.primary.dark,
+  },
+}));
+
 
 function App() {
   const { user, isLoading } = useAuth0();
   const [activeTab, setActiveTab] = useState('analysis');
+
+  const handleTabChange = (event, newValue) => {
+    setActiveTab(newValue);
+  };
 
   if (isLoading) {
     return (
@@ -62,65 +82,49 @@ function App() {
 
   return (
     <Router>
-      <div className="min-h-screen bg-gray-50">
+      <Box sx={{ minHeight: '100vh', backgroundColor: (theme) => theme.palette.grey[50] }}>
         {/* Header */}
-        <header className="bg-white shadow">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex justify-between items-center py-6">
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900">
+        <AppBar position="static" color="default" elevation={1}>
+          <Toolbar>
+            <Container maxWidth="xl" sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 2 }}>
+              <Box>
+                <Typography variant="h5" component="h1" sx={{ fontWeight: 'bold', color: 'text.primary' }}>
                   Crypto Trading System
-                </h1>
-                <p className="text-gray-600">
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
                   Welcome back, {user.name}
-                </p>
-              </div>
-              <div className="flex items-center space-x-4">
+                </Typography>
+              </Box>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                 <HealthStatus />
                 <LogoutButton />
-              </div>
-            </div>
-          </div>
-        </header>
+              </Box>
+            </Container>
+          </Toolbar>
+        </AppBar>
 
         {/* Navigation */}
-        <nav className="bg-white border-b">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex space-x-8">
-              <button
-                onClick={() => setActiveTab('analysis')}
-                className={`py-4 px-1 border-b-2 font-medium text-sm ${
-                  activeTab === 'analysis'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                Analysis
-              </button>
-              <button
-                onClick={() => setActiveTab('backtest')}
-                className={`py-4 px-1 border-b-2 font-medium text-sm ${
-                  activeTab === 'backtest'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                Backtest
-              </button>
-            </div>
-          </div>
-        </nav>
+        <AppBar position="static" color="default" elevation={0} sx={{ borderBottom: 1, borderColor: 'divider' }}>
+          <Toolbar>
+            <Container maxWidth="xl">
+              <Tabs value={activeTab} onChange={handleTabChange} aria-label="navigation tabs">
+                <StyledTab label="Analysis" value="analysis" />
+                <StyledTab label="Backtest" value="backtest" />
+              </Tabs>
+            </Container>
+          </Toolbar>
+        </AppBar>
 
         {/* Main Content */}
-        <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-          <div className="px-4 py-6 sm:px-0">
+        <Container maxWidth="xl" sx={{ py: 3 }}>
+          <Box sx={{ p: 2 }}>
             <Routes>
               <Route path="/" element={activeTab === 'analysis' ? <CryptoAnalysis /> : <BacktestRunner />} />
               {/* Add more routes as needed */}
             </Routes>
-          </div>
-        </main>
-      </div>
+          </Box>
+        </Container>
+      </Box>
     </Router>
   );
 }

@@ -4,20 +4,52 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import toast from 'react-hot-toast'
-import { apiClient } from '../utils/api.ts'
+import { useApiClient } from '../hooks/useApiClient.ts'
 import { Crypto, Strategy, AnalysisFormData, AnalysisResult } from '../utils/types.ts'
+import {
+  Box,
+  Typography,
+  TextField,
+  Button,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  Grid,
+  Paper,
+  CircularProgress,
+  Checkbox,
+  FormControlLabel,
+  Alert,
+} from '@mui/material'
+import { styled } from '@mui/system'
 
-export function CryptoAnalysis() {
+// Styled components for consistent styling
+const StyledPaper = styled(Paper)(({ theme }) => ({
+  padding: theme.spacing(3),
+  borderRadius: theme.shape.borderRadius,
+  boxShadow: theme.shadows[1],
+}))
+
+const ResultBox = styled(Box)(({ theme }) => ({
+  padding: theme.spacing(2),
+  borderRadius: theme.shape.borderRadius,
+  backgroundColor: theme.palette.grey[50],
+  textAlign: 'center',
+}))
+
+export const CryptoAnalysis = () => {
+  const apiClient = useApiClient()
   const queryClient = useQueryClient()
   const [result, setResult] = useState<AnalysisResult | null>(null)
 
   // Fetch data
-  const { data: cryptos } = useQuery<{ cryptos: Crypto[] }>({
+  const { data: cryptos, isLoading: cryptosLoading } = useQuery<{ cryptos: Crypto[] }>({
     queryKey: ['cryptos'],
     queryFn: () => apiClient.getCryptos(),
   })
 
-  const { data: strategies } = useQuery<{ strategies: Strategy[] }>({
+  const { data: strategies, isLoading: strategiesLoading } = useQuery<{ strategies: Strategy[] }>({
     queryKey: ['strategies'],
     queryFn: () => apiClient.getStrategies(),
   })
@@ -64,203 +96,226 @@ export function CryptoAnalysis() {
     analysisMutation.mutate(data)
   }
 
-  return (
-    <div className="space-y-6">
-      <div className="bg-white shadow rounded-lg p-6">
-        <h2 className="text-lg font-medium text-gray-900 mb-4">
-          Crypto Analysis
-        </h2>
+  if (cryptosLoading || strategiesLoading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '200px' }}>
+        <CircularProgress />
+      </Box>
+    )
+  }
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+  return (
+    <Box sx={{ my: 3 }}>
+      <StyledPaper sx={{ mb: 3 }}>
+        <Typography variant="h5" component="h2" gutterBottom>
+          Crypto Analysis
+        </Typography>
+
+        <form onSubmit={handleSubmit(onSubmit)}>
+          <Grid container spacing={3} mb={3}>
             {/* Cryptocurrency Selection */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Cryptocurrency
-              </label>
-              <select
-                {...register('cryptoId', { required: true })}
-                className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-              >
-                {cryptos?.cryptos.map((crypto) => (
-                  <option key={crypto.id} value={crypto.id}>
-                    {crypto.name} ({crypto.symbol})
-                  </option>
-                ))}
-              </select>
-            </div>
+            <Grid item xs={12} md={4}>
+              <FormControl fullWidth>
+                <InputLabel id="crypto-select-label">Cryptocurrency</InputLabel>
+                <Select
+                  labelId="crypto-select-label"
+                  label="Cryptocurrency"
+                  {...register('cryptoId', { required: true })}
+                  defaultValue="bitcoin"
+                >
+                  {cryptos?.cryptos.map((crypto) => (
+                    <MenuItem key={crypto.id} value={crypto.id}>
+                      {crypto.name} ({crypto.symbol})
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
 
             {/* Strategy Selection */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Strategy
-              </label>
-              <select
-                {...register('strategyName', { required: true })}
-                className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-              >
-                {strategies?.strategies.map((strategy) => (
-                  <option key={strategy.name} value={strategy.name}>
-                    {strategy.display_name}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <Grid item xs={12} md={4}>
+              <FormControl fullWidth>
+                <InputLabel id="strategy-select-label">Strategy</InputLabel>
+                <Select
+                  labelId="strategy-select-label"
+                  label="Strategy"
+                  {...register('strategyName', { required: true })}
+                  defaultValue="EMA_Only"
+                >
+                  {strategies?.strategies.map((strategy) => (
+                    <MenuItem key={strategy.name} value={strategy.name}>
+                      {strategy.display_name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
 
             {/* Timeframe */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Timeframe (days)
-              </label>
-              <input
+            <Grid item xs={12} md={4}>
+              <TextField
+                fullWidth
+                label="Timeframe (days)"
                 type="number"
-                min="1"
-                max="365"
+                inputProps={{ min: 1, max: 365 }}
                 {...register('timeframe', { required: true, min: 1, max: 365 })}
-                className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
               />
-            </div>
-          </div>
+            </Grid>
+          </Grid>
 
           {/* Strategy Description */}
           {strategyDetails && (
-            <div className="bg-blue-50 p-3 rounded-md">
-              <p className="text-sm text-blue-800">
-                <strong>{strategyDetails.display_name}:</strong> {strategyDetails.description}
-              </p>
-            </div>
+            <Alert severity="info" sx={{ mb: 3 }}>
+              <Typography variant="subtitle2" component="strong">
+                {strategyDetails.display_name}:
+              </Typography>{' '}
+              {strategyDetails.description}
+            </Alert>
           )}
 
           {/* Custom Parameters Toggle */}
-          <div className="flex items-center">
-            <input
-              type="checkbox"
-              {...register('useCustomParams')}
-              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-            />
-            <label className="ml-2 block text-sm text-gray-900">
-              Use custom parameters
-            </label>
-          </div>
+          <FormControlLabel
+            control={
+              <Checkbox
+                {...register('useCustomParams')}
+              />
+            }
+            label="Use custom parameters"
+            sx={{ mb: 2 }}
+          />
 
           {/* Custom Parameters */}
           {useCustomParams && strategyDetails && (
-            <div className="bg-gray-50 p-4 rounded-md space-y-3">
-              <h4 className="text-sm font-medium text-gray-900">Strategy Parameters</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <StyledPaper sx={{ mb: 3 }}>
+              <Typography variant="h6" gutterBottom>Strategy Parameters</Typography>
+              <Grid container spacing={2}>
                 {Object.entries(strategyDetails.parameters).map(([key, param]) => (
-                  <div key={key}>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">
-                      {param.description}
-                    </label>
-                    <input
+                  <Grid item xs={12} sm={6} key={key}>
+                    <TextField
+                      fullWidth
+                      label={param.description}
                       type="number"
-                      min={param.min}
-                      max={param.max}
+                      inputProps={{ min: param.min, max: param.max }}
                       defaultValue={param.default}
                       {...register(`parameters.${key}` as any)}
-                      className="w-full p-2 text-sm border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                     />
-                  </div>
+                  </Grid>
                 ))}
-              </div>
-            </div>
+              </Grid>
+            </StyledPaper>
           )}
 
           {/* Submit Button */}
-          <button
+          <Button
             type="submit"
+            variant="contained"
+            color="primary"
             disabled={isSubmitting}
-            className="w-full md:w-auto bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            sx={{ mt: 2 }}
           >
             {isSubmitting ? 'Running Analysis...' : 'Run Analysis'}
-          </button>
+          </Button>
         </form>
-      </div>
+      </StyledPaper>
 
       {/* Results */}
       {result && (
-        <div className="bg-white shadow rounded-lg p-6">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">Analysis Results</h3>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            <div className="bg-gray-50 p-4 rounded-md">
-              <div className="text-sm font-medium text-gray-500">Current Signal</div>
-              <div className={`text-lg font-semibold ${
-                result.current_signal === 'LONG' ? 'text-green-600' :
-                result.current_signal === 'SHORT' ? 'text-red-600' : 'text-gray-600'
-              }`}>
-                {result.current_signal}
-              </div>
-            </div>
-            
-            <div className="bg-gray-50 p-4 rounded-md">
-              <div className="text-sm font-medium text-gray-500">Current Price</div>
-              <div className="text-lg font-semibold text-gray-900">
-                ${result.current_price.toLocaleString()}
-              </div>
-            </div>
-            
-            <div className="bg-gray-50 p-4 rounded-md">
-              <div className="text-sm font-medium text-gray-500">Strategy Used</div>
-              <div className="text-lg font-semibold text-gray-900">
-                {result.strategy_used.replace('_', ' ')}
-              </div>
-            </div>
-            
-            <div className="bg-gray-50 p-4 rounded-md">
-              <div className="text-sm font-medium text-gray-500">Timeframe</div>
-              <div className="text-lg font-semibold text-gray-900">
-                {result.timeframe_days} days
-              </div>
-            </div>
-          </div>
+        <StyledPaper>
+          <Typography variant="h5" component="h3" gutterBottom>Analysis Results</Typography>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <h4 className="text-sm font-medium text-gray-900 mb-2">Support/Resistance Analysis</h4>
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Active Resistance Lines:</span>
-                  <span className="font-medium">{result.active_resistance_lines?.length || 0}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Active Support Lines:</span>
-                  <span className="font-medium">{result.active_support_lines?.length || 0}</span>
-                </div>
-              </div>
-            </div>
+          <Grid container spacing={2} mb={3}>
+            <Grid item xs={12} sm={6} md={3}>
+              <ResultBox>
+                <Typography variant="body2" color="text.secondary">Current Signal</Typography>
+                <Typography
+                  variant="h6"
+                  sx={{
+                    fontWeight: 'bold',
+                    color: result.current_signal === 'LONG' ? 'success.main' : result.current_signal === 'SHORT' ? 'error.main' : 'text.primary',
+                  }}
+                >
+                  {result.current_signal}
+                </Typography>
+              </ResultBox>
+            </Grid>
+
+            <Grid item xs={12} sm={6} md={3}>
+              <ResultBox>
+                <Typography variant="body2" color="text.secondary">Current Price</Typography>
+                <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                  ${result.current_price.toLocaleString()}
+                </Typography>
+              </ResultBox>
+            </Grid>
+
+            <Grid item xs={12} sm={6} md={3}>
+              <ResultBox>
+                <Typography variant="body2" color="text.secondary">Strategy Used</Typography>
+                <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                  {result.strategy_used.replace('_', ' ')}
+                </Typography>
+              </ResultBox>
+            </Grid>
+
+            <Grid item xs={12} sm={6} md={3}>
+              <ResultBox>
+                <Typography variant="body2" color="text.secondary">Timeframe</Typography>
+                <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                  {result.timeframe_days} days
+                </Typography>
+              </ResultBox>
+            </Grid>
+          </Grid>
+
+          <Grid container spacing={3}>
+            <Grid item xs={12} md={6}>
+              <Typography variant="subtitle1" gutterBottom>Support/Resistance Analysis</Typography>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Typography variant="body2" color="text.secondary">Active Resistance Lines:</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 'medium' }}>{result.active_resistance_lines?.length || 0}</Typography>
+                </Box>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Typography variant="body2" color="text.secondary">Active Support Lines:</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 'medium' }}>{result.active_support_lines?.length || 0}</Typography>
+                </Box>
+              </Box>
+            </Grid>
 
             {result.backtest_result && (
-              <div>
-                <h4 className="text-sm font-medium text-gray-900 mb-2">Backtest Performance</h4>
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Total Profit:</span>
-                    <span className={`font-medium ${
-                      result.backtest_result.total_profit_percentage > 0 ? 'text-green-600' : 'text-red-600'
-                    }`}>
+              <Grid item xs={12} md={6}>
+                <Typography variant="subtitle1" gutterBottom>Backtest Performance</Typography>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <Typography variant="body2" color="text.secondary">Total Profit:</Typography>
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        fontWeight: 'medium',
+                        color: result.backtest_result.total_profit_percentage > 0 ? 'success.main' : 'error.main',
+                      }}
+                    >
                       {result.backtest_result.total_profit_percentage.toFixed(2)}%
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Number of Trades:</span>
-                    <span className="font-medium">{result.backtest_result.num_trades}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Win Rate:</span>
-                    <span className="font-medium">{result.backtest_result.win_rate.toFixed(1)}%</span>
-                  </div>
-                </div>
-              </div>
+                    </Typography>
+                  </Box>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <Typography variant="body2" color="text.secondary">Number of Trades:</Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 'medium' }}>{result.backtest_result.num_trades}</Typography>
+                  </Box>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <Typography variant="body2" color="text.secondary">Win Rate:</Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 'medium' }}>{result.backtest_result.win_rate.toFixed(1)}%</Typography>
+                  </Box>
+                </Box>
+              </Grid>
             )}
-          </div>
+          </Grid>
 
-          <div className="mt-4 text-xs text-gray-500">
+          <Typography variant="caption" color="text.secondary" sx={{ mt: 3, display: 'block' }}>
             Analysis completed at {new Date(result.analysis_timestamp).toLocaleString()}
-          </div>
-        </div>
+          </Typography>
+        </StyledPaper>
       )}
-    </div>
+    </Box>
   )
 }

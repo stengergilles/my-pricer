@@ -1,10 +1,13 @@
 'use client'
 
 import { useQuery } from '@tanstack/react-query'
-import { apiClient } from '../utils/api.ts'
+import { useApiClient } from '../hooks/useApiClient.ts'
 import { HealthCheck } from '../utils/types.ts'
+import { Box, Typography, CircularProgress } from '@mui/material';
+import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord';
 
-export function HealthStatus() {
+export const HealthStatus = () => {
+  const apiClient = useApiClient()
   const { data: health, isLoading } = useQuery<HealthCheck>({
     queryKey: ['health'],
     queryFn: () => apiClient.healthCheck(),
@@ -13,32 +16,32 @@ export function HealthStatus() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center space-x-2">
-        <div className="w-2 h-2 bg-gray-400 rounded-full animate-pulse"></div>
-        <span className="text-sm text-gray-500">Checking...</span>
-      </div>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <CircularProgress size={12} color="inherit" />
+        <Typography variant="caption" color="text.secondary">Checking...</Typography>
+      </Box>
     )
   }
 
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'healthy':
-        return 'bg-green-400'
+        return 'success.main' // MUI color palette
       case 'warning':
-        return 'bg-yellow-400'
+        return 'warning.main'
       case 'error':
-        return 'bg-red-400'
+        return 'error.main'
       default:
-        return 'bg-gray-400'
+        return 'text.secondary'
     }
   }
 
   return (
-    <div className="flex items-center space-x-2">
-      <div className={`w-2 h-2 rounded-full ${getStatusColor(health?.status || 'unknown')}`}></div>
-      <span className="text-sm text-gray-600 capitalize">
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+      <FiberManualRecordIcon sx={{ fontSize: 12, color: getStatusColor(health?.status || 'unknown') }} />
+      <Typography variant="caption" sx={{ textTransform: 'capitalize', color: 'text.primary' }}>
         {health?.status || 'Unknown'}
-      </span>
-    </div>
+      </Typography>
+    </Box>
   )
 }
