@@ -1,6 +1,6 @@
 # 🌐 Crypto Trading Web Application
 
-A modern web interface for your crypto trading system, built with Flask backend and Next.js frontend, secured with Auth0 authentication.
+A modern web interface for your crypto trading system, built with Flask backend and React frontend using Material-UI (MUI), secured with Auth0 authentication.
 
 ## 🏗️ Architecture
 
@@ -9,16 +9,16 @@ crypto-trading-web/
 ├── web/
 │   ├── backend/           # Flask API with Auth0
 │   │   ├── app.py         # Main Flask application
-│   │   ├── auth/          # Auth0 integration
+│   │   ├── auth/          # Auth0 integration & middleware
 │   │   ├── api/           # REST API endpoints
 │   │   ├── utils/         # Backend utilities
 │   │   └── requirements.txt
-│   └── frontend/          # Next.js with Auth0
+│   └── frontend/          # React SPA with Material-UI
 │       ├── src/
-│       │   ├── app/       # App Router pages
-│       │   ├── components/ # React components
-│       │   ├── lib/       # Utilities & API client
-│       │   └── hooks/     # Custom React hooks
+│       │   ├── components/ # React components (MUI-based)
+│       │   ├── utils/     # API client & utilities
+│       │   ├── hooks/     # Custom React hooks (useApiClient)
+│       │   └── index.js   # Main app with Auth0Provider & MUI Theme
 │       └── package.json
 ├── core/                  # Shared business logic
 │   ├── trading_engine.py  # Main trading engine
@@ -39,24 +39,44 @@ crypto-trading-web/
 ```
 
 ### 2. Configure Auth0
-Create an Auth0 application and configure:
 
-**Backend (.env):**
+#### Frontend Configuration (`web/frontend/.env.local`)
+
+Create your Auth0 Single Page Application (SPA) and configure the frontend environment:
+
 ```bash
-AUTH0_DOMAIN=your-domain.auth0.com
-AUTH0_API_AUDIENCE=https://your-api-identifier
-AUTH0_CLIENT_ID=your-client-id
-AUTH0_CLIENT_SECRET=your-client-secret
+REACT_APP_AUTH0_DOMAIN=YOUR_AUTH0_DOMAIN_FROM_SPA_APP
+REACT_APP_AUTH0_CLIENT_ID=YOUR_AUTH0_CLIENT_ID_FROM_SPA_APP
+REACT_APP_AUTH0_AUDIENCE=YOUR_AUTH0_API_IDENTIFIER
 ```
 
-**Frontend (web/frontend/.env.local):**
+**Variable Details:**
+- **`REACT_APP_AUTH0_DOMAIN`**: Your Auth0 tenant domain (e.g., `dev-xxxxxxxx.eu.auth0.com`)
+  - Find in: Auth0 Dashboard → Applications → (Your SPA Application) → Domain
+- **`REACT_APP_AUTH0_CLIENT_ID`**: Client ID for your Auth0 Single Page Application
+  - Find in: Auth0 Dashboard → Applications → (Your SPA Application) → Client ID
+- **`REACT_APP_AUTH0_AUDIENCE`**: Unique identifier for your Auth0 API
+  - Find in: Auth0 Dashboard → Applications → APIs → (Your API Name) → Identifier
+  - **Critical**: This ensures the frontend requests an Access Token valid for your backend
+
+#### Backend Configuration (`web/backend/.env`)
+
+Configure the backend to validate Auth0 tokens:
+
 ```bash
-AUTH0_SECRET=use-a-long-random-value
-AUTH0_BASE_URL=http://localhost:3000
-AUTH0_ISSUER_BASE_URL=https://your-domain.auth0.com
-AUTH0_CLIENT_ID=your-client-id
-AUTH0_CLIENT_SECRET=your-client-secret
+AUTH0_DOMAIN=YOUR_AUTH0_DOMAIN_FROM_SPA_APP
+AUTH0_API_AUDIENCE=YOUR_AUTH0_API_IDENTIFIER
+AUTH0_CLIENT_ID=YOUR_AUTH0_API_CLIENT_ID
+AUTH0_CLIENT_SECRET=YOUR_AUTH0_API_CLIENT_SECRET
 ```
+
+**Variable Details:**
+- **`AUTH0_DOMAIN`**: Same as frontend `REACT_APP_AUTH0_DOMAIN`
+- **`AUTH0_API_AUDIENCE`**: Same as frontend `REACT_APP_AUTH0_AUDIENCE`
+- **`AUTH0_CLIENT_ID`**: Client ID for your Auth0 API
+  - Find in: Auth0 Dashboard → Applications → APIs → (Your API Name) → Client ID
+- **`AUTH0_CLIENT_SECRET`**: Client Secret for your Auth0 API ⚠️ **Keep Secret**
+  - Find in: Auth0 Dashboard → Applications → APIs → (Your API Name) → Client Secret
 
 ### 3. Start Development Servers
 ```bash
@@ -78,16 +98,90 @@ cd web/frontend && npm run dev
 
 ## 🔐 Auth0 Configuration
 
-### Application Settings
-- **Application Type**: Regular Web Application
-- **Allowed Callback URLs**: `http://localhost:3000/api/auth/callback`
+### Application Settings (Single Page Application)
+- **Application Type**: Single Page Application (SPA)
+- **Allowed Callback URLs**: `http://localhost:3000`
 - **Allowed Logout URLs**: `http://localhost:3000`
 - **Allowed Web Origins**: `http://localhost:3000`
+- **Allowed Origins (CORS)**: `http://localhost:3000`
 
 ### API Settings
-- **Identifier**: `https://your-api-identifier`
+- **Identifier**: `https://your-api-identifier` (use in `REACT_APP_AUTH0_AUDIENCE`)
 - **Signing Algorithm**: RS256
 - **Allow Skipping User Consent**: Yes (for development)
+- **Token Expiration**: Configure as needed (default: 24 hours)
+
+### Important Auth0 Setup Notes
+
+**Token Type Configuration:**
+- The backend expects **signed Access Tokens (JWS)**, not encrypted ones (JWE)
+- Including the `audience` parameter in frontend configuration ensures correct token type
+- If you see `alg: 'dir'` errors, it indicates an encrypted token - verify audience configuration
+
+**Troubleshooting Auth0:**
+- Always clear browser cookies and local storage when troubleshooting
+- Verify all URLs in Auth0 dashboard match your local development setup
+- Restart backend server after any `.env` changes
+- Check Auth0 dashboard logs for detailed error information
+
+## 🎨 Frontend Architecture & Material-UI Integration
+
+### Technology Stack
+- **React**: Single Page Application (SPA) architecture
+- **Material-UI (MUI)**: Complete UI component library replacing Tailwind CSS
+- **Auth0 React SDK**: Authentication integration with token management
+- **Axios**: HTTP client with Auth0 token injection
+
+### Key Components
+
+#### Core Application (`web/frontend/src/index.js`)
+```javascript
+// Auth0Provider with audience parameter for API access
+<Auth0Provider
+  domain={process.env.REACT_APP_AUTH0_DOMAIN}
+  clientId={process.env.REACT_APP_AUTH0_CLIENT_ID}
+  authorizationParams={{
+    redirect_uri: window.location.origin,
+    audience: process.env.REACT_APP_AUTH0_AUDIENCE, // Critical for API tokens
+  }}
+>
+  <ThemeProvider theme={theme}>
+    <CssBaseline />
+    <App />
+  </ThemeProvider>
+</Auth0Provider>
+```
+
+#### Material-UI Theme Integration
+- **Global Theme**: Consistent color palette and typography
+- **CssBaseline**: Normalized browser styles
+- **Responsive Design**: Mobile-first approach with MUI breakpoints
+- **Custom Styled Components**: `StyledPaper`, `ResultBox` for consistent styling
+
+#### Authentication Hook (`web/frontend/src/hooks/useApiClient.ts`)
+```typescript
+// Custom hook providing API client with Auth0 token injection
+const useApiClient = () => {
+  const { getAccessTokenSilently } = useAuth0();
+  
+  return useMemo(() => new ApiClient(getAccessTokenSilently), [getAccessTokenSilently]);
+};
+```
+
+### Component Architecture
+
+#### Refactored Components (Tailwind → MUI)
+- **`App.js`**: Main layout using `AppBar`, `Toolbar`, `Container`, `Tabs`
+- **`CryptoAnalysis.tsx`**: Form components using `TextField`, `Select`, `FormControl`
+- **`BacktestRunner.tsx`**: Complex forms with `Grid`, `Paper`, `Alert` components
+- **`HealthStatus.tsx`**: Status display with `CircularProgress`, `Typography`
+- **Auth Components**: `LoginButton`, `LogoutButton` using MUI `Button` variants
+
+#### Styling Approach
+- **MUI `sx` prop**: Replaces Tailwind classes for component-level styling
+- **Theme-based colors**: Consistent color scheme across components
+- **Responsive utilities**: MUI breakpoint system for mobile compatibility
+- **No custom CSS**: All styling through MUI's theming system
 
 ## 📡 API Endpoints
 
@@ -116,26 +210,27 @@ cd web/frontend && npm run dev
 ## 🎯 Features
 
 ### ✅ Implemented
-- **Auth0 Authentication**: Secure login/logout
+- **Auth0 Authentication**: Secure login/logout with proper token management
+- **Material-UI Design System**: Complete UI overhaul from Tailwind to MUI
 - **Crypto Analysis Interface**: Run analysis with strategy selection
 - **Backtest Runner**: Configure and run backtests
 - **Real-time Health Monitoring**: System status display
-- **Responsive Design**: Works on desktop and mobile
+- **Responsive Design**: Mobile-first approach with MUI breakpoints
 - **Form Validation**: Client and server-side validation
-- **Error Handling**: Comprehensive error management
+- **Error Handling**: Comprehensive error management with proper Auth0 integration
 - **Result Storage**: Local JSON file storage
-- **API Integration**: RESTful API with proper error handling
+- **API Integration**: RESTful API with Auth0 token injection
+- **Custom React Hooks**: `useApiClient` for seamless API authentication
 
 ### 🔄 CLI Integration Status
 - **Core Logic**: Uses shared core module
 - **Strategy Configs**: Imports from existing config.py
 - **Result Compatibility**: Saves in same format as CLI
 - **Data Sources**: Uses same data fetching logic
+- **Material-UI Integration**: Complete frontend redesign for better UX
+- **Enhanced Auth0**: Proper SPA configuration with API audience
 
-**Note**: Currently using mock data for some operations. Full CLI integration requires:
-1. Proper import path resolution
-2. Cython backtester compilation
-3. API rate limit handling
+**Note**: Frontend now uses Material-UI instead of Tailwind CSS for better platform compatibility and consistent theming. All Auth0 integration issues have been resolved with proper token handling.
 
 ## 🧪 Testing
 
@@ -169,23 +264,25 @@ npm run type-check
 
 ### Adding New Features
 1. **Backend**: Add API endpoint in `web/backend/api/`
-2. **Frontend**: Add component in `web/frontend/src/components/`
-3. **Types**: Update `web/frontend/src/lib/types.ts`
-4. **API Client**: Update `web/frontend/src/lib/api.ts`
+2. **Frontend**: Add MUI-based component in `web/frontend/src/components/`
+3. **Types**: Update TypeScript interfaces if using TypeScript
+4. **API Client**: Update `web/frontend/src/utils/api.ts`
+5. **Authentication**: Use `useApiClient` hook for authenticated requests
 
 ### Debugging
 - **Backend Logs**: Check `data/logs/backend.log`
 - **Frontend Console**: Browser developer tools
-- **API Testing**: Use curl or Postman
-- **Auth Issues**: Check Auth0 dashboard logs
+- **API Testing**: Use curl with Auth0 tokens or Postman
+- **Auth Issues**: Check Auth0 dashboard logs and verify environment variables
+- **MUI Theme Issues**: Check browser console for theme-related errors
 
 ## 📊 Data Flow
 
 ```
-Frontend (Next.js) 
-    ↓ Auth0 Token
+Frontend (React SPA) 
+    ↓ Auth0 Access Token (with audience)
 Backend (Flask API)
-    ↓ Validates Token
+    ↓ Validates JWT Token (RS256)
 Core Trading Engine
     ↓ Uses Existing CLI Logic
 Result Manager
@@ -195,11 +292,13 @@ Local File Storage
 
 ## 🛡️ Security Features
 
-- **Auth0 JWT Validation**: All API endpoints protected
+- **Auth0 JWT Validation**: All API endpoints protected with proper RS256 validation
+- **SPA Token Management**: Secure token storage and automatic refresh
 - **CORS Configuration**: Restricted to frontend origin
 - **Input Validation**: Server-side parameter validation
 - **Error Sanitization**: No sensitive data in error responses
-- **Token Refresh**: Automatic token renewal
+- **Audience Validation**: API tokens scoped to specific backend audience
+- **Secure Token Exchange**: Proper Auth0 SPA → API token flow
 
 ## 🚀 Production Deployment
 
@@ -215,13 +314,15 @@ gunicorn -w 4 -b 0.0.0.0:5000 app:app
 cd web/frontend
 npm run build
 npm start
+# or serve the build directory with a static server
 ```
 
 ### Environment Variables
-Update URLs for production:
-- `AUTH0_BASE_URL`: Your production frontend URL
-- `FRONTEND_URL`: Your production frontend URL
-- `API_BASE_URL`: Your production backend URL
+Update URLs and configuration for production:
+- **Frontend**: Update `REACT_APP_AUTH0_DOMAIN`, `REACT_APP_AUTH0_CLIENT_ID`, `REACT_APP_AUTH0_AUDIENCE`
+- **Backend**: Update `AUTH0_DOMAIN`, `AUTH0_API_AUDIENCE`, and other Auth0 credentials
+- **CORS Settings**: Update allowed origins in backend configuration
+- **Auth0 Dashboard**: Update callback URLs, web origins, and logout URLs for production domain
 
 ## 🔄 CLI Compatibility
 
@@ -246,24 +347,31 @@ python get_volatile_cryptos.py
 ### Common Issues
 
 **Auth0 Login Fails**
-- Check Auth0 configuration
-- Verify callback URLs
-- Check environment variables
+- Check Auth0 SPA configuration (not Regular Web Application)
+- Verify callback URLs match exactly: `http://localhost:3000`
+- Ensure `REACT_APP_AUTH0_AUDIENCE` is set correctly
+- Clear browser cookies and local storage
+- Check Auth0 dashboard logs for detailed errors
 
 **Backend API Errors**
-- Check if backend server is running
-- Verify Auth0 API configuration
-- Check backend logs
+- Verify backend server is running on correct port
+- Check Auth0 API configuration and audience settings
+- Ensure backend `.env` file has correct Auth0 credentials
+- Check backend logs for JWT validation errors
+- Restart backend server after `.env` changes
 
-**Frontend Build Errors**
+**Frontend Build/Runtime Errors**
 - Run `npm install` to update dependencies
-- Check TypeScript errors
-- Verify environment variables
+- Check for MUI theme-related errors in console
+- Verify all environment variables are set
+- Ensure `useApiClient` hook is used for API calls
+- Check for missing MUI component imports
 
-**CLI Integration Issues**
-- Check Python path resolution
-- Verify core module imports
-- Check data directory permissions
+**Token/Authentication Issues**
+- Verify `audience` parameter is included in Auth0Provider
+- Check that backend expects signed (JWS) not encrypted (JWE) tokens
+- Clear Auth0 session: logout and clear browser storage
+- Verify API identifier matches between frontend and backend config
 
 ### Getting Help
 1. Check logs in `data/logs/`
@@ -285,15 +393,57 @@ python get_volatile_cryptos.py
 3. **Strategy Builder**: Visual strategy configuration
 4. **Performance Analytics**: Advanced metrics and reporting
 
+## 🔄 Recent Updates & Improvements
+
+### Frontend Refactoring (Tailwind → Material-UI)
+**Completed**: Complete migration from Tailwind CSS to Material-UI (MUI)
+
+**Reasoning**: Platform compatibility issues with Tailwind (Rust dependency) led to adoption of MUI for better stability and consistent theming.
+
+**Key Changes**:
+- All components refactored to use MUI components (`Button`, `TextField`, `AppBar`, etc.)
+- Replaced Tailwind `className` with MUI `sx` prop styling
+- Implemented global MUI theme with `ThemeProvider` and `CssBaseline`
+- Created custom styled components (`StyledPaper`, `ResultBox`) for consistency
+- Removed all custom CSS files in favor of MUI's theming system
+
+### Auth0 Integration Fixes
+**Completed**: Resolved all Auth0 authentication and token validation issues
+
+**Frontend Improvements**:
+- Added `audience` parameter to `Auth0Provider` for proper API token requests
+- Created `useApiClient` custom hook for seamless token injection
+- Updated all components to use authenticated API client
+- Fixed import path issues and module resolution
+
+**Backend Improvements**:
+- Fixed JWT token validation to handle signed tokens (JWS) correctly
+- Improved error handling in `requires_auth` decorator
+- Enhanced logging for better debugging
+- Resolved `TypeError: Object of type Response is not JSON serializable` issues
+
+**Configuration Updates**:
+- Simplified environment variable setup with clear documentation
+- Added troubleshooting guide for common Auth0 issues
+- Updated Auth0 application type to Single Page Application (SPA)
+
+### Architecture Improvements
+- **Token Flow**: Proper SPA → API token exchange with audience validation
+- **Error Handling**: Comprehensive error management across frontend and backend
+- **Development Experience**: Better debugging tools and clearer setup instructions
+- **Security**: Enhanced JWT validation and proper CORS configuration
+
 ---
 
 ## 🎉 Success!
 
 You now have a complete web application that:
 - ✅ **Preserves CLI functionality** - All existing tools still work
-- ✅ **Adds web interface** - Modern, responsive UI
-- ✅ **Secure authentication** - Auth0 integration
+- ✅ **Modern Material-UI interface** - Responsive, accessible, and consistent design
+- ✅ **Secure Auth0 authentication** - Proper SPA integration with API token management
 - ✅ **Shared core logic** - No code duplication
-- ✅ **Easy to restart** - Comprehensive documentation and scripts
+- ✅ **Robust error handling** - Comprehensive debugging and troubleshooting
+- ✅ **Easy to restart** - Comprehensive documentation and setup scripts
+- ✅ **Production ready** - Proper security, validation, and deployment guidance
 
 **Ready for development and testing!** 🚀
