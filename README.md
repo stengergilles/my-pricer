@@ -60,6 +60,7 @@ python run_tests.py --all
 | [README.md](README.md) | Main project overview and quick start guide |
 | [TESTING.md](TESTING.md) | Comprehensive testing framework documentation |
 | [WEB_APP_README.md](WEB_APP_README.md) | Web application setup and usage guide |
+| [Frontend Refactoring & Auth0 Integration](docs/session_summary_auth0_mui.md) | Summary of frontend refactoring to MUI and Auth0 setup |
 | [docs/](docs/) | Detailed technical documentation for all components |
 
 ## 🏗️ Architecture
