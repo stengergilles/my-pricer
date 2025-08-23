@@ -16,33 +16,9 @@ import time
 import glob
 from datetime import datetime, timedelta
 import logging
+from pathlib import Path
 
-# Configure logging
-logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)s - %(levelname)s - %(message)s',
-                    handlers=[
-                        logging.FileHandler("debug.log"),
-                        logging.StreamHandler()
-                    ])
-
-# Import existing components (no duplication)
-from lines import find_swing_points, calculate_line_equation, find_support_resistance_lines, analyze_line_durations, auto_discover_percentage_change, predict_next_move
-from data import get_crypto_data
-from indicators import Indicators
-from chart import generate_chart
-from magnitude import predict_movement_magnitude
-from config import strategy_configs, indicator_defaults, DEFAULT_TIMEFRAME, DEFAULT_INTERVAL
-from strategy import Strategy
-from backtester import Backtester
-
-# Import compatibility functions for new backtester system
-from pricer_compatibility_fix import (
-    find_best_result_file,
-    normalize_result_data,
-    calculate_hybrid_position_size,
-    load_strategy_config,
-    get_daily_volatility
-)
+PROJECT_ROOT = Path(__file__).resolve().parent
 
 SAVE_INTERVAL_MINUTES = 60  # Save results every 60 minutes
 
@@ -299,13 +275,15 @@ def analyze_crypto_with_existing_system(crypto_id, timeframe=DEFAULT_TIMEFRAME, 
         logging.error(f"Error analyzing {crypto_id}: {e}")
         return None
 
-def save_analysis_result(result, output_dir="live_results"):
+def save_analysis_result(result, output_dir_name="live_results"):
     """Save analysis result to file."""
     try:
+        # Resolve the output directory relative to PROJECT_ROOT
+        output_dir = PROJECT_ROOT / "data" / output_dir_name
         os.makedirs(output_dir, exist_ok=True)
         
         filename = f"{result['crypto_id']}_analysis_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
-        filepath = os.path.join(output_dir, filename)
+        filepath = output_dir / filename # Use Path object for joining
         
         with open(filepath, 'w') as f:
             json.dump(result, f, indent=2, default=str)
@@ -364,6 +342,12 @@ def run_continuous_analysis(crypto_id, interval_minutes=60, strategy_name=None):
 
 def main():
     """Main function with refactored logic using existing components."""
+    logging.basicConfig(level=logging.INFO,
+                        format='%(asctime)s - %(levelname)s - %(message)s',
+                        handlers=[
+                            logging.FileHandler("debug.log"),
+                            logging.StreamHandler()
+                        ])
     pd.set_option('display.float_format', '{:f}'.format)
     parser = argparse.ArgumentParser(description='Refactored Crypto Pricer - Uses existing backtester components')
     
@@ -406,7 +390,7 @@ def main():
             
             if result:
                 # Save result
-                filepath = save_analysis_result(result, args.output_dir)
+                filepath = save_analysis_result(result, output_dir_name=args.output_dir)
                 
                 # Display results
                 print(f"\n=== Analysis Results for {args.crypto.upper()} ===")
@@ -451,7 +435,10 @@ def main():
                                 df, 
                                 result['active_resistance_lines'], 
                                 result['active_support_lines'], 
-                                args.crypto
+                                result['active_resistance_lines'], # Pass active_resistance
+                                result['active_support_lines'], # Pass active_support
+                                args.crypto,
+                                PROJECT_ROOT / "data" / "charts" / f"{args.crypto}_chart_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png" # Construct absolute filename
                             )
                             print(f"Chart saved to: {chart_path}")
                     except Exception as e:

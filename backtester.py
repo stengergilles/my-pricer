@@ -12,12 +12,13 @@ from config import strategy_configs, param_sets, DEFAULT_TIMEFRAME, DEFAULT_INTE
 from data import get_crypto_data_merged
 from indicators import Indicators, calculate_atr
 from strategy import Strategy
+import requests # Added this import
 
 # Configure logging
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(levelname)s - %(message)s',
                     handlers=[
-                        logging.FileHandler("debug.log"),
+                        logging.FileHandler("backtester_debug.log"),
                         logging.StreamHandler()
                     ])
 
@@ -40,12 +41,16 @@ class Backtester:
         self.data = data
 
     def run_backtest(self, params):
+        logging.info("Backtester.run_backtest started.")
         if not CYTHON_AVAILABLE:
             logging.error("Cython backtester not available. Please compile it first.")
             return None
 
         prices = self.data['close'].to_numpy(dtype=np.float64)
+        
+        logging.info("Generating signals...")
         long_entry, short_entry, long_exit, short_exit = self.strategy.generate_signals(self.data, params)
+        logging.info("Signals generated.")
 
         # Convert to numpy uint8 for Cython
         long_entry = long_entry.to_numpy(dtype=np.uint8)
@@ -65,6 +70,7 @@ class Backtester:
             price_change = (prices[-1] - prices[0]) / prices[0]
             daily_volatility = abs(price_change)
 
+        logging.info("Calling Cython backtest module...")
         cython_results_json = run_backtest_cython(
             prices,
             long_entry,
@@ -80,6 +86,7 @@ class Backtester:
             params['slippage_percentage'],
             daily_volatility
         )
+        logging.info("Cython backtest module returned.")
 
         results = cython_results_json
         return results
@@ -153,11 +160,15 @@ def run_single_backtest(args):
     """
     Runs a single backtest with the given parameters.
     """
+    logging.info(f"Starting single backtest for {args.crypto} with strategy {args.strategy}")
     # Load data
-    data = get_crypto_data_merged(args.crypto, DEFAULT_TIMEFRAME)
-    if data is None:
-        logging.error(f"Could not fetch data for {args.crypto}. Exiting.")
-        return
+    try:
+        logging.info(f"Attempting to fetch data for {args.crypto}...")
+        data = get_crypto_data_merged(args.crypto, DEFAULT_TIMEFRAME)
+        logging.info(f"Successfully fetched data for {args.crypto}. Data points: {len(data)}")
+    except requests.exceptions.RequestException as e:
+        logging.error(f"Failed to fetch data for {args.crypto}: {e}")
+        return # Exit gracefully if data fetching fails
 
     # Create indicators and strategy
     indicators = Indicators()
@@ -194,7 +205,9 @@ def run_single_backtest(args):
             params[p] = indicator_defaults[p]
 
 
+    logging.info("Running backtest...")
     results = backtester.run_backtest(params)
+    logging.info("Backtest completed.")
 
     if results:
         display_results(results, params)

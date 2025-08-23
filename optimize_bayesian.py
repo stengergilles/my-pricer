@@ -4,6 +4,14 @@ import json
 import argparse
 import re
 import numpy as np
+import os
+from pathlib import Path # Added this import
+import random # Added this import
+
+SEED = 42 # Define a fixed seed for reproducibility
+
+# Calculate the project root dynamically
+PROJECT_ROOT = Path(__file__).resolve().parent # Assuming optimize_bayesian.py is in the project root
 
 def objective(trial, crypto, strategy):
     # Calculate maximum periods based on available data
@@ -95,6 +103,11 @@ if __name__ == "__main__":
     parser.add_argument('--n-trials', type=int, default=100, help='Number of optimization trials to run.')
     args = parser.parse_args()
 
+    # Set random seeds for reproducibility
+    optuna.set_random_seed(SEED)
+    np.random.seed(SEED)
+    random.seed(SEED)
+
     # Create a study object and optimize the function.
     study = optuna.create_study(direction='maximize')
     study.optimize(lambda trial: objective(trial, args.crypto, args.strategy), n_trials=args.n_trials)
@@ -112,7 +125,9 @@ if __name__ == "__main__":
         print(f"    {key}: {value}")
         
     # Save best parameters to file
-    best_params_file = f"backtest_results/best_params_{args.crypto}_{args.strategy}_bayesian.json"
+    best_params_dir = PROJECT_ROOT / "data" / "results" # Use PROJECT_ROOT for results directory
+    os.makedirs(best_params_dir, exist_ok=True) # Ensure the directory exists
+    best_params_file = best_params_dir / f"best_params_{args.crypto}_{args.strategy}_bayesian.json"
     with open(best_params_file, 'w') as f:
         json.dump({
             'best_profit_loss': trial.value,

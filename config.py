@@ -48,7 +48,7 @@ strategy_configs = {
 ATR_PERIOD = 14
 ATR_MULTIPLE = 2.0
 
-DEFAULT_TIMEFRAME = "7"
+DEFAULT_TIMEFRAME = "1"
 DEFAULT_INTERVAL = "30m"
 DEFAULT_SPREAD_PERCENTAGE = 0.01  # 1% - from your platform
 DEFAULT_SLIPPAGE_PERCENTAGE = 0.0005  # 0.05% - realistic slippage

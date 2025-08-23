@@ -113,7 +113,7 @@ class TestCoreFunctionality(unittest.TestCase):
                     self.skipTest(f"API issues for strategy {strategy} - expected")
                 
                 # Should not crash
-                self.assertIsNotNone(result.returncode, f"Strategy {strategy} crashed")
+                self.assertEqual(result.returncode, 0, f"Strategy {strategy} failed with return code {result.returncode}. Output: {output[:1000]}")
     
     def test_optimization_produces_results(self):
         """Test that optimization produces expected results"""

@@ -9,6 +9,7 @@ import json
 import logging
 from datetime import datetime
 from typing import Dict, List, Optional, Any
+import pandas as pd
 
 # Add CLI directory to path so we can import existing code
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
@@ -16,17 +17,19 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 try:
     from config import strategy_configs, indicator_defaults
     from data import get_crypto_data
-    from pricer_refactored import analyze_crypto_with_existing_system
+    from pricer import analyze_crypto_with_existing_system, run_backtest_using_existing_system
     CLI_AVAILABLE = True
 except ImportError as e:
     logging.warning(f"CLI modules not available: {e}")
     CLI_AVAILABLE = False
     strategy_configs = {}
     indicator_defaults = {}
+    def analyze_crypto_with_existing_system(*args, **kwargs): return None
+    def run_backtest_using_existing_system(*args, **kwargs): return None
 
 from .result_manager import ResultManager
 from .data_manager import DataManager
-from .config import Config
+from .app_config import Config
 
 class TradingEngine:
     """
@@ -39,42 +42,11 @@ class TradingEngine:
         self.config = config or Config()
         self.result_manager = ResultManager(self.config.RESULTS_DIR)
         self.data_manager = DataManager(self.config.CACHE_DIR)
-        self.logger = self._setup_logging()
+        self.logger = logging.getLogger(__name__)
         
         # Validate CLI availability
         if not CLI_AVAILABLE:
             self.logger.warning("CLI modules not available. Some functionality may be limited.")
-    
-    def _setup_logging(self) -> logging.Logger:
-        """Set up comprehensive logging."""
-        logger = logging.getLogger('trading_engine')
-        logger.setLevel(logging.INFO)
-        
-        # Avoid duplicate handlers
-        if logger.handlers:
-            return logger
-        
-        # File handler
-        file_handler = logging.FileHandler(
-            os.path.join(self.config.LOGS_DIR, 'trading_engine.log')
-        )
-        file_handler.setLevel(logging.INFO)
-        
-        # Console handler
-        console_handler = logging.StreamHandler()
-        console_handler.setLevel(logging.WARNING)
-        
-        # Formatter
-        formatter = logging.Formatter(
-            '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-        )
-        file_handler.setFormatter(formatter)
-        console_handler.setFormatter(formatter)
-        
-        logger.addHandler(file_handler)
-        logger.addHandler(console_handler)
-        
-        return logger
     
     def get_available_cryptos(self) -> List[Dict[str, str]]:
         """Get list of available cryptocurrencies."""
@@ -207,16 +179,25 @@ class TradingEngine:
         self.logger.info(f"Starting backtest for {crypto_id} with {strategy_name}")
         
         try:
-            # Mock backtest result for now (replace with actual CLI integration)
-            backtest_result = {
-                'total_profit_percentage': 15.5,
-                'num_trades': 8,
-                'win_rate': 62.5,
-                'sharpe_ratio': 1.2,
-                'max_drawdown': -8.3,
-                'note': 'Mock backtest result'
-            }
+            # Get crypto data
+            ohlc_data = get_crypto_data(crypto_id, timeframe)
+            if ohlc_data is None:
+                self.logger.error(f"No data available for {crypto_id}")
+                return None
             
+            df = pd.DataFrame(ohlc_data, columns=['timestamp', 'open', 'high', 'low', 'close'])
+            df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms')
+            df.set_index('timestamp', inplace=True)
+
+            # Run the backtest using the existing system from pricer.py
+            backtest_result = run_backtest_using_existing_system(
+                df, strategy_name, parameters
+            )
+
+            if not backtest_result:
+                self.logger.error(f"Backtest for {crypto_id} with {strategy_name} returned no result.")
+                return None
+
             # Enhance result with metadata
             enhanced_result = {
                 'backtest_id': self._generate_backtest_id(),

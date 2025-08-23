@@ -4,6 +4,10 @@ import requests
 import json
 import logging
 from datetime import datetime
+import os
+from pathlib import Path
+
+PROJECT_ROOT = Path(__file__).resolve().parent
 
 def get_volatile_cryptos():
     """
@@ -94,11 +98,14 @@ if __name__ == "__main__":
         print(f"\nCrypto IDs for optimization: {volatile_cryptos}")
         
         # Save to file for easy access
-        with open('backtest_results/volatile_cryptos.json', 'w') as f:
+        results_dir = PROJECT_ROOT / "data" / "results"
+        os.makedirs(results_dir, exist_ok=True)
+        volatile_cryptos_file = results_dir / "volatile_cryptos.json"
+        with open(volatile_cryptos_file, 'w') as f:
             json.dump({
                 'timestamp': str(datetime.now()),
                 'crypto_ids': volatile_cryptos
             }, f, indent=2)
-        print("Saved to backtest_results/volatile_cryptos.json")
+        print(f"Saved to {volatile_cryptos_file}")
     else:
         print("Failed to fetch volatile cryptocurrencies.")

@@ -2,6 +2,10 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import pandas as pd
+import os
+from pathlib import Path
+
+PROJECT_ROOT = Path(__file__).resolve().parent
 
 def generate_chart(df, resistance_lines, support_lines, active_resistance, active_support, crypto_id, filename):
     plt.figure(figsize=(12, 7))
@@ -42,6 +46,7 @@ def generate_chart(df, resistance_lines, support_lines, active_resistance, activ
     plt.ylabel('Price (USD)')
     plt.legend()
     plt.grid(True)
+    os.makedirs(filename.parent, exist_ok=True) # Ensure directory exists
     plt.savefig(filename)
     plt.close()
     print(f"Chart saved as {filename}")

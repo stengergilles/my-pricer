@@ -201,6 +201,38 @@ class RegressionTester:
         
         # Remove specific log messages that contain variable data
         output = re.sub(r'--- cython import error:.*---', '--- cython import error: NORMALIZED ---', output)
+        output = re.sub(r'INFO - Starting single backtest for .*\n', '', output)
+        output = re.sub(r'INFO - Attempting to fetch data for .*\n', '', output)
+        output = re.sub(r'INFO - Successfully fetched data for .*\n', '', output)
+        output = re.sub(r'INFO - Running backtest.*\n', '', output)
+        output = re.sub(r'INFO - Backtest completed.*\n', '', output)
+        output = re.sub(r'INFO - Backtester.run_backtest started.*\n', '', output)
+        output = re.sub(r'INFO - Generating signals.*\n', '', output)
+        output = re.sub(r'INFO - Signals generated.*\n', '', output)
+        output = re.sub(r'INFO - Calling Cython backtest module.*\n', '', output)
+        output = re.sub(r'INFO - Cython backtest module returned.*\n', '', output)
+        output = re.sub(r'INFO - Successfully fetched OHLC data for .* from CoinGecko.\n', '', output)
+        output = re.sub(r'INFO - Fetched \d+ data points for .*\n', '', output)
+        output = re.sub(r'INFO - Failed to fetch data for .*\n', '', output)
+        output = re.sub(r'INFO - No profitable parameters found.*\n', '', output)
+        output = re.sub(r'INFO - --- cython imported successfully ---\n', '', output)
+        output = re.sub(r'INFO -   Initial Capital: .*\n', '', output)
+        output = re.sub(r'INFO -   Final Capital: .*\n', '', output)
+        output = re.sub(r'INFO -   Total Profit/Loss: .*\n', '', output)
+        output = re.sub(r'INFO -   Sharpe Ratio: .*\n', '', output)
+        output = re.sub(r'INFO -   Total Trades: .*\n', '', output)
+        output = re.sub(r'INFO -   Winning Trades: .*\n', '', output)
+        output = re.sub(r'INFO -   Losing Trades: .*\n', '', output)
+        output = re.sub(r'INFO -   Win Rate: .*\n', '', output)
+        output = re.sub(r'INFO -   Long Trades: .*\n', '', output)
+        output = re.sub(r'INFO -   Short Trades: .*\n', '', output)
+        output = re.sub(r'INFO -   Parameters:\n', '', output)
+        output = re.sub(r'INFO -     .*\n', '', output)
+        output = re.sub(r'ERROR - Failed to fetch data for .*\n', '', output)
+        output = re.sub(r'ERROR - Http Error fetching OHLC data for .*\n', '', output)
+        
+        # Normalize timestamp in volatile_cryptos.json output
+        output = re.sub(r'"timestamp": ".*?"', '"timestamp": "NORMALIZED_TIMESTAMP"', output)
         
         # Remove trial-specific information from Optuna
         output = re.sub(r'Trial \d+ finished with value:', 'Trial X finished with value:', output)

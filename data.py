@@ -12,13 +12,16 @@ def get_crypto_data(crypto_id, days):
         logging.info(f"Successfully fetched OHLC data for {crypto_id} from CoinGecko.")
         return data
     except requests.exceptions.HTTPError as errh:
-        logging.error(f"Http Error fetching OHLC data for {crypto_id}: {errh}")
+        if errh.response.status_code == 429:
+            raise requests.exceptions.HTTPError(f"CoinGecko API rate limit exceeded for {crypto_id}. Please wait and try again later.", response=errh.response) from errh
+        else:
+            raise # Re-raise other HTTP errors
     except requests.exceptions.ConnectionError as errc:
-        logging.error(f"Connection Error fetching OHLC data for {crypto_id}: {errc}")
+        raise # Re-raise connection errors
     except requests.exceptions.Timeout as errt:
-        logging.error(f"Timeout Error fetching OHLC data for {crypto_id}: {errt}")
+        raise # Re-raise timeout errors
     except requests.exceptions.RequestException as err:
-        logging.error(f"Request Error fetching OHLC data for {crypto_id}: {err}")
+        raise # Re-raise other request exceptions
     return None
 
 

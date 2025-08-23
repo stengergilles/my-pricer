@@ -4,13 +4,17 @@ import os
 import json
 import glob
 from datetime import datetime
+from pathlib import Path
+
+PROJECT_ROOT = Path(__file__).resolve().parent
+RESULTS_BASE_DIR = PROJECT_ROOT / "data" / "results"
 
 def list_backtest_results():
     """
     List and organize all backtest results in the backtest_results folder.
     """
     
-    results_dir = "backtest_results"
+    results_dir = RESULTS_BASE_DIR # Use the defined base directory
     
     if not os.path.exists(results_dir):
         print(f"❌ Results directory '{results_dir}' not found.")
@@ -20,9 +24,9 @@ def list_backtest_results():
     print("=" * 60)
     
     # Get all result files
-    bayesian_files = glob.glob(f"{results_dir}/best_params_*_bayesian.json")
-    volatile_files = glob.glob(f"{results_dir}/volatile_optimization_results_*.json")
-    crypto_files = glob.glob(f"{results_dir}/volatile_cryptos.json")
+    bayesian_files = glob.glob(str(results_dir / "best_params_*_bayesian.json"))
+    volatile_files = glob.glob(str(results_dir / "volatile_optimization_results_*.json"))
+    crypto_files = glob.glob(str(results_dir / "volatile_cryptos.json"))
     
     # Display Bayesian optimization results
     if bayesian_files:
@@ -111,7 +115,7 @@ def clean_old_results(days_old=7):
     Clean up old result files older than specified days.
     """
     
-    results_dir = "backtest_results"
+    results_dir = RESULTS_BASE_DIR # Use the defined base directory
     
     if not os.path.exists(results_dir):
         print(f"❌ Results directory '{results_dir}' not found.")
@@ -119,7 +123,7 @@ def clean_old_results(days_old=7):
     
     cutoff_time = datetime.now().timestamp() - (days_old * 24 * 60 * 60)
     
-    all_files = glob.glob(f"{results_dir}/*")
+    all_files = glob.glob(str(results_dir / "*"))
     old_files = []
     
     for file_path in all_files:
@@ -146,7 +150,7 @@ def show_best_performers():
     Show the best performing strategies across all results.
     """
     
-    results_dir = "backtest_results"
+    results_dir = RESULTS_BASE_DIR # Use the defined base directory
     
     if not os.path.exists(results_dir):
         print(f"❌ Results directory '{results_dir}' not found.")
@@ -158,7 +162,7 @@ def show_best_performers():
     all_results = []
     
     # Collect all Bayesian results
-    bayesian_files = glob.glob(f"{results_dir}/best_params_*_bayesian.json")
+    bayesian_files = glob.glob(str(results_dir / "best_params_*_bayesian.json"))
     for file_path in bayesian_files:
         try:
             with open(file_path, 'r') as f:
@@ -182,7 +186,7 @@ def show_best_performers():
             continue
     
     # Collect volatile optimization results
-    volatile_files = glob.glob(f"{results_dir}/volatile_optimization_results_*.json")
+    volatile_files = glob.glob(str(results_dir / "volatile_optimization_results_*.json"))
     for file_path in volatile_files:
         try:
             with open(file_path, 'r') as f:
