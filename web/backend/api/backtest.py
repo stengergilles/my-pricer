@@ -13,7 +13,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
 
 from auth.middleware import requires_auth
 from core.trading_engine import TradingEngine
-from core.config import Config
+from core.app_config import Config
 from utils.validators import validate_request_data, backtest_schema
 
 logger = logging.getLogger(__name__)

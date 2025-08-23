@@ -34,9 +34,15 @@ const StyledTab = styled(Tab)(({ theme }) => ({
 function App() {
   const { user, isLoading } = useAuth0();
   const [activeTab, setActiveTab] = useState('analysis');
+  const [selectedCryptoForBacktest, setSelectedCryptoForBacktest] = useState(null);
 
   const handleTabChange = (event, newValue) => {
     setActiveTab(newValue);
+  };
+
+  const handleRunBacktest = (cryptoId) => {
+    setSelectedCryptoForBacktest(cryptoId);
+    setActiveTab('backtest');
   };
 
   if (isLoading) {
@@ -119,7 +125,7 @@ function App() {
         <Container maxWidth="xl" sx={{ py: 3 }}>
           <Box sx={{ p: 2 }}>
             <Routes>
-              <Route path="/" element={activeTab === 'analysis' ? <CryptoAnalysis /> : <BacktestRunner />} />
+              <Route path="/" element={activeTab === 'analysis' ? <CryptoAnalysis setActiveTab={setActiveTab} onRunBacktest={handleRunBacktest} /> : <BacktestRunner selectedCrypto={selectedCryptoForBacktest} />} />
               {/* Add more routes as needed */}
             </Routes>
           </Box>

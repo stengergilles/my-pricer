@@ -18,7 +18,7 @@ load_dotenv()
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
 
 from core.trading_engine import TradingEngine
-from core.config import Config
+from core.app_config import Config
 from auth.middleware import AuthError, requires_auth
 from auth.decorators import auth_required
 from api.crypto import CryptoAPI

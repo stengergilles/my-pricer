@@ -13,7 +13,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
 
 from auth.middleware import requires_auth
 from core.trading_engine import TradingEngine
-from core.config import Config
+from core.app_config import Config
 
 logger = logging.getLogger(__name__)
 trading_engine = TradingEngine(Config())

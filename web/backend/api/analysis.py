@@ -13,7 +13,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
 
 from auth.middleware import requires_auth
 from core.trading_engine import TradingEngine
-from core.config import Config
+from core.app_config import Config
 from utils.validators import validate_request_data, analysis_schema
 
 logger = logging.getLogger(__name__)
@@ -39,7 +39,7 @@ class AnalysisAPI(Resource):
             timeframe = validated_data.get('timeframe', 7)
             custom_params = validated_data.get('parameters')
             
-            logger.info(f"Starting analysis for {crypto_id} with strategy {strategy_name}")
+            
             
             # Run analysis
             result = trading_engine.analyze_crypto(

@@ -24,6 +24,8 @@ import {
 } from '@mui/material'
 import { styled } from '@mui/system'
 
+
+
 // Styled components for consistent styling
 const StyledPaper = styled(Paper)(({ theme }) => ({
   padding: theme.spacing(3),
@@ -38,7 +40,7 @@ const ResultBox = styled(Box)(({ theme }) => ({
   textAlign: 'center',
 }))
 
-export const CryptoAnalysis = () => {
+export const CryptoAnalysis = ({ setActiveTab, onRunBacktest }) => {
   const apiClient = useApiClient()
   const queryClient = useQueryClient()
   const [result, setResult] = useState<AnalysisResult | null>(null)
@@ -282,7 +284,7 @@ export const CryptoAnalysis = () => {
               </Box>
             </Grid>
 
-            {result.backtest_result && (
+            {result.backtest_result && result.backtest_result.total_profit_percentage !== undefined ? (
               <Grid item xs={12} md={6}>
                 <Typography variant="subtitle1" gutterBottom>Backtest Performance</Typography>
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
@@ -295,18 +297,36 @@ export const CryptoAnalysis = () => {
                         color: result.backtest_result.total_profit_percentage > 0 ? 'success.main' : 'error.main',
                       }}
                     >
-                      {result.backtest_result.total_profit_percentage.toFixed(2)}%
+                      {(result.backtest_result?.total_profit_percentage ?? 0).toFixed(2)}%
                     </Typography>
                   </Box>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                     <Typography variant="body2" color="text.secondary">Number of Trades:</Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 'medium' }}>{result.backtest_result.num_trades}</Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 'medium' }}>{result.backtest_result?.num_trades ?? 0}</Typography>
                   </Box>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                     <Typography variant="body2" color="text.secondary">Win Rate:</Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 'medium' }}>{result.backtest_result.win_rate.toFixed(1)}%</Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 'medium' }}>{(result.backtest_result?.win_rate ?? 0).toFixed(1)}%</Typography>
                   </Box>
                 </Box>
+              </Grid>
+            ) : (
+              <Grid item xs={12} md={6}>
+                <Typography variant="subtitle1" gutterBottom>Backtest Performance</Typography>
+                <Alert severity="info">
+                  <Typography variant="body2">
+                    No backtest results available for this analysis.
+                  </Typography>
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    size="small"
+                    sx={{ mt: 1 }}
+                    onClick={() => onRunBacktest(watch('cryptoId'))}
+                  >
+                    Run New Backtest
+                  </Button>
+                </Alert>
               </Grid>
             )}
           </Grid>

@@ -18,6 +18,20 @@ from datetime import datetime, timedelta
 import logging
 from pathlib import Path
 
+from strategy import Strategy
+from backtester import Backtester
+from indicators import Indicators
+from config import strategy_configs, DEFAULT_TIMEFRAME, DEFAULT_INTERVAL, indicator_defaults
+from pricer_compatibility_fix import find_best_result_file
+from data import get_crypto_data
+from lines import (
+    auto_discover_percentage_change,
+    find_swing_points,
+    find_support_resistance_lines,
+    predict_next_move,
+)
+from chart import generate_chart
+
 PROJECT_ROOT = Path(__file__).resolve().parent
 
 SAVE_INTERVAL_MINUTES = 60  # Save results every 60 minutes
@@ -72,6 +86,10 @@ def run_backtest_using_existing_system(df: pd.DataFrame, strategy_name: str, par
         backtester = Backtester(df, strategy, strategy_config)
         backtester.initial_capital = initial_capital
         
+        # Ensure required parameters exist
+        params['spread_percentage'] = params.get('spread_percentage', 0.01)
+        params['slippage_percentage'] = params.get('slippage_percentage', 0.001)
+
         # Run the backtest
         result = backtester.run_backtest(params)
         
@@ -147,6 +165,15 @@ def get_best_strategy_for_crypto(crypto_id):
     except Exception as e:
         logging.error(f"Error loading best strategy: {e}")
         return "EMA_Only"
+
+def _convert_to_json_serializable(obj):
+    if isinstance(obj, pd.Timestamp):
+        return obj.isoformat()
+    if isinstance(obj, dict):
+        return {key: _convert_to_json_serializable(value) for key, value in obj.items()}
+    if isinstance(obj, list):
+        return [_convert_to_json_serializable(item) for item in obj]
+    return obj
 
 def analyze_crypto_with_existing_system(crypto_id, timeframe=DEFAULT_TIMEFRAME, interval=DEFAULT_INTERVAL, 
                                       use_best_params=True, strategy_name=None):
@@ -249,7 +276,7 @@ def analyze_crypto_with_existing_system(crypto_id, timeframe=DEFAULT_TIMEFRAME, 
         
         # Predict next move using existing function
         try:
-            next_move_prediction = predict_next_move(df, resistance_lines, support_lines)
+            next_move_prediction = predict_next_move(df, latest_price_point, active_resistance, active_support, first_timestamp)
         except Exception as e:
             logging.warning(f"Error in next move prediction: {e}")
             next_move_prediction = None
@@ -269,7 +296,7 @@ def analyze_crypto_with_existing_system(crypto_id, timeframe=DEFAULT_TIMEFRAME, 
             'analysis_timestamp': datetime.now().isoformat()
         }
         
-        return analysis_result
+        return _convert_to_json_serializable(analysis_result)
         
     except Exception as e:
         logging.error(f"Error analyzing {crypto_id}: {e}")

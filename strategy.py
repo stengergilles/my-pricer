@@ -14,8 +14,20 @@ def _get_required_indicators(strategy_config):
     for key in ['long_entry', 'short_entry', 'long_exit', 'short_exit']:
         all_signals.extend(strategy_config.get(key, []))
 
+    meta_signal_map = {
+        "all_triggers_long_or": ["sma", "ema", "bbands"],
+        "all_triggers_short_or": ["sma", "ema", "bbands"],
+        "all_verificators_long_or": ["rsi"],
+        "all_verificators_short_or": ["rsi"],
+        "all_exits_long_or": ["sma", "ema", "bbands", "rsi"],
+        "all_exits_short_or": ["sma", "ema", "bbands", "rsi"],
+    }
+
     for signal_name in all_signals:
-        if 'sma' in signal_name:
+        if signal_name in meta_signal_map:
+            for indicator in meta_signal_map[signal_name]:
+                required_indicators.add(indicator)
+        elif 'sma' in signal_name:
             required_indicators.add('sma')
         elif 'ema' in signal_name:
             required_indicators.add('ema')

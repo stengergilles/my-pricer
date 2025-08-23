@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import toast from 'react-hot-toast'
@@ -36,7 +36,7 @@ const ResultBox = styled(Box)(({ theme }) => ({
   textAlign: 'center',
 }))
 
-export const BacktestRunner = () => {
+export const BacktestRunner = ({ selectedCrypto }) => {
   const apiClient = useApiClient()
   const queryClient = useQueryClient()
   const [result, setResult] = useState<BacktestResponse | null>(null)
@@ -53,14 +53,20 @@ export const BacktestRunner = () => {
   })
 
   // Form handling
-  const { register, handleSubmit, watch, formState: { isSubmitting } } = useForm<BacktestFormData>({
+  const { register, handleSubmit, watch, setValue, formState: { isSubmitting } } = useForm<BacktestFormData>({
     defaultValues: {
-      cryptoId: 'bitcoin',
+      cryptoId: selectedCrypto || 'bitcoin',
       strategyName: 'EMA_Only',
       timeframe: 30,
       parameters: {}
     }
   })
+
+  useEffect(() => {
+    if (selectedCrypto) {
+      setValue('cryptoId', selectedCrypto);
+    }
+  }, [selectedCrypto, setValue]);
 
   const selectedStrategy = watch('strategyName')
 
@@ -117,7 +123,8 @@ export const BacktestRunner = () => {
                   labelId="crypto-select-label"
                   label="Cryptocurrency"
                   {...register('cryptoId', { required: true })}
-                  defaultValue="bitcoin"
+                  value={watch('cryptoId')}
+                  onChange={(event) => setValue('cryptoId', event.target.value as string)}
                 >
                   {cryptos?.cryptos.map((crypto) => (
                     <MenuItem key={crypto.id} value={crypto.id}>

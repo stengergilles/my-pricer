@@ -264,8 +264,8 @@ def predict_next_move(df, current_price_point, active_resistance, active_support
             reasons.append(f"Volume ({volume:.2f}) is high (>{avg_volume * 1.5:.2f})")
 
     # Channel Position
-    r_y = active_resistance['slope'] * current_relative_timestamp + active_resistance['intercept']
-    s_y = active_support['slope'] * current_relative_timestamp + active_support['intercept']
+    r_y = active_resistance[0]['slope'] * current_relative_timestamp + active_resistance[0]['intercept']
+    s_y = active_support[0]['slope'] * current_relative_timestamp + active_support[0]['intercept']
     if price > (r_y + s_y) / 2:
         score -= 0.5
         reasons.append(f"Price ({price:.2f}) is in the upper half of the channel (midpoint: {((r_y + s_y) / 2):.2f})")
