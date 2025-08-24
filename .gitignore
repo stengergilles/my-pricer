@@ -1,2 +1,14 @@
 # Ignore test results
 tests/test_results/
+
+# Ignore debug logs
+debug.log
+backtester_debug.log
+data/logs/*.log
+web/backend/backtester_debug.log
+
+# Ignore Python cache directories
+__pycache__/
+
+# Ignore generated analysis results
+data/results/

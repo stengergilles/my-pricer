@@ -313,15 +313,15 @@ export const CryptoAnalysis = ({ setActiveTab, onRunBacktest }) => {
                       variant="body2"
                       sx={{
                         fontWeight: 'medium',
-                        color: result.backtest_result.total_profit_percentage > 0 ? 'success.main' : 'error.main',
+                        color: result.backtest_result.total_profit_loss > 0 ? 'success.main' : (result.backtest_result.total_profit_loss < 0 ? 'error.main' : 'text.secondary'),
                       }}
                     >
-                      {(result.backtest_result?.total_profit_percentage ?? 0).toFixed(2)}%
+                      ${(result.backtest_result?.total_profit_loss ?? 0).toFixed(2)}
                     </Typography>
                   </Box>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                     <Typography variant="body2" color="text.secondary">Number of Trades:</Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 'medium' }}>{result.backtest_result?.num_trades ?? 0}</Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 'medium' }}>{result.backtest_result?.total_trades ?? 0}</Typography>
                   </Box>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                     <Typography variant="body2" color="text.secondary">Win Rate:</Typography>

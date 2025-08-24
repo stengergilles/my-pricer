@@ -249,10 +249,10 @@ export const BacktestRunner = ({ selectedCrypto, onSetResult, initialResult }) =
                   variant="h6"
                   sx={{
                     fontWeight: 'bold',
-                    color: (result?.backtest?.result?.total_profit_percentage ?? 0) > 0 ? 'success.main' : 'error.main',
+                    color: (result?.backtest?.result?.total_profit_loss ?? 0) > 0 ? 'success.main' : ((result?.backtest?.result?.total_profit_loss ?? 0) < 0 ? 'error.main' : 'text.secondary'),
                   }}
                 >
-                  {(result?.backtest?.result?.total_profit_percentage ?? 0).toFixed(2)}%
+                  ${(result?.backtest?.result?.total_profit_loss ?? 0).toFixed(2)}
                 </Typography>
               </ResultBox>
             </Grid>
