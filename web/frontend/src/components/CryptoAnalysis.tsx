@@ -90,7 +90,7 @@ export const CryptoAnalysis = ({ setActiveTab, onRunBacktest }) => {
       const requestData = {
         crypto_id: data.cryptoId,
         strategy_name: data.strategyName,
-        timeframe: data.timeframe,
+        timeframe: Number(data.timeframe),
         ...(data.useCustomParams && { parameters: data.parameters })
       }
       return apiClient.runAnalysis(requestData)

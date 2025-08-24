@@ -94,7 +94,7 @@ export const BacktestRunner = ({ selectedCrypto, onSetResult, initialResult }) =
       const requestData = {
         crypto_id: data.cryptoId,
         strategy_name: data.strategyName,
-        timeframe: data.timeframe,
+        timeframe: Number(data.timeframe),
         parameters: data.parameters
       }
       return apiClient.runBacktest(requestData)
