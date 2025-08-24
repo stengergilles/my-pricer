@@ -56,15 +56,26 @@ export const BacktestRunner = ({ selectedCrypto, onSetResult, initialResult }) =
     queryFn: () => apiClient.getStrategies(),
   })
 
+  const { data: config, isLoading: configLoading } = useQuery({
+    queryKey: ['config'],
+    queryFn: () => apiClient.getConfig(),
+  });
+
   // Form handling
   const { register, handleSubmit, watch, setValue, formState: { isSubmitting } } = useForm<BacktestFormData>({
     defaultValues: {
       cryptoId: selectedCrypto || 'bitcoin',
       strategyName: 'EMA_Only',
-      timeframe: 30,
+      timeframe: config?.default_timeframe || 1,
       parameters: {}
     }
-  })
+  });
+
+  useEffect(() => {
+    if (config) {
+      setValue('timeframe', Number(config.default_timeframe));
+    }
+  }, [config, setValue]);
 
   useEffect(() => {
     if (selectedCrypto) {
@@ -105,10 +116,18 @@ export const BacktestRunner = ({ selectedCrypto, onSetResult, initialResult }) =
 
   console.log("result:", result)
 
-  if (cryptosLoading || strategiesLoading) {
+  if (cryptosLoading || strategiesLoading || configLoading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '200px' }}>
         <CircularProgress />
+      </Box>
+    )
+  }
+
+  if (!config) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '200px' }}>
+        <Alert severity="error">Failed to load configuration.</Alert>
       </Box>
     )
   }

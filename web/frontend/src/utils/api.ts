@@ -120,6 +120,12 @@ export class ApiClient {
     const response = await this.client.get('/api/health')
     return response.data
   }
+
+  // Config endpoint
+  async getConfig() {
+    const response = await this.client.get('/api/config')
+    return response.data
+  }
 }
 
 export const apiClient = new ApiClient()

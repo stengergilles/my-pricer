@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import toast from 'react-hot-toast'
@@ -56,16 +56,27 @@ export const CryptoAnalysis = ({ setActiveTab, onRunBacktest }) => {
     queryFn: () => apiClient.getStrategies(),
   })
 
+  const { data: config, isLoading: configLoading } = useQuery({
+    queryKey: ['config'],
+    queryFn: () => apiClient.getConfig(),
+  });
+
   // Form handling
-  const { register, handleSubmit, watch, formState: { isSubmitting } } = useForm<AnalysisFormData>({
+  const { register, handleSubmit, watch, setValue, formState: { isSubmitting } } = useForm<AnalysisFormData>({
     defaultValues: {
       cryptoId: 'bitcoin',
       strategyName: 'EMA_Only',
-      timeframe: 7,
+      timeframe: config?.default_timeframe || 1,
       useCustomParams: false,
       parameters: {}
     }
-  })
+  });
+
+  useEffect(() => {
+    if (config) {
+      setValue('timeframe', Number(config.default_timeframe));
+    }
+  }, [config, setValue]);
 
   const selectedStrategy = watch('strategyName')
   const useCustomParams = watch('useCustomParams')
@@ -98,10 +109,18 @@ export const CryptoAnalysis = ({ setActiveTab, onRunBacktest }) => {
     analysisMutation.mutate(data)
   }
 
-  if (cryptosLoading || strategiesLoading) {
+  if (cryptosLoading || strategiesLoading || configLoading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '200px' }}>
         <CircularProgress />
+      </Box>
+    )
+  }
+
+  if (!config) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '200px' }}>
+        <Alert severity="error">Failed to load configuration.</Alert>
       </Box>
     )
   }

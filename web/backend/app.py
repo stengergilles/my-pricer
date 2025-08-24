@@ -19,6 +19,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
 
 from core.trading_engine import TradingEngine
 from core.app_config import Config
+from config import DEFAULT_TIMEFRAME, DEFAULT_INTERVAL
 from auth.middleware import AuthError, requires_auth
 from auth.decorators import auth_required
 from api.crypto import CryptoAPI
@@ -55,6 +56,15 @@ logger = logging.getLogger(__name__)
 
 # Register error handlers
 register_error_handlers(app)
+
+# Config endpoint
+@app.route('/api/config')
+def get_config():
+    """Returns public configuration settings."""
+    return jsonify({
+        'default_timeframe': DEFAULT_TIMEFRAME,
+        'default_interval': DEFAULT_INTERVAL
+    })
 
 # Health check endpoint (no auth required)
 @app.route('/api/health')
