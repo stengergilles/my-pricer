@@ -1,0 +1,31 @@
+{
+  "backtest_id": "backtest_20250823_184402_455250",
+  "crypto_id": "bitcoin",
+  "strategy_name": "EMA_Only",
+  "parameters": {
+    "short_ema_period": 12,
+    "long_ema_period": 26,
+    "rsi_oversold": 30,
+    "rsi_overbought": 70,
+    "spread_percentage": 0.01,
+    "slippage_percentage": 0.001
+  },
+  "timeframe_days": 30,
+  "timestamp": "2025-08-23T18:44:02.455343",
+  "result": {
+    "final_capital": 9835.377945084432,
+    "total_profit_loss": -164.6220549155684,
+    "total_profit_percentage": -1.6462205491556778,
+    "total_trades": 5,
+    "winning_trades": 0,
+    "losing_trades": 5,
+    "win_rate": 0.0,
+    "sharpe_ratio": 0.0,
+    "max_drawdown": 0.0,
+    "long_profit": -102.14410829837644,
+    "short_profit": -62.47794661719199,
+    "num_long_trades": 3,
+    "num_short_trades": 2
+  },
+  "engine_version": "1.0.0"
+}

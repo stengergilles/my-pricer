@@ -1,0 +1,28 @@
+{
+  "backtest_id": "backtest_20250823_171610_542644",
+  "crypto_id": "solana",
+  "strategy_name": "EMA_Only",
+  "parameters": {
+    "short_ema_period": 12,
+    "long_ema_period": 26,
+    "rsi_oversold": 30,
+    "rsi_overbought": 70,
+    "spread_percentage": 0.01,
+    "slippage_percentage": 0.001
+  },
+  "timeframe_days": 30,
+  "timestamp": "2025-08-23T17:16:10.542936",
+  "result": {
+    "final_capital": 9766.63573941736,
+    "total_profit_loss": -233.36426058263916,
+    "total_trades": 8,
+    "winning_trades": 4,
+    "losing_trades": 4,
+    "win_rate": 0.5,
+    "long_profit": -99.92063789209072,
+    "short_profit": -133.44362269054844,
+    "num_long_trades": 4,
+    "num_short_trades": 4
+  },
+  "engine_version": "1.0.0"
+}

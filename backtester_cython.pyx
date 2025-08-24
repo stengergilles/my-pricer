@@ -259,13 +259,25 @@ def run_backtest_cython(np.ndarray[DTYPE_t, ndim=1] prices,
     if total_trades > 0:
         win_rate = <double>winning_trades / total_trades
 
+    cdef double total_profit_percentage = 0.0
+    if initial_capital != 0:
+        total_profit_percentage = ((current_capital - initial_capital) / initial_capital) * 100.0
+
+    # TODO: Implement proper Sharpe Ratio and Max Drawdown calculation in Cython
+    # For now, return placeholders to unblock frontend
+    cdef double sharpe_ratio = 0.0
+    cdef double max_drawdown = 0.0
+
     return {
         "final_capital": current_capital,
         "total_profit_loss": total_profit_loss,
+        "total_profit_percentage": total_profit_percentage,
         "total_trades": total_trades,
         "winning_trades": winning_trades,
         "losing_trades": losing_trades,
-        "win_rate": win_rate,
+        "win_rate": win_rate * 100.0, # Convert to percentage
+        "sharpe_ratio": sharpe_ratio,
+        "max_drawdown": max_drawdown,
         "long_profit": long_profit,
         "short_profit": short_profit,
         "num_long_trades": num_long_trades,

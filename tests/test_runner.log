@@ -1,0 +1,269 @@
+2025-08-22 12:29:07,214 - INFO - 🔄 Capturing golden standards...
+2025-08-22 12:29:07,214 - INFO - 📸 Capturing: backtester_bitcoin_ema_only
+2025-08-22 12:29:08,423 - INFO - ✅ Captured: backtester_bitcoin_ema_only (return_code: 1)
+2025-08-22 12:29:08,424 - INFO - 📸 Capturing: backtester_ethereum_strict
+2025-08-22 12:29:09,513 - INFO - ✅ Captured: backtester_ethereum_strict (return_code: 0)
+2025-08-22 12:29:09,514 - INFO - 📸 Capturing: volatile_cryptos_discovery
+2025-08-22 12:29:10,160 - INFO - ✅ Captured: volatile_cryptos_discovery (return_code: 1)
+2025-08-22 12:29:10,160 - INFO - 📸 Capturing: bayesian_optimization_sample
+2025-08-22 12:29:13,511 - INFO - ✅ Captured: bayesian_optimization_sample (return_code: 1)
+2025-08-22 12:29:13,511 - INFO - ✅ Golden standards captured successfully
+2025-08-22 12:33:47,623 - INFO - 🔄 Capturing golden standards...
+2025-08-22 12:33:47,624 - INFO - 📸 Capturing: backtester_bitcoin_ema_only
+2025-08-22 12:33:48,531 - INFO - ✅ Captured: backtester_bitcoin_ema_only (return_code: 1)
+2025-08-22 12:33:48,532 - INFO - 📸 Capturing: backtester_ethereum_strict
+2025-08-22 12:33:49,461 - INFO - ✅ Captured: backtester_ethereum_strict (return_code: 0)
+2025-08-22 12:33:49,461 - INFO - 📸 Capturing: volatile_cryptos_discovery
+2025-08-22 12:33:50,047 - INFO - ✅ Captured: volatile_cryptos_discovery (return_code: 1)
+2025-08-22 12:33:50,047 - INFO - 📸 Capturing: bayesian_optimization_sample
+2025-08-22 12:33:54,083 - INFO - ✅ Captured: bayesian_optimization_sample (return_code: 1)
+2025-08-22 12:33:54,084 - INFO - ✅ Golden standards captured successfully
+2025-08-22 12:34:50,236 - INFO - 🔄 Capturing golden standards...
+2025-08-22 12:34:50,237 - INFO - 📸 Capturing: backtester_bitcoin_ema_only
+2025-08-22 12:34:51,232 - INFO - ✅ Captured: backtester_bitcoin_ema_only (return_code: 0)
+2025-08-22 12:34:51,232 - INFO - 📸 Capturing: backtester_ethereum_strict
+2025-08-22 12:34:52,130 - INFO - ✅ Captured: backtester_ethereum_strict (return_code: 0)
+2025-08-22 12:34:52,130 - INFO - 📸 Capturing: volatile_cryptos_discovery
+2025-08-22 12:34:52,549 - INFO - ✅ Captured: volatile_cryptos_discovery (return_code: 0)
+2025-08-22 12:34:52,550 - INFO - 📸 Capturing: bayesian_optimization_sample
+2025-08-22 12:34:55,630 - INFO - ✅ Captured: bayesian_optimization_sample (return_code: 1)
+2025-08-22 12:34:55,631 - INFO - ✅ Golden standards captured successfully
+2025-08-22 12:35:52,696 - INFO - 🔄 Capturing golden standards...
+2025-08-22 12:35:52,697 - INFO - 📸 Capturing: backtester_bitcoin_ema_only
+2025-08-22 12:35:53,583 - INFO - ✅ Captured: backtester_bitcoin_ema_only (return_code: 0)
+2025-08-22 12:35:53,583 - INFO - 📸 Capturing: backtester_ethereum_strict
+2025-08-22 12:35:54,461 - INFO - ✅ Captured: backtester_ethereum_strict (return_code: 0)
+2025-08-22 12:35:54,461 - INFO - 📸 Capturing: volatile_cryptos_discovery
+2025-08-22 12:35:54,828 - INFO - ✅ Captured: volatile_cryptos_discovery (return_code: 0)
+2025-08-22 12:35:54,828 - INFO - 📸 Capturing: bayesian_optimization_sample
+2025-08-22 12:35:57,945 - INFO - ✅ Captured: bayesian_optimization_sample (return_code: 1)
+2025-08-22 12:35:57,945 - INFO - ✅ Golden standards captured successfully
+2025-08-22 12:37:17,960 - INFO - 🔄 Capturing golden standards...
+2025-08-22 12:37:17,960 - INFO - 📸 Capturing: backtester_bitcoin_ema_only
+2025-08-22 12:37:18,876 - INFO - ✅ Captured: backtester_bitcoin_ema_only (return_code: 1)
+2025-08-22 12:37:18,876 - INFO - 📸 Capturing: backtester_ethereum_strict
+2025-08-22 12:37:19,783 - INFO - ✅ Captured: backtester_ethereum_strict (return_code: 0)
+2025-08-22 12:37:19,784 - INFO - 📸 Capturing: volatile_cryptos_discovery
+2025-08-22 12:37:20,331 - INFO - ✅ Captured: volatile_cryptos_discovery (return_code: 1)
+2025-08-22 12:37:20,331 - INFO - 📸 Capturing: bayesian_optimization_sample
+2025-08-22 12:37:23,302 - INFO - ✅ Captured: bayesian_optimization_sample (return_code: 1)
+2025-08-22 12:37:23,302 - INFO - ✅ Golden standards captured successfully
+2025-08-22 18:12:26,452 - INFO - 🔄 Capturing golden standards...
+2025-08-22 18:12:26,452 - INFO - 📸 Capturing: backtester_bitcoin_ema_only
+2025-08-22 22:39:42,421 - INFO - 🧪 Running regression tests...
+2025-08-22 22:39:42,421 - INFO - 🧪 Testing: backtester_bitcoin_ema_only
+2025-08-22 22:39:43,577 - ERROR - ❌ backtester_bitcoin_ema_only FAILED:
+2025-08-22 22:39:43,578 - ERROR -    - Return code: expected 1, got 0
+2025-08-22 22:39:43,578 - ERROR -    - STDOUT output differs from golden standard (after normalization)
+2025-08-22 22:39:43,578 - ERROR -    - STDERR output differs from golden standard (after normalization)
+2025-08-22 22:39:43,579 - INFO - 🧪 Testing: backtester_ethereum_strict
+2025-08-22 22:39:44,669 - ERROR - ❌ backtester_ethereum_strict FAILED:
+2025-08-22 22:39:44,670 - ERROR -    - STDERR output differs from golden standard (after normalization)
+2025-08-22 22:39:44,673 - INFO - 🧪 Testing: bayesian_optimization_sample
+2025-08-22 22:39:48,039 - ERROR - ❌ bayesian_optimization_sample FAILED:
+2025-08-22 22:39:48,039 - ERROR -    - STDOUT output differs from golden standard (after normalization)
+2025-08-22 22:39:48,040 - ERROR -    - STDERR output differs from golden standard (after normalization)
+2025-08-22 22:39:48,043 - INFO - 🧪 Testing: volatile_cryptos_discovery
+2025-08-22 22:39:48,542 - ERROR - ❌ volatile_cryptos_discovery FAILED:
+2025-08-22 22:39:48,543 - ERROR -    - Return code: expected 1, got 0
+2025-08-22 22:39:48,543 - ERROR -    - STDOUT output differs from golden standard (after normalization)
+2025-08-22 22:39:48,544 - ERROR -    - STDERR output differs from golden standard (after normalization)
+2025-08-22 22:39:48,549 - ERROR - ❌ Some regression tests failed!
+2025-08-22 22:40:13,672 - INFO - 🔄 Capturing golden standards...
+2025-08-22 22:40:13,672 - INFO - 📸 Capturing: backtester_bitcoin_ema_only
+2025-08-22 22:40:14,892 - INFO - ✅ Captured: backtester_bitcoin_ema_only (return_code: 0)
+2025-08-22 22:40:14,893 - INFO - 📸 Capturing: backtester_ethereum_strict
+2025-08-22 22:40:15,904 - INFO - ✅ Captured: backtester_ethereum_strict (return_code: 0)
+2025-08-22 22:40:15,905 - INFO - 📸 Capturing: volatile_cryptos_discovery
+2025-08-22 22:40:16,349 - INFO - ✅ Captured: volatile_cryptos_discovery (return_code: 0)
+2025-08-22 22:40:16,349 - INFO - 📸 Capturing: bayesian_optimization_sample
+2025-08-22 22:40:19,931 - INFO - ✅ Captured: bayesian_optimization_sample (return_code: 1)
+2025-08-22 22:40:19,932 - INFO - ✅ Golden standards captured successfully
+2025-08-22 22:40:39,876 - INFO - 🧪 Running regression tests...
+2025-08-22 22:40:39,877 - INFO - 🧪 Testing: backtester_bitcoin_ema_only
+2025-08-22 22:40:40,921 - INFO - ✅ backtester_bitcoin_ema_only PASSED
+2025-08-22 22:40:40,921 - INFO - 🧪 Testing: backtester_ethereum_strict
+2025-08-22 22:40:42,118 - INFO - ✅ backtester_ethereum_strict PASSED
+2025-08-22 22:40:42,119 - INFO - 🧪 Testing: bayesian_optimization_sample
+2025-08-22 22:40:45,318 - ERROR - ❌ bayesian_optimization_sample FAILED:
+2025-08-22 22:40:45,319 - ERROR -    - STDOUT output differs from golden standard (after normalization)
+2025-08-22 22:40:45,319 - ERROR -    - STDERR output differs from golden standard (after normalization)
+2025-08-22 22:40:45,322 - INFO - 🧪 Testing: volatile_cryptos_discovery
+2025-08-22 22:40:45,841 - INFO - ✅ volatile_cryptos_discovery PASSED
+2025-08-22 22:40:45,842 - ERROR - ❌ Some regression tests failed!
+2025-08-22 22:44:37,179 - INFO - 🔄 Capturing golden standards...
+2025-08-22 22:44:37,179 - INFO - 📸 Capturing: backtester_bitcoin_ema_only
+2025-08-22 22:44:38,134 - INFO - ✅ Captured: backtester_bitcoin_ema_only (return_code: 0)
+2025-08-22 22:44:38,134 - INFO - 📸 Capturing: backtester_ethereum_strict
+2025-08-22 22:44:39,288 - INFO - ✅ Captured: backtester_ethereum_strict (return_code: 0)
+2025-08-22 22:44:39,288 - INFO - 📸 Capturing: volatile_cryptos_discovery
+2025-08-22 22:44:40,116 - INFO - ✅ Captured: volatile_cryptos_discovery (return_code: 1)
+2025-08-22 22:44:40,118 - INFO - 📸 Capturing: bayesian_optimization_sample
+2025-08-22 22:44:43,801 - INFO - ✅ Captured: bayesian_optimization_sample (return_code: 1)
+2025-08-22 22:44:43,802 - INFO - ✅ Golden standards captured successfully
+2025-08-22 22:45:46,889 - INFO - 🧪 Running regression tests...
+2025-08-22 22:45:46,890 - INFO - 🧪 Testing: backtester_bitcoin_ema_only
+2025-08-22 22:45:48,025 - INFO - ✅ backtester_bitcoin_ema_only PASSED
+2025-08-22 22:45:48,026 - INFO - 🧪 Testing: backtester_ethereum_strict
+2025-08-22 22:45:49,693 - INFO - ✅ backtester_ethereum_strict PASSED
+2025-08-22 22:45:49,694 - INFO - 🧪 Testing: bayesian_optimization_sample
+2025-08-22 22:45:53,014 - ERROR - ❌ bayesian_optimization_sample FAILED:
+2025-08-22 22:45:53,015 - ERROR -    - STDOUT output differs from golden standard (after normalization)
+2025-08-22 22:45:53,015 - ERROR -    - STDERR output differs from golden standard (after normalization)
+2025-08-22 22:45:53,018 - INFO - 🧪 Testing: volatile_cryptos_discovery
+2025-08-22 22:45:53,485 - ERROR - ❌ volatile_cryptos_discovery FAILED:
+2025-08-22 22:45:53,487 - ERROR -    - Return code: expected 1, got 0
+2025-08-22 22:45:53,487 - ERROR -    - STDOUT output differs from golden standard (after normalization)
+2025-08-22 22:45:53,488 - ERROR -    - STDERR output differs from golden standard (after normalization)
+2025-08-22 22:45:53,494 - ERROR - ❌ Some regression tests failed!
+2025-08-23 08:12:48,206 - INFO - 🔄 Capturing golden standards...
+2025-08-23 08:12:48,207 - INFO - 📸 Capturing: backtester_bitcoin_ema_only
+2025-08-23 08:12:49,188 - INFO - ✅ Captured: backtester_bitcoin_ema_only (return_code: 0)
+2025-08-23 08:12:49,189 - INFO - 📸 Capturing: backtester_ethereum_strict
+2025-08-23 08:12:50,192 - INFO - ✅ Captured: backtester_ethereum_strict (return_code: 0)
+2025-08-23 08:12:50,193 - INFO - 📸 Capturing: volatile_cryptos_discovery
+2025-08-23 08:12:51,082 - INFO - ✅ Captured: volatile_cryptos_discovery (return_code: 0)
+2025-08-23 08:12:51,082 - INFO - 📸 Capturing: bayesian_optimization_sample
+2025-08-23 08:12:54,591 - INFO - ✅ Captured: bayesian_optimization_sample (return_code: 0)
+2025-08-23 08:12:54,592 - INFO - ✅ Golden standards captured successfully
+2025-08-23 08:13:28,839 - INFO - 🧪 Running regression tests...
+2025-08-23 08:13:28,839 - INFO - 🧪 Testing: backtester_bitcoin_ema_only
+2025-08-23 08:13:29,818 - ERROR - ❌ backtester_bitcoin_ema_only FAILED:
+2025-08-23 08:13:29,818 - ERROR -    - STDOUT output differs from golden standard (after normalization)
+2025-08-23 08:13:29,818 - ERROR -    - STDERR output differs from golden standard (after normalization)
+2025-08-23 08:13:29,819 - INFO - 🧪 Testing: backtester_ethereum_strict
+2025-08-23 08:13:30,986 - ERROR - ❌ backtester_ethereum_strict FAILED:
+2025-08-23 08:13:30,987 - ERROR -    - STDOUT output differs from golden standard (after normalization)
+2025-08-23 08:13:30,987 - ERROR -    - STDERR output differs from golden standard (after normalization)
+2025-08-23 08:13:30,989 - INFO - 🧪 Testing: bayesian_optimization_sample
+2025-08-23 08:13:34,254 - ERROR - ❌ bayesian_optimization_sample FAILED:
+2025-08-23 08:13:34,255 - ERROR -    - STDOUT output differs from golden standard (after normalization)
+2025-08-23 08:13:34,255 - ERROR -    - STDERR output differs from golden standard (after normalization)
+2025-08-23 08:13:34,257 - INFO - 🧪 Testing: volatile_cryptos_discovery
+2025-08-23 08:13:34,754 - ERROR - ❌ volatile_cryptos_discovery FAILED:
+2025-08-23 08:13:34,754 - ERROR -    - STDOUT output differs from golden standard (after normalization)
+2025-08-23 08:13:34,756 - ERROR - ❌ Some regression tests failed!
+2025-08-23 08:17:22,045 - INFO - 🔄 Capturing golden standards...
+2025-08-23 08:17:22,045 - INFO - 📸 Capturing: backtester_bitcoin_ema_only
+2025-08-23 08:17:23,249 - INFO - ✅ Captured: backtester_bitcoin_ema_only (return_code: 0)
+2025-08-23 08:17:23,250 - INFO - 📸 Capturing: backtester_ethereum_strict
+2025-08-23 08:17:24,470 - INFO - ✅ Captured: backtester_ethereum_strict (return_code: 0)
+2025-08-23 08:17:24,470 - INFO - 📸 Capturing: volatile_cryptos_discovery
+2025-08-23 08:17:25,120 - INFO - ✅ Captured: volatile_cryptos_discovery (return_code: 0)
+2025-08-23 08:17:25,120 - INFO - 📸 Capturing: bayesian_optimization_sample
+2025-08-23 08:17:28,646 - INFO - ✅ Captured: bayesian_optimization_sample (return_code: 0)
+2025-08-23 08:17:28,646 - INFO - ✅ Golden standards captured successfully
+2025-08-23 08:17:49,210 - INFO - 🧪 Running regression tests...
+2025-08-23 08:17:49,211 - INFO - 🧪 Testing: backtester_bitcoin_ema_only
+2025-08-23 08:17:50,087 - ERROR - ❌ backtester_bitcoin_ema_only FAILED:
+2025-08-23 08:17:50,087 - ERROR -    - STDOUT output differs from golden standard (after normalization)
+2025-08-23 08:17:50,088 - ERROR -    - STDERR output differs from golden standard (after normalization)
+2025-08-23 08:17:50,088 - INFO - 🧪 Testing: backtester_ethereum_strict
+2025-08-23 08:17:51,080 - ERROR - ❌ backtester_ethereum_strict FAILED:
+2025-08-23 08:17:51,081 - ERROR -    - STDOUT output differs from golden standard (after normalization)
+2025-08-23 08:17:51,081 - ERROR -    - STDERR output differs from golden standard (after normalization)
+2025-08-23 08:17:51,082 - INFO - 🧪 Testing: bayesian_optimization_sample
+2025-08-23 08:17:54,320 - ERROR - ❌ bayesian_optimization_sample FAILED:
+2025-08-23 08:17:54,320 - ERROR -    - STDOUT output differs from golden standard (after normalization)
+2025-08-23 08:17:54,320 - ERROR -    - STDERR output differs from golden standard (after normalization)
+2025-08-23 08:17:54,321 - INFO - 🧪 Testing: volatile_cryptos_discovery
+2025-08-23 08:17:54,786 - ERROR - ❌ volatile_cryptos_discovery FAILED:
+2025-08-23 08:17:54,787 - ERROR -    - STDOUT output differs from golden standard (after normalization)
+2025-08-23 08:17:54,788 - ERROR - ❌ Some regression tests failed!
+2025-08-23 08:27:58,651 - INFO - 🔄 Capturing golden standards...
+2025-08-23 08:27:58,652 - INFO - 📸 Capturing: backtester_bitcoin_ema_only
+2025-08-23 08:27:59,739 - INFO - ✅ Captured: backtester_bitcoin_ema_only (return_code: 0)
+2025-08-23 08:27:59,740 - INFO - 📸 Capturing: backtester_ethereum_strict
+2025-08-23 08:28:00,769 - INFO - ✅ Captured: backtester_ethereum_strict (return_code: 0)
+2025-08-23 08:28:00,769 - INFO - 📸 Capturing: volatile_cryptos_discovery
+2025-08-23 08:28:01,710 - INFO - ✅ Captured: volatile_cryptos_discovery (return_code: 0)
+2025-08-23 08:28:01,710 - INFO - 📸 Capturing: bayesian_optimization_sample
+2025-08-23 08:28:04,892 - INFO - ✅ Captured: bayesian_optimization_sample (return_code: 0)
+2025-08-23 08:28:04,892 - INFO - ✅ Golden standards captured successfully
+2025-08-23 08:28:27,353 - INFO - 🧪 Running regression tests...
+2025-08-23 08:28:27,353 - INFO - 🧪 Testing: backtester_bitcoin_ema_only
+2025-08-23 08:28:28,369 - ERROR - ❌ backtester_bitcoin_ema_only FAILED:
+2025-08-23 08:28:28,369 - ERROR -    - STDOUT output differs from golden standard (after normalization)
+2025-08-23 08:28:28,369 - ERROR -    - STDERR output differs from golden standard (after normalization)
+2025-08-23 08:28:28,371 - INFO - 🧪 Testing: backtester_ethereum_strict
+2025-08-23 08:28:29,323 - ERROR - ❌ backtester_ethereum_strict FAILED:
+2025-08-23 08:28:29,323 - ERROR -    - STDOUT output differs from golden standard (after normalization)
+2025-08-23 08:28:29,323 - ERROR -    - STDERR output differs from golden standard (after normalization)
+2025-08-23 08:28:29,325 - INFO - 🧪 Testing: bayesian_optimization_sample
+2025-08-23 08:28:32,611 - ERROR - ❌ bayesian_optimization_sample FAILED:
+2025-08-23 08:28:32,611 - ERROR -    - STDOUT output differs from golden standard (after normalization)
+2025-08-23 08:28:32,611 - ERROR -    - STDERR output differs from golden standard (after normalization)
+2025-08-23 08:28:32,612 - INFO - 🧪 Testing: volatile_cryptos_discovery
+2025-08-23 08:28:33,058 - ERROR - ❌ volatile_cryptos_discovery FAILED:
+2025-08-23 08:28:33,058 - ERROR -    - STDOUT output differs from golden standard (after normalization)
+2025-08-23 08:28:33,060 - ERROR - ❌ Some regression tests failed!
+2025-08-23 08:38:31,103 - INFO - 🔄 Capturing golden standards...
+2025-08-23 08:38:31,103 - INFO - 📸 Capturing: backtester_bitcoin_ema_only
+2025-08-23 08:38:32,335 - INFO - ✅ Captured: backtester_bitcoin_ema_only (return_code: 0)
+2025-08-23 08:38:32,336 - INFO - 📸 Capturing: backtester_ethereum_strict
+2025-08-23 08:38:33,440 - INFO - ✅ Captured: backtester_ethereum_strict (return_code: 0)
+2025-08-23 08:38:33,441 - INFO - 📸 Capturing: volatile_cryptos_discovery
+2025-08-23 08:38:34,140 - INFO - ✅ Captured: volatile_cryptos_discovery (return_code: 0)
+2025-08-23 08:38:34,141 - INFO - 📸 Capturing: bayesian_optimization_sample
+2025-08-23 08:38:34,402 - INFO - ✅ Captured: bayesian_optimization_sample (return_code: 1)
+2025-08-23 08:38:34,402 - INFO - ✅ Golden standards captured successfully
+2025-08-23 08:39:01,799 - INFO - 🧪 Running regression tests...
+2025-08-23 08:39:01,800 - INFO - 🧪 Testing: backtester_bitcoin_ema_only
+2025-08-23 08:39:02,850 - INFO - ✅ backtester_bitcoin_ema_only PASSED
+2025-08-23 08:39:02,851 - INFO - 🧪 Testing: backtester_ethereum_strict
+2025-08-23 08:39:03,968 - INFO - ✅ backtester_ethereum_strict PASSED
+2025-08-23 08:39:03,970 - INFO - 🧪 Testing: bayesian_optimization_sample
+2025-08-23 08:39:04,263 - INFO - ✅ bayesian_optimization_sample PASSED
+2025-08-23 08:39:04,264 - INFO - 🧪 Testing: volatile_cryptos_discovery
+2025-08-23 08:39:04,868 - INFO - ✅ volatile_cryptos_discovery PASSED
+2025-08-23 08:39:04,870 - INFO - ✅ All regression tests passed!
+2025-08-23 10:25:08,425 - INFO - 🔄 Capturing golden standards...
+2025-08-23 10:25:08,425 - INFO - 📸 Capturing: backtester_bitcoin_ema_only
+2025-08-23 10:25:09,763 - INFO - ✅ Captured: backtester_bitcoin_ema_only (return_code: 0)
+2025-08-23 10:25:09,764 - INFO - 📸 Capturing: backtester_ethereum_strict
+2025-08-23 10:25:10,752 - INFO - ✅ Captured: backtester_ethereum_strict (return_code: 0)
+2025-08-23 10:25:10,752 - INFO - 📸 Capturing: volatile_cryptos_discovery
+2025-08-23 10:25:11,391 - INFO - ✅ Captured: volatile_cryptos_discovery (return_code: 0)
+2025-08-23 10:25:11,391 - INFO - 📸 Capturing: bayesian_optimization_sample
+2025-08-23 10:25:11,656 - INFO - ✅ Captured: bayesian_optimization_sample (return_code: 1)
+2025-08-23 10:25:11,657 - INFO - ✅ Golden standards captured successfully
+2025-08-23 10:54:18,072 - INFO - 🔄 Capturing golden standards...
+2025-08-23 10:54:18,072 - INFO - 📸 Capturing: backtester_bitcoin_ema_only
+2025-08-23 10:54:19,211 - INFO - ✅ Captured: backtester_bitcoin_ema_only (return_code: 0)
+2025-08-23 10:54:19,211 - INFO - 📸 Capturing: backtester_ethereum_strict
+2025-08-23 10:54:20,503 - INFO - ✅ Captured: backtester_ethereum_strict (return_code: 0)
+2025-08-23 10:54:20,503 - INFO - 📸 Capturing: volatile_cryptos_discovery
+2025-08-23 10:54:21,286 - INFO - ✅ Captured: volatile_cryptos_discovery (return_code: 0)
+2025-08-23 10:54:21,286 - INFO - 📸 Capturing: bayesian_optimization_sample
+2025-08-23 10:54:21,601 - INFO - ✅ Captured: bayesian_optimization_sample (return_code: 1)
+2025-08-23 10:54:21,601 - INFO - ✅ Golden standards captured successfully
+2025-08-23 11:27:17,388 - INFO - 🔄 Capturing golden standards...
+2025-08-23 11:27:17,388 - INFO - 📸 Capturing: backtester_bitcoin_ema_only
+2025-08-23 11:27:18,756 - INFO - ✅ Captured: backtester_bitcoin_ema_only (return_code: 0)
+2025-08-23 11:27:18,756 - INFO - 📸 Capturing: backtester_ethereum_strict
+2025-08-23 11:27:19,928 - INFO - ✅ Captured: backtester_ethereum_strict (return_code: 0)
+2025-08-23 11:27:19,928 - INFO - 📸 Capturing: volatile_cryptos_discovery
+2025-08-23 11:27:20,616 - INFO - ✅ Captured: volatile_cryptos_discovery (return_code: 0)
+2025-08-23 11:27:20,617 - INFO - 📸 Capturing: bayesian_optimization_sample
+2025-08-23 11:27:20,918 - INFO - ✅ Captured: bayesian_optimization_sample (return_code: 1)
+2025-08-23 11:27:20,919 - INFO - ✅ Golden standards captured successfully
+2025-08-23 11:41:02,006 - INFO - 🔄 Capturing golden standards...
+2025-08-23 11:41:02,007 - INFO - 📸 Capturing: backtester_bitcoin_ema_only
+2025-08-23 11:41:03,122 - INFO - ✅ Captured: backtester_bitcoin_ema_only (return_code: 0)
+2025-08-23 11:41:03,123 - INFO - 📸 Capturing: backtester_ethereum_strict
+2025-08-23 11:41:04,148 - INFO - ✅ Captured: backtester_ethereum_strict (return_code: 0)
+2025-08-23 11:41:04,149 - INFO - 📸 Capturing: volatile_cryptos_discovery
+2025-08-23 11:41:04,739 - INFO - ✅ Captured: volatile_cryptos_discovery (return_code: 0)
+2025-08-23 11:41:04,739 - INFO - 📸 Capturing: bayesian_optimization_sample
+2025-08-23 11:41:04,998 - INFO - ✅ Captured: bayesian_optimization_sample (return_code: 1)
+2025-08-23 11:41:04,998 - INFO - ✅ Golden standards captured successfully
+2025-08-23 17:24:01,612 - INFO - 🔄 Capturing golden standards...
+2025-08-23 17:24:01,613 - INFO - 📸 Capturing: backtester_bitcoin_ema_only
+2025-08-23 17:24:02,607 - INFO - ✅ Captured: backtester_bitcoin_ema_only (return_code: 0)
+2025-08-23 17:24:02,607 - INFO - 📸 Capturing: backtester_ethereum_strict
+2025-08-23 17:24:03,899 - INFO - ✅ Captured: backtester_ethereum_strict (return_code: 0)
+2025-08-23 17:24:03,899 - INFO - 📸 Capturing: volatile_cryptos_discovery
+2025-08-23 17:24:04,940 - INFO - ✅ Captured: volatile_cryptos_discovery (return_code: 0)
+2025-08-23 17:24:04,940 - INFO - 📸 Capturing: bayesian_optimization_sample
+2025-08-23 17:24:05,258 - INFO - ✅ Captured: bayesian_optimization_sample (return_code: 1)
+2025-08-23 17:24:05,259 - INFO - ✅ Golden standards captured successfully

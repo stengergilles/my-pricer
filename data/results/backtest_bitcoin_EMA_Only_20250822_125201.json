@@ -1,0 +1,22 @@
+{
+  "backtest_id": "backtest_20250822_125201_796026",
+  "crypto_id": "bitcoin",
+  "strategy_name": "EMA_Only",
+  "parameters": {
+    "short_ema_period": 12,
+    "long_ema_period": 26,
+    "rsi_oversold": 30,
+    "rsi_overbought": 70
+  },
+  "timeframe_days": 30,
+  "timestamp": "2025-08-22T12:52:01.796101",
+  "result": {
+    "total_profit_percentage": 15.5,
+    "num_trades": 8,
+    "win_rate": 62.5,
+    "sharpe_ratio": 1.2,
+    "max_drawdown": -8.3,
+    "note": "Mock backtest result"
+  },
+  "engine_version": "1.0.0"
+}

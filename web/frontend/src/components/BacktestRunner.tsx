@@ -1,11 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import toast from 'react-hot-toast'
 import { useApiClient } from '../hooks/useApiClient.ts'
-import { Crypto, Strategy, BacktestFormData, BacktestResponse } from '../utils/types.ts'
+import { Crypto, Strategy, BacktestFormData } from '../utils/types.ts'
 import {
   Box,
   Typography,
@@ -36,10 +36,14 @@ const ResultBox = styled(Box)(({ theme }) => ({
   textAlign: 'center',
 }))
 
-export const BacktestRunner = ({ selectedCrypto }) => {
+export const BacktestRunner = ({ selectedCrypto, onSetResult, initialResult }) => {
   const apiClient = useApiClient()
   const queryClient = useQueryClient()
-  const [result, setResult] = useState<BacktestResponse | null>(null)
+  const [result, setResult] = useState<BacktestResponse | null>(initialResult);
+
+  useEffect(() => {
+    setResult(initialResult);
+  }, [initialResult]);
 
   // Fetch data
   const { data: cryptos, isLoading: cryptosLoading } = useQuery<{ cryptos: Crypto[] }>({
@@ -85,7 +89,7 @@ export const BacktestRunner = ({ selectedCrypto }) => {
       return apiClient.runBacktest(requestData)
     },
     onSuccess: (data) => {
-      setResult(data.backtest)
+      onSetResult(data.backtest)
       toast.success('Backtest completed successfully!')
       queryClient.invalidateQueries({ queryKey: ['backtest-history'] })
     },
@@ -116,7 +120,7 @@ export const BacktestRunner = ({ selectedCrypto }) => {
         <form onSubmit={handleSubmit(onSubmit)}>
           <Grid container spacing={3} mb={3}>
             {/* Cryptocurrency Selection */}
-            <Grid item xs={12} md={4}>
+            <Grid xs={12} md={4}>
               <FormControl fullWidth>
                 <InputLabel id="crypto-select-label">Cryptocurrency</InputLabel>
                 <Select
@@ -136,7 +140,7 @@ export const BacktestRunner = ({ selectedCrypto }) => {
             </Grid>
 
             {/* Strategy Selection */}
-            <Grid item xs={12} md={4}>
+            <Grid xs={12} md={4}>
               <FormControl fullWidth>
                 <InputLabel id="strategy-select-label">Strategy</InputLabel>
                 <Select
@@ -155,7 +159,7 @@ export const BacktestRunner = ({ selectedCrypto }) => {
             </Grid>
 
             {/* Timeframe */}
-            <Grid item xs={12} md={4}>
+            <Grid xs={12} md={4}>
               <TextField
                 fullWidth
                 label="Timeframe (days)"
@@ -182,7 +186,7 @@ export const BacktestRunner = ({ selectedCrypto }) => {
               <Typography variant="h6" gutterBottom>Strategy Parameters</Typography>
               <Grid container spacing={2}>
                 {Object.entries(strategyDetails.parameters).map(([key, param]) => (
-                  <Grid item xs={12} sm={6} key={key}>
+                  <Grid xs={12} sm={6} key={key}>
                     <TextField
                       fullWidth
                       label={param.description}
@@ -216,7 +220,7 @@ export const BacktestRunner = ({ selectedCrypto }) => {
           <Typography variant="h5" component="h3" gutterBottom>Backtest Results</Typography>
 
           <Grid container spacing={2} mb={3}>
-            <Grid item xs={12} sm={6} md={3}>
+            <Grid xs={12} sm={6} md={3}>
               <ResultBox>
                 <Typography variant="body2" color="text.secondary">Total Profit</Typography>
                 <Typography
@@ -231,42 +235,44 @@ export const BacktestRunner = ({ selectedCrypto }) => {
               </ResultBox>
             </Grid>
 
-            <Grid item xs={12} sm={6} md={3}>
+            <Grid xs={12} sm={6} md={3}>
               <ResultBox>
                 <Typography variant="body2" color="text.secondary">Number of Trades</Typography>
                 <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-                  {result.result.num_trades}
+                  {initialResult?.result?.num_trades !== undefined && initialResult?.result?.num_trades !== null
+                    ? String(initialResult.result.num_trades)
+                    : 'N/A'}
                 </Typography>
               </ResultBox>
             </Grid>
 
-            <Grid item xs={12} sm={6} md={3}>
+            <Grid xs={12} sm={6} md={3}>
               <ResultBox>
                 <Typography variant="body2" color="text.secondary">Win Rate</Typography>
                 <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-                  {result.result.win_rate.toFixed(1)}%
+                  {(result.result.win_rate ?? 0).toFixed(1)}%
                 </Typography>
               </ResultBox>
             </Grid>
 
-            <Grid item xs={12} sm={6} md={3}>
+            <Grid xs={12} sm={6} md={3}>
               <ResultBox>
                 <Typography variant="body2" color="text.secondary">Sharpe Ratio</Typography>
                 <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-                  {result.result.sharpe_ratio.toFixed(2)}
+                  {(result.result.sharpe_ratio ?? 0).toFixed(2)}
                 </Typography>
               </ResultBox>
             </Grid>
           </Grid>
 
           <Grid container spacing={3}>
-            <Grid item xs={12} md={6}>
+            <Grid xs={12} md={6}>
               <Typography variant="subtitle1" gutterBottom>Performance Metrics</Typography>
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                   <Typography variant="body2" color="text.secondary">Max Drawdown:</Typography>
                   <Typography variant="body2" sx={{ fontWeight: 'medium', color: 'error.main' }}>
-                    {result.result.max_drawdown.toFixed(2)}%
+                    {(result.result.max_drawdown ?? 0).toFixed(2)}%
                   </Typography>
                 </Box>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -280,7 +286,7 @@ export const BacktestRunner = ({ selectedCrypto }) => {
               </Box>
             </Grid>
 
-            <Grid item xs={12} md={6}>
+            <Grid xs={12} md={6}>
               <Typography variant="subtitle1" gutterBottom>Parameters Used</Typography>
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                 {Object.entries(result.parameters).map(([key, value]) => (

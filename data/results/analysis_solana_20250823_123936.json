@@ -1,0 +1,28 @@
+{
+  "crypto_id": "solana",
+  "current_price": 202.92,
+  "latest_data_price": 205.17,
+  "current_signal": "HOLD",
+  "strategy_used": "EMA_Only",
+  "parameters_used": "auto-detected",
+  "backtest_result": {
+    "final_capital": 9870.024072425877,
+    "total_profit_loss": -129.97592757412332,
+    "total_trades": 3,
+    "winning_trades": 1,
+    "losing_trades": 2,
+    "win_rate": 0.3333333333333333,
+    "long_profit": -66.18719660662488,
+    "short_profit": -63.78873096749842,
+    "num_long_trades": 2,
+    "num_short_trades": 1
+  },
+  "active_resistance_lines": [],
+  "active_support_lines": [],
+  "next_move_prediction": null,
+  "analysis_timestamp": "2025-08-23T12:39:36.760628",
+  "analysis_id": "analysis_20250823_123936_760787",
+  "timestamp": "2025-08-23T12:39:36.760832",
+  "timeframe_days": 7,
+  "engine_version": "1.0.0"
+}

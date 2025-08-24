@@ -32,9 +32,9 @@
     "9"
   ],
   "return_code": 0,
-  "stdout": "OPTIMIZER_RESULTS:{\"final_capital\": 97.80642350405716, \"total_profit_loss\": -2.193576495942824, \"total_trades\": 7, \"winning_trades\": 0, \"losing_trades\": 7, \"win_rate\": 0.0, \"long_profit\": -0.8436224342498995, \"short_profit\": -1.3499540616929246, \"num_long_trades\": 4, \"num_short_trades\": 3}\n",
+  "stdout": "OPTIMIZER_RESULTS:{\"final_capital\": 98.13292388924361, \"total_profit_loss\": -1.867076110756374, \"total_profit_percentage\": -1.8670761107563862, \"total_trades\": 6, \"winning_trades\": 0, \"losing_trades\": 6, \"win_rate\": 0.0, \"sharpe_ratio\": 0.0, \"max_drawdown\": 0.0, \"long_profit\": -0.7525198104206573, \"short_profit\": -1.1145563003357168, \"num_long_trades\": 3, \"num_short_trades\": 3}\n",
   "stderr": "TIMESTAMP - TIMESTAMP - TIMESTAMP - TIMESTAMP - TIMESTAMP - TIMESTAMP - TIMESTAMP - TIMESTAMP - TIMESTAMP - TIMESTAMP - TIMESTAMP - TIMESTAMP - TIMESTAMP - TIMESTAMP - TIMESTAMP - TIMESTAMP - TIMESTAMP - TIMESTAMP - TIMESTAMP - TIMESTAMP - TIMESTAMP - TIMESTAMP - TIMESTAMP - TIMESTAMP - TIMESTAMP - TIMESTAMP - TIMESTAMP - TIMESTAMP - TIMESTAMP - TIMESTAMP - TIMESTAMP - TIMESTAMP - TIMESTAMP - TIMESTAMP - TIMESTAMP - TIMESTAMP - TIMESTAMP - TIMESTAMP - TIMESTAMP - TIMESTAMP - TIMESTAMP - TIMESTAMP - TIMESTAMP - TIMESTAMP - TIMESTAMP - ",
-  "captured_at": "2025-08-23T11:41:03.121742",
-  "stdout_hash": "15b9aaa5d8441f1eab415647f51baba1",
+  "captured_at": "2025-08-23T17:24:02.606940",
+  "stdout_hash": "3c4bda4361b415fe6034ec80a945cc11",
   "stderr_hash": "41868040259133c0ed554c96aac74432"
 }

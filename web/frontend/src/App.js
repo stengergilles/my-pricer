@@ -1,16 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { Box, CircularProgress, Typography, Container, Paper, AppBar, Toolbar, Tabs, Tab } from '@mui/material';
+import { Box, CircularProgress, Typography, Container, Paper, AppBar, Toolbar, Tabs, Tab, IconButton } from '@mui/material';
 import { styled } from '@mui/system';
 
 // Import components that were in page.tsx
 import { LoginButton } from './components/auth/LoginButton.tsx';
-import { LogoutButton } from './components/auth/LogoutButton.tsx';
+
 import { CryptoAnalysis } from './components/CryptoAnalysis.tsx';
 import { BacktestRunner } from './components/BacktestRunner.tsx';
 import { HealthStatus } from './components/HealthStatus.tsx';
 
 import { useAuth0 } from '@auth0/auth0-react';
+import { setupRemoteLogger } from './utils/remoteLogger.ts';
+
+import LogoutIcon from '@mui/icons-material/Logout';
 
 // Styled components for navigation tabs
 const StyledTab = styled(Tab)(({ theme }) => ({
@@ -32,9 +35,13 @@ const StyledTab = styled(Tab)(({ theme }) => ({
 
 
 function App() {
-  const { user, isLoading } = useAuth0();
+  const { user, isLoading, logout } = useAuth0();
   const [activeTab, setActiveTab] = useState('analysis');
   const [selectedCryptoForBacktest, setSelectedCryptoForBacktest] = useState(null);
+
+  useEffect(() => {
+    setupRemoteLogger();
+  }, []);
 
   const handleTabChange = (event, newValue) => {
     setActiveTab(newValue);
@@ -103,7 +110,13 @@ function App() {
               </Box>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                 <HealthStatus />
-                <LogoutButton />
+                <IconButton
+                  color="inherit"
+                  onClick={() => logout({ logoutParams: { returnTo: window.location.origin } })}
+                  aria-label="logout"
+                >
+                  <LogoutIcon />
+                </IconButton>
               </Box>
             </Container>
           </Toolbar>

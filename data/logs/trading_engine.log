@@ -1,0 +1,47 @@
+2025-08-22 08:36:01,683 - trading_engine - INFO - Starting analysis for bitcoin with strategy EMA_Only
+2025-08-22 08:36:01,690 - trading_engine - INFO - Analysis result saved to /data/data/com.termux/files/home/Work/my-pricer/data/results/analysis_bitcoin_20250822_083601.json
+2025-08-22 08:36:01,691 - trading_engine - INFO - Analysis completed successfully for bitcoin
+2025-08-22 08:36:22,592 - trading_engine - INFO - Starting backtest for bitcoin with EMA_Only
+2025-08-22 08:36:22,596 - trading_engine - INFO - Backtest result saved to /data/data/com.termux/files/home/Work/my-pricer/data/results/backtest_bitcoin_EMA_Only_20250822_083622.json
+2025-08-22 08:36:22,596 - trading_engine - INFO - Backtest completed successfully for bitcoin
+2025-08-22 12:51:51,470 - trading_engine - INFO - Starting analysis for bitcoin with strategy EMA_Only
+2025-08-22 12:51:53,046 - trading_engine - INFO - Analysis result saved to /data/data/com.termux/files/home/Work/my-pricer/data/results/analysis_bitcoin_20250822_125153.json
+2025-08-22 12:51:53,046 - trading_engine - INFO - Analysis completed successfully for bitcoin
+2025-08-22 12:51:54,600 - trading_engine - INFO - Starting analysis for bitcoin with strategy EMA_Only
+2025-08-22 12:51:56,023 - trading_engine - INFO - Analysis result saved to /data/data/com.termux/files/home/Work/my-pricer/data/results/analysis_bitcoin_20250822_125156.json
+2025-08-22 12:51:56,023 - trading_engine - INFO - Analysis completed successfully for bitcoin
+2025-08-22 12:52:01,795 - trading_engine - INFO - Starting backtest for bitcoin with EMA_Only
+2025-08-22 12:52:01,797 - trading_engine - INFO - Backtest result saved to /data/data/com.termux/files/home/Work/my-pricer/data/results/backtest_bitcoin_EMA_Only_20250822_125201.json
+2025-08-22 12:52:01,798 - trading_engine - INFO - Backtest completed successfully for bitcoin
+2025-08-22 12:52:02,496 - trading_engine - INFO - Starting backtest for bitcoin with EMA_Only
+2025-08-22 12:52:02,498 - trading_engine - INFO - Backtest result saved to /data/data/com.termux/files/home/Work/my-pricer/data/results/backtest_bitcoin_EMA_Only_20250822_125202.json
+2025-08-22 12:52:02,499 - trading_engine - INFO - Backtest completed successfully for bitcoin
+2025-08-22 17:12:31,957 - trading_engine - WARNING - CLI modules not available. Some functionality may be limited.
+2025-08-22 17:12:31,958 - trading_engine - WARNING - CLI modules not available. Some functionality may be limited.
+2025-08-22 17:12:31,959 - trading_engine - WARNING - CLI modules not available. Some functionality may be limited.
+2025-08-22 17:12:31,959 - trading_engine - WARNING - CLI modules not available. Some functionality may be limited.
+2025-08-22 17:12:31,960 - trading_engine - WARNING - CLI modules not available. Some functionality may be limited.
+2025-08-22 17:12:31,961 - trading_engine - WARNING - CLI modules not available. Some functionality may be limited.
+2025-08-22 17:12:32,759 - trading_engine - WARNING - CLI modules not available. Some functionality may be limited.
+2025-08-22 17:12:32,760 - trading_engine - WARNING - CLI modules not available. Some functionality may be limited.
+2025-08-22 17:12:32,761 - trading_engine - WARNING - CLI modules not available. Some functionality may be limited.
+2025-08-22 17:12:32,761 - trading_engine - WARNING - CLI modules not available. Some functionality may be limited.
+2025-08-22 17:12:32,761 - trading_engine - WARNING - CLI modules not available. Some functionality may be limited.
+2025-08-22 17:12:32,763 - trading_engine - WARNING - CLI modules not available. Some functionality may be limited.
+2025-08-22 17:21:46,927 - trading_engine - WARNING - CLI modules not available. Some functionality may be limited.
+2025-08-22 17:21:46,928 - trading_engine - WARNING - CLI modules not available. Some functionality may be limited.
+2025-08-22 17:21:46,928 - trading_engine - WARNING - CLI modules not available. Some functionality may be limited.
+2025-08-22 17:21:46,928 - trading_engine - WARNING - CLI modules not available. Some functionality may be limited.
+2025-08-22 17:21:46,929 - trading_engine - WARNING - CLI modules not available. Some functionality may be limited.
+2025-08-22 17:21:46,930 - trading_engine - WARNING - CLI modules not available. Some functionality may be limited.
+2025-08-22 17:21:48,604 - trading_engine - WARNING - CLI modules not available. Some functionality may be limited.
+2025-08-22 17:21:48,605 - trading_engine - WARNING - CLI modules not available. Some functionality may be limited.
+2025-08-22 17:21:48,605 - trading_engine - WARNING - CLI modules not available. Some functionality may be limited.
+2025-08-22 17:21:48,606 - trading_engine - WARNING - CLI modules not available. Some functionality may be limited.
+2025-08-22 17:21:48,606 - trading_engine - WARNING - CLI modules not available. Some functionality may be limited.
+2025-08-22 17:21:48,608 - trading_engine - WARNING - CLI modules not available. Some functionality may be limited.
+2025-08-22 17:33:49,815 - trading_engine - INFO - Starting analysis for bitcoin with strategy EMA_Only
+2025-08-22 17:33:52,528 - trading_engine - INFO - Starting analysis for bitcoin with strategy EMA_Only
+2025-08-22 17:39:14,208 - trading_engine - INFO - Starting analysis for bitcoin with strategy EMA_Only
+2025-08-22 17:41:25,054 - trading_engine - INFO - Analysis result saved to /data/data/com.termux/files/home/Work/my-pricer/data/results/analysis_bitcoin_20250822_174125.json
+2025-08-22 17:41:25,054 - trading_engine - INFO - Analysis completed successfully for bitcoin

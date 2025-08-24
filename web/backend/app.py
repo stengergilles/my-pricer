@@ -82,6 +82,26 @@ def auth_test():
         'timestamp': datetime.now().isoformat()
     })
 
+# Log receiving endpoint
+@app.route('/api/log', methods=['POST'])
+def receive_log():
+    try:
+        log_data = request.get_json()
+        level = log_data.get('level', 'info')
+        message = log_data.get('message', 'No message provided')
+
+        if level == 'error':
+            logger.error(f"FRONTEND_LOG (ERROR): {message}")
+        elif level == 'warn':
+            logger.warning(f"FRONTEND_LOG (WARN): {message}")
+        else:
+            logger.info(f"FRONTEND_LOG (INFO): {message}")
+
+        return jsonify({'status': 'success'}), 200
+    except Exception as e:
+        logger.error(f"Error receiving frontend log: {str(e)}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
 # Register API resources with Auth0 protection
 api.add_resource(CryptoAPI, '/api/cryptos', '/api/cryptos/<string:crypto_id>')
 api.add_resource(AnalysisAPI, '/api/analysis', '/api/analysis/<string:analysis_id>')

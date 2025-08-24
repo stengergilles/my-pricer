@@ -13,7 +13,7 @@
   "return_code": 1,
   "stdout": "",
   "stderr": "Traceback (most recent call last):\n  File \"/data/data/com.termux/files/home/Work/my-pricer/optimize_bayesian.py\", line 107, in <module>\n    optuna.set_random_seed(SEED)\n    ^^^^^^^^^^^^^^^^^^^^^^\nAttributeError: module 'optuna' has no attribute 'set_random_seed'\n",
-  "captured_at": "2025-08-23T11:41:04.997051",
+  "captured_at": "2025-08-23T17:24:05.257675",
   "stdout_hash": "d41d8cd98f00b204e9800998ecf8427e",
   "stderr_hash": "056cda2b2eaaf1a4efe6f2382fd5c5e6"
 }

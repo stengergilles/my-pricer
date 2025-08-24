@@ -1,0 +1,147 @@
+{
+  "crypto_id": "bitcoin",
+  "current_price": 112531,
+  "latest_data_price": 113109.0,
+  "current_signal": "HOLD",
+  "strategy_used": "EMA_Only",
+  "parameters_used": "auto-detected",
+  "backtest_result": {
+    "final_capital": 10000.0,
+    "total_profit_loss": 0.0,
+    "total_trades": 0,
+    "winning_trades": 0,
+    "losing_trades": 0,
+    "win_rate": 0.0,
+    "long_profit": 0.0,
+    "short_profit": 0.0,
+    "num_long_trades": 0,
+    "num_short_trades": 0
+  },
+  "active_resistance_lines": [
+    {
+      "type": "resistance",
+      "points": [
+        "2025-08-17 12:00:00",
+        "2025-08-18 20:00:00"
+      ],
+      "equation": "y = -0.017257x + 121331.00",
+      "slope": -0.017256944444444443,
+      "intercept": 121331.0,
+      "r_value": -1.0,
+      "std_err": 0.0,
+      "current_price": 111142.5
+    },
+    {
+      "type": "resistance",
+      "points": [
+        "2025-08-17 12:00:00",
+        "2025-08-21 00:00:00"
+      ],
+      "equation": "y = -0.013548x + 120690.14",
+      "slope": -0.013548280423280424,
+      "intercept": 120690.14285714286,
+      "r_value": -1.0,
+      "std_err": 0.0,
+      "current_price": 112691.23809523809
+    },
+    {
+      "type": "resistance",
+      "points": [
+        "2025-08-18 20:00:00",
+        "2025-08-21 00:00:00"
+      ],
+      "equation": "y = -0.011266x + 119605.62",
+      "slope": -0.011266025641025641,
+      "intercept": 119605.61538461539,
+      "r_value": -1.0,
+      "std_err": 0.0,
+      "current_price": 112954.15384615384
+    }
+  ],
+  "active_support_lines": [
+    {
+      "type": "support",
+      "points": [
+        "2025-08-15 20:00:00",
+        "2025-08-18 12:00:00"
+      ],
+      "equation": "y = -0.008615x + 117221.12",
+      "slope": -0.00861545138888889,
+      "intercept": 117221.125,
+      "r_value": -1.0,
+      "std_err": 0.0,
+      "current_price": 112134.5625
+    },
+    {
+      "type": "support",
+      "points": [
+        "2025-08-15 20:00:00",
+        "2025-08-20 00:00:00"
+      ],
+      "equation": "y = -0.011653x + 117308.60",
+      "slope": -0.011652777777777778,
+      "intercept": 117308.6,
+      "r_value": -1.0,
+      "std_err": 0.0,
+      "current_price": 110428.8
+    },
+    {
+      "type": "support",
+      "points": [
+        "2025-08-15 20:00:00",
+        "2025-08-21 20:00:00"
+      ],
+      "equation": "y = -0.009549x + 117248.00",
+      "slope": -0.009548611111111112,
+      "intercept": 117248.0,
+      "r_value": -1.0,
+      "std_err": 0.0,
+      "current_price": 111610.5
+    },
+    {
+      "type": "support",
+      "points": [
+        "2025-08-18 12:00:00",
+        "2025-08-20 00:00:00"
+      ],
+      "equation": "y = -0.017052x + 119408.00",
+      "slope": -0.01705246913580247,
+      "intercept": 119408.0,
+      "r_value": -1.0,
+      "std_err": 0.0,
+      "current_price": 109340.22222222222
+    },
+    {
+      "type": "support",
+      "points": [
+        "2025-08-18 12:00:00",
+        "2025-08-21 20:00:00"
+      ],
+      "equation": "y = -0.010295x + 117656.50",
+      "slope": -0.010295138888888888,
+      "intercept": 117656.5,
+      "r_value": -1.0,
+      "std_err": 0.0,
+      "current_price": 111578.25
+    },
+    {
+      "type": "support",
+      "points": [
+        "2025-08-20 00:00:00",
+        "2025-08-21 20:00:00"
+      ],
+      "equation": "y = -0.004766x + 114631.18",
+      "slope": -0.004766414141414142,
+      "intercept": 114631.18181818182,
+      "r_value": -1.0,
+      "std_err": 0.0,
+      "current_price": 111817.09090909091
+    }
+  ],
+  "next_move_prediction": null,
+  "analysis_timestamp": "2025-08-22T12:51:53.045165",
+  "analysis_id": "analysis_20250822_125153_045278",
+  "timestamp": "2025-08-22T12:51:53.045310",
+  "timeframe_days": 7,
+  "engine_version": "1.0.0"
+}

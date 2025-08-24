@@ -1,0 +1,87 @@
+{
+  "crypto_id": "bitcoin",
+  "current_price": 115696,
+  "latest_data_price": 115729.0,
+  "current_signal": "HOLD",
+  "strategy_used": "Combined_Trigger_Verifier",
+  "parameters_used": {
+    "short_ema_period": "12",
+    "long_ema_period": "26",
+    "rsi_oversold": "30",
+    "rsi_overbought": "70"
+  },
+  "backtest_result": {
+    "final_capital": 9888.141560567672,
+    "total_profit_loss": -111.85843943232742,
+    "total_trades": 2,
+    "winning_trades": 0,
+    "losing_trades": 2,
+    "win_rate": 0.0,
+    "long_profit": -111.85843943232742,
+    "short_profit": 0.0,
+    "num_long_trades": 2,
+    "num_short_trades": 0
+  },
+  "active_resistance_lines": [
+    {
+      "type": "resistance",
+      "points": [
+        "2025-08-17T12:00:00",
+        "2025-08-21T00:00:00"
+      ],
+      "equation": "y = -0.013548x + 119519.57",
+      "slope": -0.013548280423280424,
+      "intercept": 119519.57142857143,
+      "r_value": -1.0,
+      "std_err": 0.0,
+      "current_price": 111520.66666666667
+    },
+    {
+      "type": "resistance",
+      "points": [
+        "2025-08-18T20:00:00",
+        "2025-08-21T00:00:00"
+      ],
+      "equation": "y = -0.011266x + 118632.23",
+      "slope": -0.011266025641025641,
+      "intercept": 118632.23076923077,
+      "r_value": -1.0,
+      "std_err": 0.0,
+      "current_price": 111980.76923076922
+    }
+  ],
+  "active_support_lines": [
+    {
+      "type": "support",
+      "points": [
+        "2025-08-18T12:00:00",
+        "2025-08-21T20:00:00"
+      ],
+      "equation": "y = -0.010295x + 116767.00",
+      "slope": -0.010295138888888888,
+      "intercept": 116767.0,
+      "r_value": -1.0,
+      "std_err": 0.0,
+      "current_price": 110688.75
+    },
+    {
+      "type": "support",
+      "points": [
+        "2025-08-20T00:00:00",
+        "2025-08-21T20:00:00"
+      ],
+      "equation": "y = -0.004766x + 114219.36",
+      "slope": -0.004766414141414142,
+      "intercept": 114219.36363636363,
+      "r_value": -1.0,
+      "std_err": 0.0,
+      "current_price": 111405.27272727272
+    }
+  ],
+  "next_move_prediction": "neutral",
+  "analysis_timestamp": "2025-08-23T12:06:23.234980",
+  "analysis_id": "analysis_20250823_120623_235255",
+  "timestamp": "2025-08-23T12:06:23.235298",
+  "timeframe_days": 7,
+  "engine_version": "1.0.0"
+}

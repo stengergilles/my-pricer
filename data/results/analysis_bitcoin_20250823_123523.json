@@ -1,0 +1,82 @@
+{
+  "crypto_id": "bitcoin",
+  "current_price": 115554,
+  "latest_data_price": 115729.0,
+  "current_signal": "HOLD",
+  "strategy_used": "EMA_Only",
+  "parameters_used": "auto-detected",
+  "backtest_result": {
+    "final_capital": 9931.267239392344,
+    "total_profit_loss": -68.73276060765627,
+    "total_trades": 1,
+    "winning_trades": 0,
+    "losing_trades": 1,
+    "win_rate": 0.0,
+    "long_profit": 0.0,
+    "short_profit": -68.73276060765627,
+    "num_long_trades": 0,
+    "num_short_trades": 1
+  },
+  "active_resistance_lines": [
+    {
+      "type": "resistance",
+      "points": [
+        "2025-08-17T12:00:00",
+        "2025-08-21T00:00:00"
+      ],
+      "equation": "y = -0.013548x + 119519.57",
+      "slope": -0.013548280423280424,
+      "intercept": 119519.57142857143,
+      "r_value": -1.0,
+      "std_err": 0.0,
+      "current_price": 111520.66666666667
+    },
+    {
+      "type": "resistance",
+      "points": [
+        "2025-08-18T20:00:00",
+        "2025-08-21T00:00:00"
+      ],
+      "equation": "y = -0.011266x + 118632.23",
+      "slope": -0.011266025641025641,
+      "intercept": 118632.23076923077,
+      "r_value": -1.0,
+      "std_err": 0.0,
+      "current_price": 111980.76923076922
+    }
+  ],
+  "active_support_lines": [
+    {
+      "type": "support",
+      "points": [
+        "2025-08-18T12:00:00",
+        "2025-08-21T20:00:00"
+      ],
+      "equation": "y = -0.010295x + 116767.00",
+      "slope": -0.010295138888888888,
+      "intercept": 116767.0,
+      "r_value": -1.0,
+      "std_err": 0.0,
+      "current_price": 110688.75
+    },
+    {
+      "type": "support",
+      "points": [
+        "2025-08-20T00:00:00",
+        "2025-08-21T20:00:00"
+      ],
+      "equation": "y = -0.004766x + 114219.36",
+      "slope": -0.004766414141414142,
+      "intercept": 114219.36363636363,
+      "r_value": -1.0,
+      "std_err": 0.0,
+      "current_price": 111405.27272727272
+    }
+  ],
+  "next_move_prediction": "neutral",
+  "analysis_timestamp": "2025-08-23T12:35:23.652590",
+  "analysis_id": "analysis_20250823_123523_652847",
+  "timestamp": "2025-08-23T12:35:23.652895",
+  "timeframe_days": 7,
+  "engine_version": "1.0.0"
+}

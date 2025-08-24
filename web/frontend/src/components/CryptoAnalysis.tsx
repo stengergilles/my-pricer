@@ -116,7 +116,7 @@ export const CryptoAnalysis = ({ setActiveTab, onRunBacktest }) => {
         <form onSubmit={handleSubmit(onSubmit)}>
           <Grid container spacing={3} mb={3}>
             {/* Cryptocurrency Selection */}
-            <Grid item xs={12} md={4}>
+            <Grid xs={12} md={4}>
               <FormControl fullWidth>
                 <InputLabel id="crypto-select-label">Cryptocurrency</InputLabel>
                 <Select
@@ -135,7 +135,7 @@ export const CryptoAnalysis = ({ setActiveTab, onRunBacktest }) => {
             </Grid>
 
             {/* Strategy Selection */}
-            <Grid item xs={12} md={4}>
+            <Grid xs={12} md={4}>
               <FormControl fullWidth>
                 <InputLabel id="strategy-select-label">Strategy</InputLabel>
                 <Select
@@ -154,7 +154,7 @@ export const CryptoAnalysis = ({ setActiveTab, onRunBacktest }) => {
             </Grid>
 
             {/* Timeframe */}
-            <Grid item xs={12} md={4}>
+            <Grid xs={12} md={4}>
               <TextField
                 fullWidth
                 label="Timeframe (days)"
@@ -192,7 +192,7 @@ export const CryptoAnalysis = ({ setActiveTab, onRunBacktest }) => {
               <Typography variant="h6" gutterBottom>Strategy Parameters</Typography>
               <Grid container spacing={2}>
                 {Object.entries(strategyDetails.parameters).map(([key, param]) => (
-                  <Grid item xs={12} sm={6} key={key}>
+                  <Grid xs={12} sm={6} key={key}>
                     <TextField
                       fullWidth
                       label={param.description}
@@ -226,7 +226,7 @@ export const CryptoAnalysis = ({ setActiveTab, onRunBacktest }) => {
           <Typography variant="h5" component="h3" gutterBottom>Analysis Results</Typography>
 
           <Grid container spacing={2} mb={3}>
-            <Grid item xs={12} sm={6} md={3}>
+            <Grid xs={12} sm={6} md={3}>
               <ResultBox>
                 <Typography variant="body2" color="text.secondary">Current Signal</Typography>
                 <Typography
@@ -241,7 +241,7 @@ export const CryptoAnalysis = ({ setActiveTab, onRunBacktest }) => {
               </ResultBox>
             </Grid>
 
-            <Grid item xs={12} sm={6} md={3}>
+            <Grid xs={12} sm={6} md={3}>
               <ResultBox>
                 <Typography variant="body2" color="text.secondary">Current Price</Typography>
                 <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
@@ -250,7 +250,7 @@ export const CryptoAnalysis = ({ setActiveTab, onRunBacktest }) => {
               </ResultBox>
             </Grid>
 
-            <Grid item xs={12} sm={6} md={3}>
+            <Grid xs={12} sm={6} md={3}>
               <ResultBox>
                 <Typography variant="body2" color="text.secondary">Strategy Used</Typography>
                 <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
@@ -259,7 +259,7 @@ export const CryptoAnalysis = ({ setActiveTab, onRunBacktest }) => {
               </ResultBox>
             </Grid>
 
-            <Grid item xs={12} sm={6} md={3}>
+            <Grid xs={12} sm={6} md={3}>
               <ResultBox>
                 <Typography variant="body2" color="text.secondary">Timeframe</Typography>
                 <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
@@ -270,7 +270,7 @@ export const CryptoAnalysis = ({ setActiveTab, onRunBacktest }) => {
           </Grid>
 
           <Grid container spacing={3}>
-            <Grid item xs={12} md={6}>
+            <Grid xs={12} md={6}>
               <Typography variant="subtitle1" gutterBottom>Support/Resistance Analysis</Typography>
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -285,7 +285,7 @@ export const CryptoAnalysis = ({ setActiveTab, onRunBacktest }) => {
             </Grid>
 
             {result.backtest_result && result.backtest_result.total_profit_percentage !== undefined ? (
-              <Grid item xs={12} md={6}>
+              <Grid xs={12} md={6}>
                 <Typography variant="subtitle1" gutterBottom>Backtest Performance</Typography>
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -311,7 +311,7 @@ export const CryptoAnalysis = ({ setActiveTab, onRunBacktest }) => {
                 </Box>
               </Grid>
             ) : (
-              <Grid item xs={12} md={6}>
+              <Grid xs={12} md={6}>
                 <Typography variant="subtitle1" gutterBottom>Backtest Performance</Typography>
                 <Alert severity="info">
                   <Typography variant="body2">
