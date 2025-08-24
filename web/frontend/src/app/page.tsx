@@ -10,13 +10,12 @@ import { BacktestRunner } from '@/components/BacktestRunner'
 import { HealthStatus } from '@/components/HealthStatus'
 
 export default function Home() {
-  console.log('app/page.tsx render - backtestResult:', backtestResult);
   const { user, isLoading } = useUser()
   const [activeTab, setActiveTab] = useState('analysis')
   const [backtestResult, setBacktestResult] = useState(null);
 
   useEffect(() => {
-    console.log('app/page.tsx - backtestResult changed:', backtestResult);
+    // console.log('app/page.tsx - backtestResult changed:', backtestResult);
   }, [backtestResult]);
 
   if (isLoading) {

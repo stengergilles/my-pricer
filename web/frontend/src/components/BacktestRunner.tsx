@@ -89,7 +89,8 @@ export const BacktestRunner = ({ selectedCrypto, onSetResult, initialResult }) =
       return apiClient.runBacktest(requestData)
     },
     onSuccess: (data) => {
-      onSetResult(data.backtest)
+      setResult(data)
+      onSetResult(data)
       toast.success('Backtest completed successfully!')
       queryClient.invalidateQueries({ queryKey: ['backtest-history'] })
     },
@@ -101,6 +102,8 @@ export const BacktestRunner = ({ selectedCrypto, onSetResult, initialResult }) =
   const onSubmit = (data: BacktestFormData) => {
     backtestMutation.mutate(data)
   }
+
+  console.log("result:", result)
 
   if (cryptosLoading || strategiesLoading) {
     return (
@@ -227,10 +230,10 @@ export const BacktestRunner = ({ selectedCrypto, onSetResult, initialResult }) =
                   variant="h6"
                   sx={{
                     fontWeight: 'bold',
-                    color: result.result.total_profit_percentage > 0 ? 'success.main' : 'error.main',
+                    color: (result?.backtest?.result?.total_profit_percentage ?? 0) > 0 ? 'success.main' : 'error.main',
                   }}
                 >
-                  {result.result.total_profit_percentage.toFixed(2)}%
+                  {(result?.backtest?.result?.total_profit_percentage ?? 0).toFixed(2)}%
                 </Typography>
               </ResultBox>
             </Grid>
@@ -239,8 +242,8 @@ export const BacktestRunner = ({ selectedCrypto, onSetResult, initialResult }) =
               <ResultBox>
                 <Typography variant="body2" color="text.secondary">Number of Trades</Typography>
                 <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-                  {initialResult?.result?.num_trades !== undefined && initialResult?.result?.num_trades !== null
-                    ? String(initialResult.result.num_trades)
+                  {result?.backtest?.result?.total_trades !== undefined && result?.backtest?.result?.total_trades !== null
+                    ? String(result.backtest.result.total_trades)
                     : 'N/A'}
                 </Typography>
               </ResultBox>
@@ -250,19 +253,12 @@ export const BacktestRunner = ({ selectedCrypto, onSetResult, initialResult }) =
               <ResultBox>
                 <Typography variant="body2" color="text.secondary">Win Rate</Typography>
                 <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-                  {(result.result.win_rate ?? 0).toFixed(1)}%
+                  {(result?.backtest?.result?.win_rate ?? 0).toFixed(1)}%
                 </Typography>
               </ResultBox>
             </Grid>
 
-            <Grid xs={12} sm={6} md={3}>
-              <ResultBox>
-                <Typography variant="body2" color="text.secondary">Sharpe Ratio</Typography>
-                <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-                  {(result.result.sharpe_ratio ?? 0).toFixed(2)}
-                </Typography>
-              </ResultBox>
-            </Grid>
+            
           </Grid>
 
           <Grid container spacing={3}>
@@ -272,16 +268,16 @@ export const BacktestRunner = ({ selectedCrypto, onSetResult, initialResult }) =
                 <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                   <Typography variant="body2" color="text.secondary">Max Drawdown:</Typography>
                   <Typography variant="body2" sx={{ fontWeight: 'medium', color: 'error.main' }}>
-                    {(result.result.max_drawdown ?? 0).toFixed(2)}%
+                    {(result?.backtest?.result?.max_drawdown ?? 0).toFixed(2)}%
                   </Typography>
                 </Box>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                   <Typography variant="body2" color="text.secondary">Strategy:</Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 'medium' }}>{result.strategy_name.replace('_', ' ')}</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 'medium' }}>{result?.backtest?.strategy_name.replace('_', ' ')}</Typography>
                 </Box>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                   <Typography variant="body2" color="text.secondary">Timeframe:</Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 'medium' }}>{result.timeframe_days} days</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 'medium' }}>{result?.backtest?.timeframe_days} days</Typography>
                 </Box>
               </Box>
             </Grid>
@@ -289,7 +285,7 @@ export const BacktestRunner = ({ selectedCrypto, onSetResult, initialResult }) =
             <Grid xs={12} md={6}>
               <Typography variant="subtitle1" gutterBottom>Parameters Used</Typography>
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                {Object.entries(result.parameters).map(([key, value]) => (
+                {Object.entries(result?.backtest?.parameters || {}).map(([key, value]) => (
                   <Box key={key} sx={{ display: 'flex', justifyContent: 'space-between' }}>
                     <Typography variant="body2" color="text.secondary">{key.replace('_', ' ')}:</Typography>
                     <Typography variant="body2" sx={{ fontWeight: 'medium' }}>{String(value)}</Typography>
@@ -299,15 +295,10 @@ export const BacktestRunner = ({ selectedCrypto, onSetResult, initialResult }) =
             </Grid>
           </Grid>
 
-          {result.result.note && (
-            <Alert severity="info" sx={{ mt: 3 }}>
-              <Typography variant="body2" component="strong">Note:</Typography>{' '}
-              {result.result.note}
-            </Alert>
-          )}
+          
 
           <Typography variant="caption" color="text.secondary" sx={{ mt: 3, display: 'block' }}>
-            Backtest completed at {new Date(result.timestamp).toLocaleString()}
+            Backtest completed at {new Date(result?.backtest?.timestamp).toLocaleString()}
           </Typography>
         </StyledPaper>
       )}
