@@ -14,22 +14,13 @@ import pandas as pd
 # Add CLI directory to path so we can import existing code
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
-try:
-    from config import strategy_configs, indicator_defaults
-    from data import get_crypto_data
-    from pricer import analyze_crypto_with_existing_system, run_backtest_using_existing_system
-    CLI_AVAILABLE = True
-except ImportError as e:
-    logging.warning(f"CLI modules not available: {e}")
-    CLI_AVAILABLE = False
-    strategy_configs = {}
-    indicator_defaults = {}
-    def analyze_crypto_with_existing_system(*args, **kwargs): return None
-    def run_backtest_using_existing_system(*args, **kwargs): return None
-
 from .result_manager import ResultManager
 from .data_manager import DataManager
 from .app_config import Config
+from .parameter_manager import ParameterManager
+from .crypto_discovery import CryptoDiscovery
+from .optimizer import BayesianOptimizer
+from .backtester_wrapper import BacktesterWrapper
 
 class TradingEngine:
     """
@@ -44,37 +35,99 @@ class TradingEngine:
         self.data_manager = DataManager(self.config.CACHE_DIR)
         self.logger = logging.getLogger(__name__)
         
-        # Validate CLI availability
-        if not CLI_AVAILABLE:
-            self.logger.warning("CLI modules not available. Some functionality may be limited.")
+        # Initialize unified components
+        self.param_manager = ParameterManager()
+        self.crypto_discovery = CryptoDiscovery(self.config.RESULTS_DIR)
+        self.optimizer = BayesianOptimizer(self.config.RESULTS_DIR)
+        self.backtester = BacktesterWrapper()
     
-    def get_available_cryptos(self) -> List[Dict[str, str]]:
-        """Get list of available cryptocurrencies."""
-        return [
-            {'id': 'bitcoin', 'name': 'Bitcoin', 'symbol': 'BTC'},
-            {'id': 'ethereum', 'name': 'Ethereum', 'symbol': 'ETH'},
-            {'id': 'cardano', 'name': 'Cardano', 'symbol': 'ADA'},
-            {'id': 'solana', 'name': 'Solana', 'symbol': 'SOL'},
-            {'id': 'polkadot', 'name': 'Polkadot', 'symbol': 'DOT'},
-            {'id': 'chainlink', 'name': 'Chainlink', 'symbol': 'LINK'},
-            {'id': 'litecoin', 'name': 'Litecoin', 'symbol': 'LTC'},
-            {'id': 'avalanche-2', 'name': 'Avalanche', 'symbol': 'AVAX'},
-            {'id': 'polygon', 'name': 'Polygon', 'symbol': 'MATIC'},
-            {'id': 'uniswap', 'name': 'Uniswap', 'symbol': 'UNI'},
-        ]
+    # ========== Crypto Management ==========
     
-    def get_available_strategies(self) -> List[Dict[str, Any]]:
+    def get_cryptos(self, limit: int = 100) -> List[Dict[str, Any]]:
+        """
+        Get list of available cryptocurrencies with market data.
+        
+        Args:
+            limit: Maximum number of cryptos to return
+            
+        Returns:
+            List of cryptocurrency data dictionaries
+        """
+        try:
+            # Use crypto discovery to get crypto list
+            cryptos = self.crypto_discovery.get_volatile_cryptos(limit=limit, min_volatility=0.1)
+            
+            if not cryptos:
+                # Fallback to a basic list if discovery fails
+                basic_cryptos = [
+                    {'id': 'bitcoin', 'symbol': 'BTC', 'name': 'Bitcoin'},
+                    {'id': 'ethereum', 'symbol': 'ETH', 'name': 'Ethereum'},
+                    {'id': 'binancecoin', 'symbol': 'BNB', 'name': 'BNB'},
+                    {'id': 'cardano', 'symbol': 'ADA', 'name': 'Cardano'},
+                    {'id': 'solana', 'symbol': 'SOL', 'name': 'Solana'}
+                ]
+                return basic_cryptos[:limit]
+            
+            return cryptos
+            
+        except Exception as e:
+            self.logger.error(f"Error getting cryptos: {e}")
+            return []
+    
+    def get_volatile_cryptos(self, 
+                           min_volatility: float = 5.0, 
+                           limit: int = 50) -> List[Dict[str, Any]]:
+        """Get volatile cryptocurrencies for optimization."""
+        return self.crypto_discovery.get_volatile_cryptos(
+            limit=limit, 
+            min_volatility=min_volatility
+        )
+    
+    def get_top_movers(self, count: int = 10) -> Dict[str, List[Dict]]:
+        """Get top gaining and losing cryptocurrencies."""
+        return self.crypto_discovery.get_top_movers(count=count)
+    
+    def search_cryptos(self, query: str, limit: int = 10) -> List[Dict]:
+        """Search for cryptocurrencies by name or symbol."""
+        return self.crypto_discovery.search_cryptos(query, limit)
+    
+    # ========== Strategy Management ==========
+    
+    def get_strategies(self) -> List[Dict[str, Any]]:
         """Get list of available trading strategies with configurations."""
         strategies = []
-        for name, config in strategy_configs.items():
+        strategy_names = self.param_manager.get_available_strategies()
+        
+        for name in strategy_names:
+            parameters = self.param_manager.get_strategy_parameters(name)
+            defaults = self.param_manager.get_default_parameters(name)
+            
             strategies.append({
                 'name': name,
                 'display_name': name.replace('_', ' ').title(),
                 'description': self._get_strategy_description(name),
-                'config': config,
-                'parameters': self._get_strategy_parameters(name)
+                'parameters': parameters,
+                'defaults': defaults
             })
+        
         return strategies
+    
+    def get_strategy_info(self, strategy_name: str) -> Dict[str, Any]:
+        """Get detailed information about a specific strategy."""
+        if strategy_name not in self.param_manager.get_available_strategies():
+            raise ValueError(f"Unknown strategy: {strategy_name}")
+        
+        parameters = self.param_manager.get_strategy_parameters(strategy_name)
+        defaults = self.param_manager.get_default_parameters(strategy_name)
+        
+        return {
+            'name': strategy_name,
+            'display_name': strategy_name.replace('_', ' ').title(),
+            'description': self._get_strategy_description(strategy_name),
+            'parameters': parameters,
+            'defaults': defaults,
+            'available': True
+        }
     
     def _get_strategy_description(self, strategy_name: str) -> str:
         """Get human-readable description for strategy."""
@@ -83,153 +136,188 @@ class TradingEngine:
             'Strict': 'Multi-indicator confirmation strategy',
             'BB_Breakout': 'Bollinger Band breakout strategy',
             'BB_RSI': 'Bollinger Bands with RSI filter',
-            'Combined_Trigger_Verifier': 'Advanced multi-signal strategy',
-            'Debug_Single_Long_Entry': 'Debug strategy for single long entry',
-            'Debug_EMA_Only': 'Debug strategy for EMA only',
+            'Combined_Trigger_Verifier': 'Advanced multi-signal strategy'
         }
         return descriptions.get(strategy_name, 'Custom trading strategy')
     
-    def _get_strategy_parameters(self, strategy_name: str) -> Dict[str, Any]:
-        """Get parameter definitions for strategy."""
-        return {
-            'short_ema_period': {
-                'type': 'integer',
-                'min': 5,
-                'max': 50,
-                'default': indicator_defaults.get('short_ema_period', 12),
-                'description': 'Short EMA period'
-            },
-            'long_ema_period': {
-                'type': 'integer', 
-                'min': 20,
-                'max': 200,
-                'default': indicator_defaults.get('long_ema_period', 26),
-                'description': 'Long EMA period'
-            },
-            'rsi_oversold': {
-                'type': 'integer',
-                'min': 10,
-                'max': 40,
-                'default': indicator_defaults.get('rsi_oversold', 30),
-                'description': 'RSI oversold threshold'
-            },
-            'rsi_overbought': {
-                'type': 'integer',
-                'min': 60,
-                'max': 90,
-                'default': indicator_defaults.get('rsi_overbought', 70),
-                'description': 'RSI overbought threshold'
-            },
-        }
+    # ========== Parameter Management ==========
     
-    def analyze_crypto(self, 
-                      crypto_id: str, 
-                      strategy_name: Optional[str] = None,
-                      timeframe: int = 7,
-                      custom_params: Optional[Dict[str, Any]] = None,
-                      save_result: bool = True) -> Dict[str, Any]:
-        """Run comprehensive crypto analysis."""
-        self.logger.info(f"Starting analysis for {crypto_id} with strategy {strategy_name}")
-        
-        try:
-            # Call the actual analysis function from the CLI
-            result = analyze_crypto_with_existing_system(
-                crypto_id=crypto_id,
-                timeframe=timeframe,
-                strategy_name=strategy_name,
-                use_best_params=not custom_params  # Use best if no custom params
-            )
-
-            if not result:
-                self.logger.error(f"Analysis for {crypto_id} returned no result.")
-                return None
-            
-            # Enhance result with additional metadata
-            enhanced_result = {
-                **result,
-                'analysis_id': self._generate_analysis_id(),
-                'timestamp': datetime.now().isoformat(),
-                'parameters_used': custom_params or 'auto-detected',
-                'timeframe_days': timeframe,
-                'engine_version': '1.0.0'
-            }
-            
-            # Save result if requested
-            if save_result:
-                result_path = self.result_manager.save_analysis_result(
-                    crypto_id, enhanced_result
-                )
-                enhanced_result['result_path'] = result_path
-                self.logger.info(f"Analysis result saved to {result_path}")
-            
-            self.logger.info(f"Analysis completed successfully for {crypto_id}")
-            return enhanced_result
-            
-        except Exception as e:
-            self.logger.error(f"Analysis failed for {crypto_id}: {str(e)}")
-            raise
+    def validate_parameters(self, strategy_name: str, parameters: Dict[str, Any]) -> Dict[str, str]:
+        """Validate strategy parameters and return any errors."""
+        return self.param_manager.validate_parameters(parameters, strategy_name)
+    
+    def get_default_parameters(self, strategy_name: str) -> Dict[str, Any]:
+        """Get default parameter values for a strategy."""
+        return self.param_manager.get_default_parameters(strategy_name)
+    
+    # ========== Backtesting ==========
     
     def run_backtest(self,
                     crypto_id: str,
                     strategy_name: str,
                     parameters: Dict[str, Any],
-                    timeframe: int = 30,
+                    timeframe: str = "7d",
+                    interval: str = "30m",
                     save_result: bool = True) -> Dict[str, Any]:
-        """Run comprehensive backtest."""
+        """
+        Run comprehensive backtest.
+        
+        Args:
+            crypto_id: Cryptocurrency identifier
+            strategy_name: Trading strategy name
+            parameters: Strategy parameters
+            timeframe: Data timeframe (e.g., "7d", "30d")
+            interval: Data interval (e.g., "30m", "1h")
+            save_result: Whether to save the result
+            
+        Returns:
+            Backtest results dictionary
+        """
         self.logger.info(f"Starting backtest for {crypto_id} with {strategy_name}")
         
         try:
-            # Get crypto data
-            ohlc_data = get_crypto_data(crypto_id, timeframe)
-            if ohlc_data is None:
-                self.logger.error(f"No data available for {crypto_id}")
-                return None
+            # Validate parameters
+            validation_errors = self.validate_parameters(strategy_name, parameters)
+            if validation_errors:
+                raise ValueError(f"Parameter validation failed: {validation_errors}")
             
-            df = pd.DataFrame(ohlc_data, columns=['timestamp', 'open', 'high', 'low', 'close'])
-            df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms')
-            df.set_index('timestamp', inplace=True)
-
-            # Run the backtest using the existing system from pricer.py
-            backtest_result = run_backtest_using_existing_system(
-                df, strategy_name, parameters
+            # Run the backtest using the wrapper
+            result = self.backtester.run_single_backtest(
+                crypto=crypto_id,
+                strategy=strategy_name,
+                parameters=parameters,
+                timeframe=timeframe,
+                interval=interval
             )
-
-            if not backtest_result:
-                self.logger.error(f"Backtest for {crypto_id} with {strategy_name} returned no result.")
-                return None
-
+            
             # Enhance result with metadata
             enhanced_result = {
+                **result,
                 'backtest_id': self._generate_backtest_id(),
-                'crypto_id': crypto_id,
-                'strategy_name': strategy_name,
-                'parameters': parameters,
-                'timeframe_days': timeframe,
                 'timestamp': datetime.now().isoformat(),
-                'result': backtest_result,
-                'engine_version': '1.0.0'
+                'engine_version': '2.0.0'
             }
             
             # Save result if requested
-            if save_result:
+            if save_result and result.get('success'):
                 result_path = self.result_manager.save_backtest_result(
                     crypto_id, strategy_name, enhanced_result
                 )
                 enhanced_result['result_path'] = result_path
                 self.logger.info(f"Backtest result saved to {result_path}")
             
-            self.logger.info(f"Backtest completed successfully for {crypto_id}")
+            self.logger.info(f"Backtest completed for {crypto_id}")
             return enhanced_result
             
         except Exception as e:
             self.logger.error(f"Backtest failed for {crypto_id}: {str(e)}")
-            raise
+            return {
+                'crypto': crypto_id,
+                'strategy': strategy_name,
+                'parameters': parameters,
+                'success': False,
+                'error': str(e),
+                'timestamp': datetime.now().isoformat()
+            }
     
-    def get_analysis_history(self, 
-                           crypto_id: Optional[str] = None,
-                           limit: int = 50) -> List[Dict[str, Any]]:
-        """Get analysis history."""
-        return self.result_manager.get_analysis_history(crypto_id, limit)
+    def run_batch_backtest(self, test_configs: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Run multiple backtests in batch."""
+        return self.backtester.run_batch_backtest(test_configs)
+    
+    # ========== Optimization ==========
+    
+    def run_optimization(self,
+                        crypto_id: str,
+                        strategy_name: str,
+                        n_trials: int = 50,
+                        timeout: Optional[int] = None) -> Dict[str, Any]:
+        """
+        Run Bayesian optimization for a single crypto/strategy pair.
+        
+        Args:
+            crypto_id: Cryptocurrency identifier
+            strategy_name: Trading strategy name
+            n_trials: Number of optimization trials
+            timeout: Timeout in seconds (optional)
+            
+        Returns:
+            Optimization results dictionary
+        """
+        self.logger.info(f"Starting optimization for {crypto_id} with {strategy_name}")
+        
+        try:
+            result = self.optimizer.optimize_single_crypto(
+                crypto=crypto_id,
+                strategy=strategy_name,
+                n_trials=n_trials,
+                timeout=timeout
+            )
+            
+            self.logger.info(f"Optimization completed for {crypto_id}")
+            return result
+            
+        except Exception as e:
+            self.logger.error(f"Optimization failed for {crypto_id}: {str(e)}")
+            return {
+                'crypto': crypto_id,
+                'strategy': strategy_name,
+                'success': False,
+                'error': str(e),
+                'timestamp': datetime.now().isoformat()
+            }
+    
+    def run_volatile_optimization(self,
+                                strategy_name: str,
+                                n_trials: int = 30,
+                                top_count: int = 10,
+                                min_volatility: float = 5.0) -> Dict[str, Any]:
+        """
+        Run optimization on multiple volatile cryptocurrencies.
+        
+        Args:
+            strategy_name: Trading strategy name
+            n_trials: Number of trials per crypto
+            top_count: Number of top volatile cryptos to optimize
+            min_volatility: Minimum volatility threshold
+            
+        Returns:
+            Batch optimization results
+        """
+        self.logger.info(f"Starting volatile crypto optimization with {strategy_name}")
+        
+        try:
+            result = self.optimizer.optimize_volatile_cryptos(
+                strategy=strategy_name,
+                n_trials=n_trials,
+                top_count=top_count,
+                min_volatility=min_volatility
+            )
+            
+            self.logger.info(f"Volatile crypto optimization completed")
+            return result
+            
+        except Exception as e:
+            self.logger.error(f"Volatile crypto optimization failed: {str(e)}")
+            return {
+                'strategy': strategy_name,
+                'success': False,
+                'error': str(e),
+                'timestamp': datetime.now().isoformat()
+            }
+    
+    # ========== Results Management ==========
+    
+    def get_optimization_results(self, crypto_id: str, strategy_name: str) -> Optional[Dict]:
+        """Get optimization results for a specific crypto/strategy pair."""
+        return self.optimizer.load_optimization_results(crypto_id, strategy_name)
+    
+    def get_all_results(self) -> List[Dict]:
+        """Get all optimization results."""
+        return self.optimizer.get_all_results()
+    
+    def get_top_results(self, limit: int = 10) -> List[Dict]:
+        """Get top optimization results by performance."""
+        return self.optimizer.get_top_results(limit)
     
     def get_backtest_history(self,
                            crypto_id: Optional[str] = None,
@@ -238,50 +326,79 @@ class TradingEngine:
         """Get backtest history."""
         return self.result_manager.get_backtest_history(crypto_id, strategy_name, limit)
     
-    def _generate_analysis_id(self) -> str:
-        """Generate unique analysis ID."""
-        return f"analysis_{datetime.now().strftime('%Y%m%d_%H%M%S_%f')}"
+    # ========== Analysis ==========
     
-    def _generate_backtest_id(self) -> str:
-        """Generate unique backtest ID."""
-        return f"backtest_{datetime.now().strftime('%Y%m%d_%H%M%S_%f')}"
+    def analyze_crypto(self, 
+                      crypto_id: str, 
+                      strategy_name: Optional[str] = None,
+                      timeframe: str = "7d",
+                      custom_params: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """
+        Run comprehensive crypto analysis.
+        
+        Args:
+            crypto_id: Cryptocurrency identifier
+            strategy_name: Trading strategy name (optional)
+            timeframe: Data timeframe
+            custom_params: Custom parameters (optional)
+            
+        Returns:
+            Analysis results dictionary
+        """
+        self.logger.info(f"Starting analysis for {crypto_id}")
+        
+        try:
+            # If no strategy specified, use best performing strategy for this crypto
+            if not strategy_name:
+                results = self.get_all_results()
+                crypto_results = [r for r in results if r.get('crypto') == crypto_id]
+                if crypto_results:
+                    best_result = max(crypto_results, key=lambda x: x.get('best_value', -999))
+                    strategy_name = best_result.get('strategy', 'EMA_Only')
+                else:
+                    strategy_name = 'EMA_Only'  # Default strategy
+            
+            # Use custom params or load optimized params
+            if custom_params:
+                parameters = custom_params
+            else:
+                opt_result = self.get_optimization_results(crypto_id, strategy_name)
+                if opt_result and opt_result.get('best_params'):
+                    parameters = opt_result['best_params']
+                else:
+                    parameters = self.get_default_parameters(strategy_name)
+            
+            # Run backtest as analysis
+            result = self.run_backtest(
+                crypto_id=crypto_id,
+                strategy_name=strategy_name,
+                parameters=parameters,
+                timeframe=timeframe,
+                save_result=False
+            )
+            
+            # Enhance with analysis metadata
+            analysis_result = {
+                **result,
+                'analysis_id': self._generate_analysis_id(),
+                'analysis_type': 'backtest_analysis',
+                'strategy_used': strategy_name,
+                'parameters_source': 'custom' if custom_params else 'optimized'
+            }
+            
+            self.logger.info(f"Analysis completed for {crypto_id}")
+            return analysis_result
+            
+        except Exception as e:
+            self.logger.error(f"Analysis failed for {crypto_id}: {str(e)}")
+            return {
+                'crypto': crypto_id,
+                'success': False,
+                'error': str(e),
+                'timestamp': datetime.now().isoformat()
+            }
     
-    def validate_parameters(self, strategy_name: str, parameters: Dict[str, Any]) -> Dict[str, Any]:
-        """Validate strategy parameters."""
-        strategy_params = self._get_strategy_parameters(strategy_name)
-        validated = {}
-        errors = {}
-        
-        for param_name, param_config in strategy_params.items():
-            value = parameters.get(param_name)
-            
-            if value is None:
-                validated[param_name] = param_config['default']
-                continue
-            
-            # Type validation
-            if param_config['type'] == 'integer':
-                try:
-                    value = int(value)
-                except (ValueError, TypeError):
-                    errors[param_name] = f"Must be an integer"
-                    continue
-            
-            # Range validation
-            if 'min' in param_config and value < param_config['min']:
-                errors[param_name] = f"Must be >= {param_config['min']}"
-                continue
-            
-            if 'max' in param_config and value > param_config['max']:
-                errors[param_name] = f"Must be <= {param_config['max']}"
-                continue
-            
-            validated[param_name] = value
-        
-        if errors:
-            raise ValueError(f"Parameter validation failed: {errors}")
-        
-        return validated
+    # ========== System Health ==========
     
     def health_check(self) -> Dict[str, Any]:
         """Perform comprehensive system health check."""
@@ -291,11 +408,26 @@ class TradingEngine:
             'checks': {}
         }
         
-        # Check CLI availability
-        health['checks']['cli_modules'] = {
-            'status': 'ok' if CLI_AVAILABLE else 'warning',
-            'message': 'CLI modules available' if CLI_AVAILABLE else 'CLI modules not found - using mock data'
+        # Check backtester availability
+        strategies = self.backtester.get_available_strategies()
+        health['checks']['backtester'] = {
+            'status': 'ok' if strategies else 'warning',
+            'message': f'{len(strategies)} strategies available' if strategies else 'Backtester using mock data',
+            'strategies': strategies
         }
+        
+        # Check crypto discovery
+        try:
+            cryptos = self.crypto_discovery.get_volatile_cryptos(limit=5, min_volatility=0.1)
+            health['checks']['crypto_discovery'] = {
+                'status': 'ok' if cryptos else 'warning',
+                'message': f'{len(cryptos)} cryptos discovered' if cryptos else 'Using fallback crypto list'
+            }
+        except Exception as e:
+            health['checks']['crypto_discovery'] = {
+                'status': 'error',
+                'message': f'Crypto discovery failed: {str(e)}'
+            }
         
         # Check data directories
         for dir_name, dir_path in [
@@ -309,6 +441,14 @@ class TradingEngine:
                 'writable': os.access(dir_path, os.W_OK) if os.path.exists(dir_path) else False
             }
         
+        # Check parameter manager
+        param_strategies = self.param_manager.get_available_strategies()
+        health['checks']['parameter_manager'] = {
+            'status': 'ok' if param_strategies else 'error',
+            'message': f'{len(param_strategies)} strategies configured',
+            'strategies': param_strategies
+        }
+        
         # Overall status
         error_checks = [check for check in health['checks'].values() if check['status'] == 'error']
         if error_checks:
@@ -317,3 +457,25 @@ class TradingEngine:
             health['status'] = 'warning'
         
         return health
+    
+    # ========== Utility Methods ==========
+    
+    def _generate_analysis_id(self) -> str:
+        """Generate unique analysis ID."""
+        return f"analysis_{datetime.now().strftime('%Y%m%d_%H%M%S_%f')}"
+    
+    def _generate_backtest_id(self) -> str:
+        """Generate unique backtest ID."""
+        return f"backtest_{datetime.now().strftime('%Y%m%d_%H%M%S_%f')}"
+    
+    def get_config(self) -> Dict[str, Any]:
+        """Get system configuration for frontend."""
+        return {
+            'strategies': self.get_strategies(),
+            'default_timeframe': '7d',
+            'default_interval': '30m',
+            'max_optimization_trials': 100,
+            'supported_timeframes': ['1d', '7d', '30d', '90d'],
+            'supported_intervals': ['15m', '30m', '1h', '4h', '1d'],
+            'version': '2.0.0'
+        }

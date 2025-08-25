@@ -19,7 +19,6 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
 
 from core.trading_engine import TradingEngine
 from core.app_config import Config
-from config import DEFAULT_TIMEFRAME, DEFAULT_INTERVAL
 from auth.middleware import AuthError, requires_auth
 from auth.decorators import auth_required
 from api.crypto import CryptoAPI
@@ -61,36 +60,12 @@ register_error_handlers(app)
 @app.route('/api/config')
 def get_config():
     """Returns public configuration settings."""
-    # Import all config data from the top-level config.py
-    import sys
-    import os
-    sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
-    
-    from config import (
-        strategy_configs, 
-        ATR_PERIOD, 
-        ATR_MULTIPLE,
-        DEFAULT_TIMEFRAME, 
-        DEFAULT_INTERVAL, 
-        DEFAULT_SPREAD_PERCENTAGE, 
-        DEFAULT_SLIPPAGE_PERCENTAGE,
-        indicator_defaults,
-        backtest_configs,
-        param_sets
-    )
-    
-    return jsonify({
-        'strategy_configs': strategy_configs,
-        'atr_period': ATR_PERIOD,
-        'atr_multiple': ATR_MULTIPLE,
-        'default_timeframe': DEFAULT_TIMEFRAME,
-        'default_interval': DEFAULT_INTERVAL,
-        'default_spread_percentage': DEFAULT_SPREAD_PERCENTAGE,
-        'default_slippage_percentage': DEFAULT_SLIPPAGE_PERCENTAGE,
-        'indicator_defaults': indicator_defaults,
-        'backtest_configs': backtest_configs,
-        'param_sets': param_sets
-    })
+    try:
+        config_data = trading_engine.get_config()
+        return jsonify(config_data)
+    except Exception as e:
+        logger.error(f"Error getting config: {e}")
+        return jsonify({'error': 'Failed to get configuration'}), 500
 
 # Health check endpoint (no auth required)
 @app.route('/api/health')
