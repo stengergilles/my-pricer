@@ -78,6 +78,8 @@ def run_backtest_cython(np.ndarray[DTYPE_t, ndim=1] prices,
                         double slippage_percentage,
                         double daily_volatility=0.0):  # New parameter for volatility
 
+    
+
     cdef int n = prices.shape[0]
     cdef double current_capital = initial_capital
     cdef int position = 0  # 0: None, 1: Long, -1: Short
@@ -285,6 +287,8 @@ def run_backtest_cython(np.ndarray[DTYPE_t, ndim=1] prices,
     # TODO: Implement proper Sharpe Ratio calculation in Cython
     # For now, return placeholder to unblock frontend
     cdef double sharpe_ratio = 0.0
+
+    
 
     return {
         "final_capital": current_capital,

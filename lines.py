@@ -196,24 +196,37 @@ def analyze_line_durations(df, resistance_lines, support_lines, first_timestamp)
 def predict_next_move(df, current_price_point, active_resistance, active_support, first_timestamp, breakout_status='none'):
     current_relative_timestamp = (current_price_point.name.timestamp() - first_timestamp.timestamp())
 
-    print("\n--- Next Move Prediction ---")
+    prediction_data = {
+        'direction': 'UNKNOWN',
+        'confidence': 0.0,
+        'prediction_score': 0,
+        'reasons': []
+    }
 
     if breakout_status == 'up_breakout':
-        print("The price has broken above all identified resistance lines. This indicates a strong uptrend.")
-        print("Potential for continued upward movement. New resistance levels may form higher.")
-        return
+        prediction_data['direction'] = "UP_BREAKOUT"
+        prediction_data['confidence'] = 100.0 # High confidence for breakout
+        prediction_data['reasons'].append("The price has broken above all identified resistance lines. This indicates a strong uptrend.")
+        prediction_data['reasons'].append("Potential for continued upward movement. New resistance levels may form higher.")
+        return prediction_data
     elif breakout_status == 'down_breakout':
-        print("The price has broken below all identified support lines. This indicates a strong downtrend.")
-        print("Potential for continued downward movement. New support levels may form lower.")
-        return
+        prediction_data['direction'] = "DOWN_BREAKOUT"
+        prediction_data['confidence'] = 100.0 # High confidence for breakout
+        prediction_data['reasons'].append("The price has broken below all identified support lines. This indicates a strong downtrend.")
+        prediction_data['reasons'].append("Potential for continued downward movement. New support levels may form lower.")
+        return prediction_data
     elif breakout_status == 'outside_all':
-        print("The price is currently outside all identified support and resistance channels.")
-        print("This could indicate a strong trend, or a period of high volatility.")
-        return
+        prediction_data['direction'] = "OUTSIDE_CHANNEL"
+        prediction_data['confidence'] = 0.0 # Low confidence as it's outside channels
+        prediction_data['reasons'].append("The price is currently outside all identified support and resistance channels.")
+        prediction_data['reasons'].append("This could indicate a strong trend, or a period of high volatility.")
+        return prediction_data
     
     if not active_resistance or not active_support:
-        print("No clear active channel found for prediction.")
-        return
+        prediction_data['direction'] = "NO_CLEAR_CHANNEL"
+        prediction_data['confidence'] = 0.0
+        prediction_data['reasons'].append("No clear active channel found for prediction.")
+        return prediction_data
 
     # --- Indicator-based Prediction ---
     latest_indicators = df.iloc[-1]
@@ -273,23 +286,22 @@ def predict_next_move(df, current_price_point, active_resistance, active_support
         score += 0.5
         reasons.append(f"Price ({price:.2f}) is in the lower half of the channel (midpoint: {((r_y + s_y) / 2):.2f})")
 
-
-    print("Prediction Score:", score)
-    print("Reasons:")
-    for reason in reasons:
-        print("- ", reason)
-
+    # Determine direction and confidence
     if score > 1:
-        print("\nPrediction: The price is likely to go UP.")
-        return "up"
+        direction = "UP"
     elif score < -1:
-        print("\nPrediction: The price is likely to go DOWN.")
-        return "down"
+        direction = "DOWN"
     else:
-        print("\nPrediction: The price is likely to remain NEUTRAL or in a consolidation phase.")
-        return "neutral"
+        direction = "NEUTRAL"
 
-    print("----------------------------")
+    confidence = min(100.0, abs(score) * 10.0) # Scale score to confidence percentage, max 100%
+
+    prediction_data['direction'] = direction
+    prediction_data['confidence'] = confidence
+    prediction_data['prediction_score'] = score
+    prediction_data['reasons'] = reasons
+
+    return prediction_data
 
 def auto_discover_percentage_change(df, first_timestamp, min_percent=0.001, max_percent=0.1, step=0.001):
     best_percentage = None

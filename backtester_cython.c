@@ -2785,7 +2785,7 @@ static const char __pyx_k_fixed_position_percentage[] = "fixed_position_percenta
 static const char __pyx_k_highest_price_since_entry[] = "highest_price_since_entry";
 static const char __pyx_k_fixed_stop_loss_percentage[] = "fixed_stop_loss_percentage";
 static const char __pyx_k_current_position_percentage[] = "current_position_percentage";
-static const char __pyx_k_vQa_a_A_1_Q_A_A_a_Q_A_a_q_q_q_q[] = "\200\001\360\030\000\031\032\340\004\021\220\026\220v\230Q\230a\330\004\"\240!\330\004\030\230\001\330\004\036\230a\330\004,\250A\330\004+\2501\330\004%\240Q\330\004 \240\001\330\004(\250\001\330\004$\240A\340\004\034\230A\330\004\036\230a\330\004\035\230Q\330\004$\240A\330\004\036\230a\330\004\037\230q\330\004\037\230q\330\004 \240\001\360\006\000\005 \230q\330\004\037\230q\330\004#\2401\360\006\000\005,\2501\330\004,\250A\330\004'\240q\330\004*\250!\330\004*\250!\340\004#\2401\330\004.\250a\330\004 \240\001\360\006\000\005\010\200t\2101\320\014\036\230b\240\001\330\010\033\2301\360\n\000\005\t\210\007\210y\230\001\330\010\030\230\006\230a\230q\330\010\034\230N\250#\250R\250r\260\021\330\010\034\230N\250#\250R\250r\260\021\360\006\000\t\014\2109\220C\220q\330\014(\250\004\250A\320-H\310\001\330\014\017\210z\230\021\230#\230R\230q\330\020%\320%?\270s\300*\310A\310S\320PR\320RS\330\014\017\210~\230S\320 3\2604\3207J\310\"\310A\330\020\031\230\021\230%\230q\340\r\026\220d\230!\330\014'\240t\2501\320,F\300a\330\014\017\210z\230\021\230#\230R\230q\330\020%\320%>\270c\300\032\3101\310C\310r\320QR\330\014\017\210~\230S\320 3\2604\3207J\310\"\310A\330\020\032\230!\2305\240\001\360\006\000\t\014\2109\220C\220q\330\014\017\210~\230S\320 6\260d\320:P\320PR\320RS\330\020\031\230\021\230%\230q\330\021\037\230s\320\"4\260D\3208J\310\"\310A\330\020\031\230\021\230%\230q\330\r\026\220d\230!\330\014\017\210~\230S\320 6\260d\320:P\320PR\320RS\330\020\032\230!\2305\240\001\330\021\037\230s\320\"4\260D\3208J\310\"\310A\330\020\032\230!\2305\240\001\340\010\013\2109\220C\220q\330\014\017\210z\230\021\230!\330\020\033\2301\340\020\036\230n\250C\250r\260\022\3203E\300R\300q\330\020 \240\001\360\006\000\021\024\2201\340\024$\320$4\260B\260a\360\006\000\0253\3202I\310\021\310/\320YZ\330GH\330GH\330GH\330\024$\320$4\260B\260a\360\006\000\021)\250\014\260C\260r\270\022\2701\330\020\036\230l\250\"\250A\330\020$\240L\260\003\260<\270r\300\021\340\020,\250A\330\020\023\220:\230Q\230c\240\022""\2401\330\024)\320)C\3003\300j\320PQ\320QT\320TV\320VW\340\021\034\230A\230Q\330\020\034\230A\340\020\036\230n\250C\250r\260\022\3203E\300R\300q\330\020 \240\001\360\006\000\021\024\2201\340\024$\320$4\260B\260a\360\006\000\0253\3202I\310\021\310/\320YZ\330GH\330GH\330GH\330\024$\320$4\260B\260a\360\006\000\021)\250\014\260C\260r\270\022\2701\330\020\036\320\0364\260B\260a\330\020$\240L\260\003\260<\270r\300\021\340\020+\2501\330\020\023\220:\230Q\230c\240\022\2401\330\024)\320)B\300#\300Z\310q\320PS\320SU\320UV\340\r\026\220c\230\021\330\014\017\210y\230\001\230\023\230C\230r\240\023\240B\240b\250\001\340\020\035\230^\2503\250b\260\002\3202D\300B\300a\330\020\037\230{\250\"\250M\270\022\270<\300r\310\021\330\020#\2401\360\006\000\021\024\320\023#\2402\240Q\330\024#\2401\330\020%\240]\260\"\3204E\300R\300~\320UW\320WX\330\020\023\320\023$\240B\240a\330\024#\2401\340\020%\240Q\330\020\037\230q\330\020#\2401\360\006\000\021\024\2204\220q\330\024(\250\001\250\037\270\001\3209N\310a\340\020\023\220<\230r\240\021\330\024&\240a\340\024%\240Q\330\020\033\2301\330\020 \240\001\330\020,\250A\330\020%\240Q\330\020(\250\001\330\020$\240A\340\r\026\220d\230!\330\014\017\210z\230\021\230#\230S\240\002\240#\240R\240r\250\021\340\020\035\230^\2503\250b\260\002\3202D\300B\300a\330\020\037\230|\2502\250\\\270\022\270<\300r\310\021\330\020#\2401\360\006\000\021\024\320\023#\2402\240Q\330\024#\2401\330\020%\240]\260\"\3204E\300R\300~\320UW\320WX\330\020\023\320\023$\240B\240a\330\024#\2401\340\020%\240Q\330\020 \240\001\330\020$\240A\360\006\000\021\024\2204\220q\330\024(\250\001\250\037\270\001\3209N\310a\340\020\023\220<\230r\240\021\330\024&\240a\340\024%\240Q\330\020\033\2301\330\020 \240\001\330\020+\2501\330\020%\240Q\330\020(\250\001\330\020$\240A\340\004\033\2301\330\004\007\200}\220B\220a\330\010\023\2208\230?\250\"\250A\340\004*\250!\330\004\007\320\007\027\220s\230!\330\010$\320$4\260B\3206G\300r\320IZ\320Z\\\320\\]\360\010\000\005 \230q\340\004\005\330\010\031\230\021\330""\010\035\230Q\330\010#\2401\330\010\030\230\001\330\010\032\230!\330\010\031\230\021\330\010\024\220I\230R\230q\330\010\030\230\001\330\010\030\230\001\330\010\027\220q\330\010\030\230\001\330\010\033\2301\330\010\034\230A\330\010\032\230!";
+static const char __pyx_k_vQa_a_A_1_Q_A_A_a_Q_A_a_q_q_q_q[] = "\200\001\360\030\000\031\032\360\010\000\005\022\220\026\220v\230Q\230a\330\004\"\240!\330\004\030\230\001\330\004\036\230a\330\004,\250A\330\004+\2501\330\004%\240Q\330\004 \240\001\330\004(\250\001\330\004$\240A\340\004\034\230A\330\004\036\230a\330\004\035\230Q\330\004$\240A\330\004\036\230a\330\004\037\230q\330\004\037\230q\330\004 \240\001\360\006\000\005 \230q\330\004\037\230q\330\004#\2401\360\006\000\005,\2501\330\004,\250A\330\004'\240q\330\004*\250!\330\004*\250!\340\004#\2401\330\004.\250a\330\004 \240\001\360\006\000\005\010\200t\2101\320\014\036\230b\240\001\330\010\033\2301\360\n\000\005\t\210\007\210y\230\001\330\010\030\230\006\230a\230q\330\010\034\230N\250#\250R\250r\260\021\330\010\034\230N\250#\250R\250r\260\021\360\006\000\t\014\2109\220C\220q\330\014(\250\004\250A\320-H\310\001\330\014\017\210z\230\021\230#\230R\230q\330\020%\320%?\270s\300*\310A\310S\320PR\320RS\330\014\017\210~\230S\320 3\2604\3207J\310\"\310A\330\020\031\230\021\230%\230q\340\r\026\220d\230!\330\014'\240t\2501\320,F\300a\330\014\017\210z\230\021\230#\230R\230q\330\020%\320%>\270c\300\032\3101\310C\310r\320QR\330\014\017\210~\230S\320 3\2604\3207J\310\"\310A\330\020\032\230!\2305\240\001\360\006\000\t\014\2109\220C\220q\330\014\017\210~\230S\320 6\260d\320:P\320PR\320RS\330\020\031\230\021\230%\230q\330\021\037\230s\320\"4\260D\3208J\310\"\310A\330\020\031\230\021\230%\230q\330\r\026\220d\230!\330\014\017\210~\230S\320 6\260d\320:P\320PR\320RS\330\020\032\230!\2305\240\001\330\021\037\230s\320\"4\260D\3208J\310\"\310A\330\020\032\230!\2305\240\001\340\010\013\2109\220C\220q\330\014\017\210z\230\021\230!\330\020\033\2301\340\020\036\230n\250C\250r\260\022\3203E\300R\300q\330\020 \240\001\360\006\000\021\024\2201\340\024$\320$4\260B\260a\360\006\000\0253\3202I\310\021\310/\320YZ\330GH\330GH\330GH\330\024$\320$4\260B\260a\360\006\000\021)\250\014\260C\260r\270\022\2701\330\020\036\230l\250\"\250A\330\020$\240L\260\003\260<\270r\300\021\340\020,\250A\330\020\023\220:\230Q\230c""\240\022\2401\330\024)\320)C\3003\300j\320PQ\320QT\320TV\320VW\340\021\034\230A\230Q\330\020\034\230A\340\020\036\230n\250C\250r\260\022\3203E\300R\300q\330\020 \240\001\360\006\000\021\024\2201\340\024$\320$4\260B\260a\360\006\000\0253\3202I\310\021\310/\320YZ\330GH\330GH\330GH\330\024$\320$4\260B\260a\360\006\000\021)\250\014\260C\260r\270\022\2701\330\020\036\320\0364\260B\260a\330\020$\240L\260\003\260<\270r\300\021\340\020+\2501\330\020\023\220:\230Q\230c\240\022\2401\330\024)\320)B\300#\300Z\310q\320PS\320SU\320UV\340\r\026\220c\230\021\330\014\017\210y\230\001\230\023\230C\230r\240\023\240B\240b\250\001\340\020\035\230^\2503\250b\260\002\3202D\300B\300a\330\020\037\230{\250\"\250M\270\022\270<\300r\310\021\330\020#\2401\360\006\000\021\024\320\023#\2402\240Q\330\024#\2401\330\020%\240]\260\"\3204E\300R\300~\320UW\320WX\330\020\023\320\023$\240B\240a\330\024#\2401\340\020%\240Q\330\020\037\230q\330\020#\2401\360\006\000\021\024\2204\220q\330\024(\250\001\250\037\270\001\3209N\310a\340\020\023\220<\230r\240\021\330\024&\240a\340\024%\240Q\330\020\033\2301\330\020 \240\001\330\020,\250A\330\020%\240Q\330\020(\250\001\330\020$\240A\340\r\026\220d\230!\330\014\017\210z\230\021\230#\230S\240\002\240#\240R\240r\250\021\340\020\035\230^\2503\250b\260\002\3202D\300B\300a\330\020\037\230|\2502\250\\\270\022\270<\300r\310\021\330\020#\2401\360\006\000\021\024\320\023#\2402\240Q\330\024#\2401\330\020%\240]\260\"\3204E\300R\300~\320UW\320WX\330\020\023\320\023$\240B\240a\330\024#\2401\340\020%\240Q\330\020 \240\001\330\020$\240A\360\006\000\021\024\2204\220q\330\024(\250\001\250\037\270\001\3209N\310a\340\020\023\220<\230r\240\021\330\024&\240a\340\024%\240Q\330\020\033\2301\330\020 \240\001\330\020+\2501\330\020%\240Q\330\020(\250\001\330\020$\240A\340\004\033\2301\330\004\007\200}\220B\220a\330\010\023\2208\230?\250\"\250A\340\004*\250!\330\004\007\320\007\027\220s\230!\330\010$\320$4\260B\3206G\300r\320IZ\320Z\\\320\\]\360\010\000\005 \230q\360\010\000\005\006\330\010""\031\230\021\330\010\035\230Q\330\010#\2401\330\010\030\230\001\330\010\032\230!\330\010\031\230\021\330\010\024\220I\230R\230q\330\010\030\230\001\330\010\030\230\001\330\010\027\220q\330\010\030\230\001\330\010\033\2301\330\010\034\230A\330\010\032\230!";
 static const char __pyx_k_Note_that_Cython_is_deliberately[] = "Note that Cython is deliberately stricter than PEP-484 and rejects subclasses of builtin types. If you need to pass subclasses then set the 'annotation_typing' directive to False.";
 static const char __pyx_k_numpy__core_multiarray_failed_to[] = "numpy._core.multiarray failed to import";
 static const char __pyx_k_numpy__core_umath_failed_to_impo[] = "numpy._core.umath failed to import";
@@ -5616,8 +5616,8 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
   }
   __pyx_pybuffernd_atr_values.diminfo[0].strides = __pyx_pybuffernd_atr_values.rcbuffer->pybuffer.strides[0]; __pyx_pybuffernd_atr_values.diminfo[0].shape = __pyx_pybuffernd_atr_values.rcbuffer->pybuffer.shape[0];
 
-  /* "backtester_cython.pyx":81
- *                         double daily_volatility=0.0):  # New parameter for volatility
+  /* "backtester_cython.pyx":83
+ * 
  * 
  *     cdef int n = prices.shape[0]             # <<<<<<<<<<<<<<
  *     cdef double current_capital = initial_capital
@@ -5625,7 +5625,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
 */
   __pyx_v_n = (__pyx_f_5numpy_7ndarray_5shape_shape(((PyArrayObject *)__pyx_v_prices))[0]);
 
-  /* "backtester_cython.pyx":82
+  /* "backtester_cython.pyx":84
  * 
  *     cdef int n = prices.shape[0]
  *     cdef double current_capital = initial_capital             # <<<<<<<<<<<<<<
@@ -5634,7 +5634,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
 */
   __pyx_v_current_capital = __pyx_v_initial_capital;
 
-  /* "backtester_cython.pyx":83
+  /* "backtester_cython.pyx":85
  *     cdef int n = prices.shape[0]
  *     cdef double current_capital = initial_capital
  *     cdef int position = 0  # 0: None, 1: Long, -1: Short             # <<<<<<<<<<<<<<
@@ -5643,7 +5643,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
 */
   __pyx_v_position = 0;
 
-  /* "backtester_cython.pyx":84
+  /* "backtester_cython.pyx":86
  *     cdef double current_capital = initial_capital
  *     cdef int position = 0  # 0: None, 1: Long, -1: Short
  *     cdef double entry_price = 0.0             # <<<<<<<<<<<<<<
@@ -5652,7 +5652,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
 */
   __pyx_v_entry_price = 0.0;
 
-  /* "backtester_cython.pyx":85
+  /* "backtester_cython.pyx":87
  *     cdef int position = 0  # 0: None, 1: Long, -1: Short
  *     cdef double entry_price = 0.0
  *     cdef double highest_price_since_entry = 0.0             # <<<<<<<<<<<<<<
@@ -5661,7 +5661,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
 */
   __pyx_v_highest_price_since_entry = 0.0;
 
-  /* "backtester_cython.pyx":86
+  /* "backtester_cython.pyx":88
  *     cdef double entry_price = 0.0
  *     cdef double highest_price_since_entry = 0.0
  *     cdef double lowest_price_since_entry = 0.0             # <<<<<<<<<<<<<<
@@ -5670,7 +5670,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
 */
   __pyx_v_lowest_price_since_entry = 0.0;
 
-  /* "backtester_cython.pyx":87
+  /* "backtester_cython.pyx":89
  *     cdef double highest_price_since_entry = 0.0
  *     cdef double lowest_price_since_entry = 0.0
  *     cdef double trailing_stop_loss = 0.0             # <<<<<<<<<<<<<<
@@ -5679,7 +5679,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
 */
   __pyx_v_trailing_stop_loss = 0.0;
 
-  /* "backtester_cython.pyx":88
+  /* "backtester_cython.pyx":90
  *     cdef double lowest_price_since_entry = 0.0
  *     cdef double trailing_stop_loss = 0.0
  *     cdef double position_size = 0.0             # <<<<<<<<<<<<<<
@@ -5688,7 +5688,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
 */
   __pyx_v_position_size = 0.0;
 
-  /* "backtester_cython.pyx":89
+  /* "backtester_cython.pyx":91
  *     cdef double trailing_stop_loss = 0.0
  *     cdef double position_size = 0.0
  *     cdef double fixed_stop_loss_price = 0.0             # <<<<<<<<<<<<<<
@@ -5697,7 +5697,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
 */
   __pyx_v_fixed_stop_loss_price = 0.0;
 
-  /* "backtester_cython.pyx":90
+  /* "backtester_cython.pyx":92
  *     cdef double position_size = 0.0
  *     cdef double fixed_stop_loss_price = 0.0
  *     cdef double take_profit_price = 0.0             # <<<<<<<<<<<<<<
@@ -5706,7 +5706,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
 */
   __pyx_v_take_profit_price = 0.0;
 
-  /* "backtester_cython.pyx":92
+  /* "backtester_cython.pyx":94
  *     cdef double take_profit_price = 0.0
  * 
  *     cdef int total_trades = 0             # <<<<<<<<<<<<<<
@@ -5715,7 +5715,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
 */
   __pyx_v_total_trades = 0;
 
-  /* "backtester_cython.pyx":93
+  /* "backtester_cython.pyx":95
  * 
  *     cdef int total_trades = 0
  *     cdef int winning_trades = 0             # <<<<<<<<<<<<<<
@@ -5724,7 +5724,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
 */
   __pyx_v_winning_trades = 0;
 
-  /* "backtester_cython.pyx":94
+  /* "backtester_cython.pyx":96
  *     cdef int total_trades = 0
  *     cdef int winning_trades = 0
  *     cdef int losing_trades = 0             # <<<<<<<<<<<<<<
@@ -5733,7 +5733,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
 */
   __pyx_v_losing_trades = 0;
 
-  /* "backtester_cython.pyx":95
+  /* "backtester_cython.pyx":97
  *     cdef int winning_trades = 0
  *     cdef int losing_trades = 0
  *     cdef double total_profit_loss = 0.0             # <<<<<<<<<<<<<<
@@ -5742,7 +5742,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
 */
   __pyx_v_total_profit_loss = 0.0;
 
-  /* "backtester_cython.pyx":96
+  /* "backtester_cython.pyx":98
  *     cdef int losing_trades = 0
  *     cdef double total_profit_loss = 0.0
  *     cdef double long_profit = 0.0             # <<<<<<<<<<<<<<
@@ -5751,7 +5751,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
 */
   __pyx_v_long_profit = 0.0;
 
-  /* "backtester_cython.pyx":97
+  /* "backtester_cython.pyx":99
  *     cdef double total_profit_loss = 0.0
  *     cdef double long_profit = 0.0
  *     cdef double short_profit = 0.0             # <<<<<<<<<<<<<<
@@ -5760,7 +5760,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
 */
   __pyx_v_short_profit = 0.0;
 
-  /* "backtester_cython.pyx":98
+  /* "backtester_cython.pyx":100
  *     cdef double long_profit = 0.0
  *     cdef double short_profit = 0.0
  *     cdef int num_long_trades = 0             # <<<<<<<<<<<<<<
@@ -5769,7 +5769,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
 */
   __pyx_v_num_long_trades = 0;
 
-  /* "backtester_cython.pyx":99
+  /* "backtester_cython.pyx":101
  *     cdef double short_profit = 0.0
  *     cdef int num_long_trades = 0
  *     cdef int num_short_trades = 0             # <<<<<<<<<<<<<<
@@ -5778,7 +5778,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
 */
   __pyx_v_num_short_trades = 0;
 
-  /* "backtester_cython.pyx":102
+  /* "backtester_cython.pyx":104
  * 
  *     # Max drawdown tracking
  *     cdef double peak_capital = initial_capital             # <<<<<<<<<<<<<<
@@ -5787,7 +5787,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
 */
   __pyx_v_peak_capital = __pyx_v_initial_capital;
 
-  /* "backtester_cython.pyx":103
+  /* "backtester_cython.pyx":105
  *     # Max drawdown tracking
  *     cdef double peak_capital = initial_capital
  *     cdef double max_drawdown = 0.0             # <<<<<<<<<<<<<<
@@ -5796,7 +5796,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
 */
   __pyx_v_max_drawdown = 0.0;
 
-  /* "backtester_cython.pyx":104
+  /* "backtester_cython.pyx":106
  *     cdef double peak_capital = initial_capital
  *     cdef double max_drawdown = 0.0
  *     cdef double current_drawdown = 0.0             # <<<<<<<<<<<<<<
@@ -5805,7 +5805,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
 */
   __pyx_v_current_drawdown = 0.0;
 
-  /* "backtester_cython.pyx":107
+  /* "backtester_cython.pyx":109
  * 
  *     # Position sizing variables
  *     cdef double base_position_percentage = 0.20  # 20% base position size for dynamic             # <<<<<<<<<<<<<<
@@ -5814,7 +5814,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
 */
   __pyx_v_base_position_percentage = 0.20;
 
-  /* "backtester_cython.pyx":108
+  /* "backtester_cython.pyx":110
  *     # Position sizing variables
  *     cdef double base_position_percentage = 0.20  # 20% base position size for dynamic
  *     cdef double fixed_position_percentage = 0.95  # 95% for high volatility             # <<<<<<<<<<<<<<
@@ -5823,7 +5823,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
 */
   __pyx_v_fixed_position_percentage = 0.95;
 
-  /* "backtester_cython.pyx":109
+  /* "backtester_cython.pyx":111
  *     cdef double base_position_percentage = 0.20  # 20% base position size for dynamic
  *     cdef double fixed_position_percentage = 0.95  # 95% for high volatility
  *     cdef double volatility_threshold = 0.20  # 20% daily move threshold             # <<<<<<<<<<<<<<
@@ -5832,7 +5832,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
 */
   __pyx_v_volatility_threshold = 0.20;
 
-  /* "backtester_cython.pyx":110
+  /* "backtester_cython.pyx":112
  *     cdef double fixed_position_percentage = 0.95  # 95% for high volatility
  *     cdef double volatility_threshold = 0.20  # 20% daily move threshold
  *     cdef double min_position_percentage = 0.05   # 5% minimum             # <<<<<<<<<<<<<<
@@ -5841,7 +5841,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
 */
   __pyx_v_min_position_percentage = 0.05;
 
-  /* "backtester_cython.pyx":111
+  /* "backtester_cython.pyx":113
  *     cdef double volatility_threshold = 0.20  # 20% daily move threshold
  *     cdef double min_position_percentage = 0.05   # 5% minimum
  *     cdef double max_position_percentage = 0.95   # 95% maximum             # <<<<<<<<<<<<<<
@@ -5850,7 +5850,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
 */
   __pyx_v_max_position_percentage = 0.95;
 
-  /* "backtester_cython.pyx":113
+  /* "backtester_cython.pyx":115
  *     cdef double max_position_percentage = 0.95   # 95% maximum
  *     cdef double recent_trades[5]  # Track last 5 trades
  *     cdef int recent_trades_count = 0             # <<<<<<<<<<<<<<
@@ -5859,7 +5859,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
 */
   __pyx_v_recent_trades_count = 0;
 
-  /* "backtester_cython.pyx":114
+  /* "backtester_cython.pyx":116
  *     cdef double recent_trades[5]  # Track last 5 trades
  *     cdef int recent_trades_count = 0
  *     cdef double current_position_percentage = base_position_percentage             # <<<<<<<<<<<<<<
@@ -5868,7 +5868,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
 */
   __pyx_v_current_position_percentage = __pyx_v_base_position_percentage;
 
-  /* "backtester_cython.pyx":115
+  /* "backtester_cython.pyx":117
  *     cdef int recent_trades_count = 0
  *     cdef double current_position_percentage = base_position_percentage
  *     cdef int use_fixed_sizing = 0  # Flag for sizing method             # <<<<<<<<<<<<<<
@@ -5877,7 +5877,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
 */
   __pyx_v_use_fixed_sizing = 0;
 
-  /* "backtester_cython.pyx":118
+  /* "backtester_cython.pyx":120
  * 
  *     # Determine sizing method based on volatility
  *     if fabs(daily_volatility) > volatility_threshold:             # <<<<<<<<<<<<<<
@@ -5887,7 +5887,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
   __pyx_t_1 = (fabs(__pyx_v_daily_volatility) > __pyx_v_volatility_threshold);
   if (__pyx_t_1) {
 
-    /* "backtester_cython.pyx":119
+    /* "backtester_cython.pyx":121
  *     # Determine sizing method based on volatility
  *     if fabs(daily_volatility) > volatility_threshold:
  *         use_fixed_sizing = 1             # <<<<<<<<<<<<<<
@@ -5896,7 +5896,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
 */
     __pyx_v_use_fixed_sizing = 1;
 
-    /* "backtester_cython.pyx":118
+    /* "backtester_cython.pyx":120
  * 
  *     # Determine sizing method based on volatility
  *     if fabs(daily_volatility) > volatility_threshold:             # <<<<<<<<<<<<<<
@@ -5905,7 +5905,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
 */
   }
 
-  /* "backtester_cython.pyx":124
+  /* "backtester_cython.pyx":126
  *     cdef double profit_loss, exit_price, risk_amount
  * 
  *     for i from 0 <= i < n:             # <<<<<<<<<<<<<<
@@ -5915,7 +5915,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
   __pyx_t_2 = __pyx_v_n;
   for (__pyx_v_i = 0; __pyx_v_i < __pyx_t_2; __pyx_v_i++) {
 
-    /* "backtester_cython.pyx":125
+    /* "backtester_cython.pyx":127
  * 
  *     for i from 0 <= i < n:
  *         current_price = prices[i]             # <<<<<<<<<<<<<<
@@ -5930,11 +5930,11 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
     } else if (unlikely(__pyx_t_3 >= __pyx_pybuffernd_prices.diminfo[0].shape)) __pyx_t_4 = 0;
     if (unlikely(__pyx_t_4 != -1)) {
       __Pyx_RaiseBufferIndexError(__pyx_t_4);
-      __PYX_ERR(0, 125, __pyx_L1_error)
+      __PYX_ERR(0, 127, __pyx_L1_error)
     }
     __pyx_v_current_price = (*__Pyx_BufPtrStrided1d(__pyx_t_17backtester_cython_DTYPE_t *, __pyx_pybuffernd_prices.rcbuffer->pybuffer.buf, __pyx_t_3, __pyx_pybuffernd_prices.diminfo[0].strides));
 
-    /* "backtester_cython.pyx":126
+    /* "backtester_cython.pyx":128
  *     for i from 0 <= i < n:
  *         current_price = prices[i]
  *         current_ask_price = current_price * (1 + spread_percentage)             # <<<<<<<<<<<<<<
@@ -5943,7 +5943,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
 */
     __pyx_v_current_ask_price = (__pyx_v_current_price * (1.0 + __pyx_v_spread_percentage));
 
-    /* "backtester_cython.pyx":127
+    /* "backtester_cython.pyx":129
  *         current_price = prices[i]
  *         current_ask_price = current_price * (1 + spread_percentage)
  *         current_bid_price = current_price * (1 - spread_percentage)             # <<<<<<<<<<<<<<
@@ -5952,7 +5952,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
 */
     __pyx_v_current_bid_price = (__pyx_v_current_price * (1.0 - __pyx_v_spread_percentage));
 
-    /* "backtester_cython.pyx":130
+    /* "backtester_cython.pyx":132
  * 
  *         # Update trailing stop loss for open positions
  *         if position == 1: # Long position             # <<<<<<<<<<<<<<
@@ -5962,7 +5962,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
     switch (__pyx_v_position) {
       case 1:
 
-      /* "backtester_cython.pyx":131
+      /* "backtester_cython.pyx":133
  *         # Update trailing stop loss for open positions
  *         if position == 1: # Long position
  *             highest_price_since_entry = fmax(highest_price_since_entry, current_price)             # <<<<<<<<<<<<<<
@@ -5971,7 +5971,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
 */
       __pyx_v_highest_price_since_entry = fmax(__pyx_v_highest_price_since_entry, __pyx_v_current_price);
 
-      /* "backtester_cython.pyx":132
+      /* "backtester_cython.pyx":134
  *         if position == 1: # Long position
  *             highest_price_since_entry = fmax(highest_price_since_entry, current_price)
  *             if atr_values[i] > 0:             # <<<<<<<<<<<<<<
@@ -5986,12 +5986,12 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
       } else if (unlikely(__pyx_t_3 >= __pyx_pybuffernd_atr_values.diminfo[0].shape)) __pyx_t_4 = 0;
       if (unlikely(__pyx_t_4 != -1)) {
         __Pyx_RaiseBufferIndexError(__pyx_t_4);
-        __PYX_ERR(0, 132, __pyx_L1_error)
+        __PYX_ERR(0, 134, __pyx_L1_error)
       }
       __pyx_t_1 = ((*__Pyx_BufPtrStrided1d(__pyx_t_17backtester_cython_DTYPE_t *, __pyx_pybuffernd_atr_values.rcbuffer->pybuffer.buf, __pyx_t_3, __pyx_pybuffernd_atr_values.diminfo[0].strides)) > 0.0);
       if (__pyx_t_1) {
 
-        /* "backtester_cython.pyx":133
+        /* "backtester_cython.pyx":135
  *             highest_price_since_entry = fmax(highest_price_since_entry, current_price)
  *             if atr_values[i] > 0:
  *                 trailing_stop_loss = highest_price_since_entry - (atr_values[i] * atr_multiple)             # <<<<<<<<<<<<<<
@@ -6006,11 +6006,11 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
         } else if (unlikely(__pyx_t_3 >= __pyx_pybuffernd_atr_values.diminfo[0].shape)) __pyx_t_4 = 0;
         if (unlikely(__pyx_t_4 != -1)) {
           __Pyx_RaiseBufferIndexError(__pyx_t_4);
-          __PYX_ERR(0, 133, __pyx_L1_error)
+          __PYX_ERR(0, 135, __pyx_L1_error)
         }
         __pyx_v_trailing_stop_loss = (__pyx_v_highest_price_since_entry - ((*__Pyx_BufPtrStrided1d(__pyx_t_17backtester_cython_DTYPE_t *, __pyx_pybuffernd_atr_values.rcbuffer->pybuffer.buf, __pyx_t_3, __pyx_pybuffernd_atr_values.diminfo[0].strides)) * __pyx_v_atr_multiple));
 
-        /* "backtester_cython.pyx":132
+        /* "backtester_cython.pyx":134
  *         if position == 1: # Long position
  *             highest_price_since_entry = fmax(highest_price_since_entry, current_price)
  *             if atr_values[i] > 0:             # <<<<<<<<<<<<<<
@@ -6019,7 +6019,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
 */
       }
 
-      /* "backtester_cython.pyx":134
+      /* "backtester_cython.pyx":136
  *             if atr_values[i] > 0:
  *                 trailing_stop_loss = highest_price_since_entry - (atr_values[i] * atr_multiple)
  *             if current_price <= trailing_stop_loss and trailing_stop_loss > 0:             # <<<<<<<<<<<<<<
@@ -6037,7 +6037,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
       __pyx_L8_bool_binop_done:;
       if (__pyx_t_1) {
 
-        /* "backtester_cython.pyx":135
+        /* "backtester_cython.pyx":137
  *                 trailing_stop_loss = highest_price_since_entry - (atr_values[i] * atr_multiple)
  *             if current_price <= trailing_stop_loss and trailing_stop_loss > 0:
  *                 long_exit[i] = 1 # Force exit             # <<<<<<<<<<<<<<
@@ -6052,11 +6052,11 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
         } else if (unlikely(__pyx_t_3 >= __pyx_pybuffernd_long_exit.diminfo[0].shape)) __pyx_t_4 = 0;
         if (unlikely(__pyx_t_4 != -1)) {
           __Pyx_RaiseBufferIndexError(__pyx_t_4);
-          __PYX_ERR(0, 135, __pyx_L1_error)
+          __PYX_ERR(0, 137, __pyx_L1_error)
         }
         *__Pyx_BufPtrStrided1d(__pyx_t_17backtester_cython_UBYTE_t *, __pyx_pybuffernd_long_exit.rcbuffer->pybuffer.buf, __pyx_t_3, __pyx_pybuffernd_long_exit.diminfo[0].strides) = 1;
 
-        /* "backtester_cython.pyx":134
+        /* "backtester_cython.pyx":136
  *             if atr_values[i] > 0:
  *                 trailing_stop_loss = highest_price_since_entry - (atr_values[i] * atr_multiple)
  *             if current_price <= trailing_stop_loss and trailing_stop_loss > 0:             # <<<<<<<<<<<<<<
@@ -6065,7 +6065,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
 */
       }
 
-      /* "backtester_cython.pyx":130
+      /* "backtester_cython.pyx":132
  * 
  *         # Update trailing stop loss for open positions
  *         if position == 1: # Long position             # <<<<<<<<<<<<<<
@@ -6075,7 +6075,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
       break;
       case -1L:
 
-      /* "backtester_cython.pyx":138
+      /* "backtester_cython.pyx":140
  * 
  *         elif position == -1: # Short position
  *             lowest_price_since_entry = fmin(lowest_price_since_entry, current_price)             # <<<<<<<<<<<<<<
@@ -6084,7 +6084,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
 */
       __pyx_v_lowest_price_since_entry = fmin(__pyx_v_lowest_price_since_entry, __pyx_v_current_price);
 
-      /* "backtester_cython.pyx":139
+      /* "backtester_cython.pyx":141
  *         elif position == -1: # Short position
  *             lowest_price_since_entry = fmin(lowest_price_since_entry, current_price)
  *             if atr_values[i] > 0:             # <<<<<<<<<<<<<<
@@ -6099,12 +6099,12 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
       } else if (unlikely(__pyx_t_3 >= __pyx_pybuffernd_atr_values.diminfo[0].shape)) __pyx_t_4 = 0;
       if (unlikely(__pyx_t_4 != -1)) {
         __Pyx_RaiseBufferIndexError(__pyx_t_4);
-        __PYX_ERR(0, 139, __pyx_L1_error)
+        __PYX_ERR(0, 141, __pyx_L1_error)
       }
       __pyx_t_1 = ((*__Pyx_BufPtrStrided1d(__pyx_t_17backtester_cython_DTYPE_t *, __pyx_pybuffernd_atr_values.rcbuffer->pybuffer.buf, __pyx_t_3, __pyx_pybuffernd_atr_values.diminfo[0].strides)) > 0.0);
       if (__pyx_t_1) {
 
-        /* "backtester_cython.pyx":140
+        /* "backtester_cython.pyx":142
  *             lowest_price_since_entry = fmin(lowest_price_since_entry, current_price)
  *             if atr_values[i] > 0:
  *                 trailing_stop_loss = lowest_price_since_entry + (atr_values[i] * atr_multiple)             # <<<<<<<<<<<<<<
@@ -6119,11 +6119,11 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
         } else if (unlikely(__pyx_t_3 >= __pyx_pybuffernd_atr_values.diminfo[0].shape)) __pyx_t_4 = 0;
         if (unlikely(__pyx_t_4 != -1)) {
           __Pyx_RaiseBufferIndexError(__pyx_t_4);
-          __PYX_ERR(0, 140, __pyx_L1_error)
+          __PYX_ERR(0, 142, __pyx_L1_error)
         }
         __pyx_v_trailing_stop_loss = (__pyx_v_lowest_price_since_entry + ((*__Pyx_BufPtrStrided1d(__pyx_t_17backtester_cython_DTYPE_t *, __pyx_pybuffernd_atr_values.rcbuffer->pybuffer.buf, __pyx_t_3, __pyx_pybuffernd_atr_values.diminfo[0].strides)) * __pyx_v_atr_multiple));
 
-        /* "backtester_cython.pyx":139
+        /* "backtester_cython.pyx":141
  *         elif position == -1: # Short position
  *             lowest_price_since_entry = fmin(lowest_price_since_entry, current_price)
  *             if atr_values[i] > 0:             # <<<<<<<<<<<<<<
@@ -6132,7 +6132,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
 */
       }
 
-      /* "backtester_cython.pyx":141
+      /* "backtester_cython.pyx":143
  *             if atr_values[i] > 0:
  *                 trailing_stop_loss = lowest_price_since_entry + (atr_values[i] * atr_multiple)
  *             if current_price >= trailing_stop_loss and trailing_stop_loss > 0:             # <<<<<<<<<<<<<<
@@ -6150,7 +6150,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
       __pyx_L12_bool_binop_done:;
       if (__pyx_t_1) {
 
-        /* "backtester_cython.pyx":142
+        /* "backtester_cython.pyx":144
  *                 trailing_stop_loss = lowest_price_since_entry + (atr_values[i] * atr_multiple)
  *             if current_price >= trailing_stop_loss and trailing_stop_loss > 0:
  *                 short_exit[i] = 1 # Force exit             # <<<<<<<<<<<<<<
@@ -6165,11 +6165,11 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
         } else if (unlikely(__pyx_t_3 >= __pyx_pybuffernd_short_exit.diminfo[0].shape)) __pyx_t_4 = 0;
         if (unlikely(__pyx_t_4 != -1)) {
           __Pyx_RaiseBufferIndexError(__pyx_t_4);
-          __PYX_ERR(0, 142, __pyx_L1_error)
+          __PYX_ERR(0, 144, __pyx_L1_error)
         }
         *__Pyx_BufPtrStrided1d(__pyx_t_17backtester_cython_UBYTE_t *, __pyx_pybuffernd_short_exit.rcbuffer->pybuffer.buf, __pyx_t_3, __pyx_pybuffernd_short_exit.diminfo[0].strides) = 1;
 
-        /* "backtester_cython.pyx":141
+        /* "backtester_cython.pyx":143
  *             if atr_values[i] > 0:
  *                 trailing_stop_loss = lowest_price_since_entry + (atr_values[i] * atr_multiple)
  *             if current_price >= trailing_stop_loss and trailing_stop_loss > 0:             # <<<<<<<<<<<<<<
@@ -6178,7 +6178,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
 */
       }
 
-      /* "backtester_cython.pyx":137
+      /* "backtester_cython.pyx":139
  *                 long_exit[i] = 1 # Force exit
  * 
  *         elif position == -1: # Short position             # <<<<<<<<<<<<<<
@@ -6189,7 +6189,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
       default: break;
     }
 
-    /* "backtester_cython.pyx":145
+    /* "backtester_cython.pyx":147
  * 
  *         # Check fixed stop loss and take profit for open positions
  *         if position == 1: # Long position             # <<<<<<<<<<<<<<
@@ -6199,7 +6199,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
     switch (__pyx_v_position) {
       case 1:
 
-      /* "backtester_cython.pyx":146
+      /* "backtester_cython.pyx":148
  *         # Check fixed stop loss and take profit for open positions
  *         if position == 1: # Long position
  *             if current_price <= fixed_stop_loss_price and fixed_stop_loss_price > 0:             # <<<<<<<<<<<<<<
@@ -6217,7 +6217,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
       __pyx_L15_bool_binop_done:;
       if (__pyx_t_1) {
 
-        /* "backtester_cython.pyx":147
+        /* "backtester_cython.pyx":149
  *         if position == 1: # Long position
  *             if current_price <= fixed_stop_loss_price and fixed_stop_loss_price > 0:
  *                 long_exit[i] = 1 # Force exit due to stop loss             # <<<<<<<<<<<<<<
@@ -6232,11 +6232,11 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
         } else if (unlikely(__pyx_t_3 >= __pyx_pybuffernd_long_exit.diminfo[0].shape)) __pyx_t_4 = 0;
         if (unlikely(__pyx_t_4 != -1)) {
           __Pyx_RaiseBufferIndexError(__pyx_t_4);
-          __PYX_ERR(0, 147, __pyx_L1_error)
+          __PYX_ERR(0, 149, __pyx_L1_error)
         }
         *__Pyx_BufPtrStrided1d(__pyx_t_17backtester_cython_UBYTE_t *, __pyx_pybuffernd_long_exit.rcbuffer->pybuffer.buf, __pyx_t_3, __pyx_pybuffernd_long_exit.diminfo[0].strides) = 1;
 
-        /* "backtester_cython.pyx":146
+        /* "backtester_cython.pyx":148
  *         # Check fixed stop loss and take profit for open positions
  *         if position == 1: # Long position
  *             if current_price <= fixed_stop_loss_price and fixed_stop_loss_price > 0:             # <<<<<<<<<<<<<<
@@ -6246,7 +6246,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
         goto __pyx_L14;
       }
 
-      /* "backtester_cython.pyx":148
+      /* "backtester_cython.pyx":150
  *             if current_price <= fixed_stop_loss_price and fixed_stop_loss_price > 0:
  *                 long_exit[i] = 1 # Force exit due to stop loss
  *             elif current_price >= take_profit_price and take_profit_price > 0:             # <<<<<<<<<<<<<<
@@ -6264,7 +6264,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
       __pyx_L17_bool_binop_done:;
       if (__pyx_t_1) {
 
-        /* "backtester_cython.pyx":149
+        /* "backtester_cython.pyx":151
  *                 long_exit[i] = 1 # Force exit due to stop loss
  *             elif current_price >= take_profit_price and take_profit_price > 0:
  *                 long_exit[i] = 1 # Force exit due to take profit             # <<<<<<<<<<<<<<
@@ -6279,11 +6279,11 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
         } else if (unlikely(__pyx_t_3 >= __pyx_pybuffernd_long_exit.diminfo[0].shape)) __pyx_t_4 = 0;
         if (unlikely(__pyx_t_4 != -1)) {
           __Pyx_RaiseBufferIndexError(__pyx_t_4);
-          __PYX_ERR(0, 149, __pyx_L1_error)
+          __PYX_ERR(0, 151, __pyx_L1_error)
         }
         *__Pyx_BufPtrStrided1d(__pyx_t_17backtester_cython_UBYTE_t *, __pyx_pybuffernd_long_exit.rcbuffer->pybuffer.buf, __pyx_t_3, __pyx_pybuffernd_long_exit.diminfo[0].strides) = 1;
 
-        /* "backtester_cython.pyx":148
+        /* "backtester_cython.pyx":150
  *             if current_price <= fixed_stop_loss_price and fixed_stop_loss_price > 0:
  *                 long_exit[i] = 1 # Force exit due to stop loss
  *             elif current_price >= take_profit_price and take_profit_price > 0:             # <<<<<<<<<<<<<<
@@ -6293,7 +6293,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
       }
       __pyx_L14:;
 
-      /* "backtester_cython.pyx":145
+      /* "backtester_cython.pyx":147
  * 
  *         # Check fixed stop loss and take profit for open positions
  *         if position == 1: # Long position             # <<<<<<<<<<<<<<
@@ -6303,7 +6303,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
       break;
       case -1L:
 
-      /* "backtester_cython.pyx":151
+      /* "backtester_cython.pyx":153
  *                 long_exit[i] = 1 # Force exit due to take profit
  *         elif position == -1: # Short position
  *             if current_price >= fixed_stop_loss_price and fixed_stop_loss_price > 0:             # <<<<<<<<<<<<<<
@@ -6321,7 +6321,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
       __pyx_L20_bool_binop_done:;
       if (__pyx_t_1) {
 
-        /* "backtester_cython.pyx":152
+        /* "backtester_cython.pyx":154
  *         elif position == -1: # Short position
  *             if current_price >= fixed_stop_loss_price and fixed_stop_loss_price > 0:
  *                 short_exit[i] = 1 # Force exit due to stop loss             # <<<<<<<<<<<<<<
@@ -6336,11 +6336,11 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
         } else if (unlikely(__pyx_t_3 >= __pyx_pybuffernd_short_exit.diminfo[0].shape)) __pyx_t_4 = 0;
         if (unlikely(__pyx_t_4 != -1)) {
           __Pyx_RaiseBufferIndexError(__pyx_t_4);
-          __PYX_ERR(0, 152, __pyx_L1_error)
+          __PYX_ERR(0, 154, __pyx_L1_error)
         }
         *__Pyx_BufPtrStrided1d(__pyx_t_17backtester_cython_UBYTE_t *, __pyx_pybuffernd_short_exit.rcbuffer->pybuffer.buf, __pyx_t_3, __pyx_pybuffernd_short_exit.diminfo[0].strides) = 1;
 
-        /* "backtester_cython.pyx":151
+        /* "backtester_cython.pyx":153
  *                 long_exit[i] = 1 # Force exit due to take profit
  *         elif position == -1: # Short position
  *             if current_price >= fixed_stop_loss_price and fixed_stop_loss_price > 0:             # <<<<<<<<<<<<<<
@@ -6350,7 +6350,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
         goto __pyx_L19;
       }
 
-      /* "backtester_cython.pyx":153
+      /* "backtester_cython.pyx":155
  *             if current_price >= fixed_stop_loss_price and fixed_stop_loss_price > 0:
  *                 short_exit[i] = 1 # Force exit due to stop loss
  *             elif current_price <= take_profit_price and take_profit_price > 0:             # <<<<<<<<<<<<<<
@@ -6368,7 +6368,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
       __pyx_L22_bool_binop_done:;
       if (__pyx_t_1) {
 
-        /* "backtester_cython.pyx":154
+        /* "backtester_cython.pyx":156
  *                 short_exit[i] = 1 # Force exit due to stop loss
  *             elif current_price <= take_profit_price and take_profit_price > 0:
  *                 short_exit[i] = 1 # Force exit due to take profit             # <<<<<<<<<<<<<<
@@ -6383,11 +6383,11 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
         } else if (unlikely(__pyx_t_3 >= __pyx_pybuffernd_short_exit.diminfo[0].shape)) __pyx_t_4 = 0;
         if (unlikely(__pyx_t_4 != -1)) {
           __Pyx_RaiseBufferIndexError(__pyx_t_4);
-          __PYX_ERR(0, 154, __pyx_L1_error)
+          __PYX_ERR(0, 156, __pyx_L1_error)
         }
         *__Pyx_BufPtrStrided1d(__pyx_t_17backtester_cython_UBYTE_t *, __pyx_pybuffernd_short_exit.rcbuffer->pybuffer.buf, __pyx_t_3, __pyx_pybuffernd_short_exit.diminfo[0].strides) = 1;
 
-        /* "backtester_cython.pyx":153
+        /* "backtester_cython.pyx":155
  *             if current_price >= fixed_stop_loss_price and fixed_stop_loss_price > 0:
  *                 short_exit[i] = 1 # Force exit due to stop loss
  *             elif current_price <= take_profit_price and take_profit_price > 0:             # <<<<<<<<<<<<<<
@@ -6397,7 +6397,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
       }
       __pyx_L19:;
 
-      /* "backtester_cython.pyx":150
+      /* "backtester_cython.pyx":152
  *             elif current_price >= take_profit_price and take_profit_price > 0:
  *                 long_exit[i] = 1 # Force exit due to take profit
  *         elif position == -1: # Short position             # <<<<<<<<<<<<<<
@@ -6408,7 +6408,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
       default: break;
     }
 
-    /* "backtester_cython.pyx":156
+    /* "backtester_cython.pyx":158
  *                 short_exit[i] = 1 # Force exit due to take profit
  * 
  *         if position == 0: # No open position             # <<<<<<<<<<<<<<
@@ -6418,7 +6418,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
     switch (__pyx_v_position) {
       case 0:
 
-      /* "backtester_cython.pyx":157
+      /* "backtester_cython.pyx":159
  * 
  *         if position == 0: # No open position
  *             if long_entry[i]:             # <<<<<<<<<<<<<<
@@ -6433,12 +6433,12 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
       } else if (unlikely(__pyx_t_3 >= __pyx_pybuffernd_long_entry.diminfo[0].shape)) __pyx_t_4 = 0;
       if (unlikely(__pyx_t_4 != -1)) {
         __Pyx_RaiseBufferIndexError(__pyx_t_4);
-        __PYX_ERR(0, 157, __pyx_L1_error)
+        __PYX_ERR(0, 159, __pyx_L1_error)
       }
       __pyx_t_1 = ((*__Pyx_BufPtrStrided1d(__pyx_t_17backtester_cython_UBYTE_t *, __pyx_pybuffernd_long_entry.rcbuffer->pybuffer.buf, __pyx_t_3, __pyx_pybuffernd_long_entry.diminfo[0].strides)) != 0);
       if (__pyx_t_1) {
 
-        /* "backtester_cython.pyx":158
+        /* "backtester_cython.pyx":160
  *         if position == 0: # No open position
  *             if long_entry[i]:
  *                 position = 1             # <<<<<<<<<<<<<<
@@ -6447,7 +6447,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
 */
         __pyx_v_position = 1;
 
-        /* "backtester_cython.pyx":160
+        /* "backtester_cython.pyx":162
  *                 position = 1
  *                 # Apply spread and slippage correctly - don't double apply
  *                 entry_price = current_price * (1 + spread_percentage + slippage_percentage)             # <<<<<<<<<<<<<<
@@ -6456,7 +6456,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
 */
         __pyx_v_entry_price = (__pyx_v_current_price * ((1.0 + __pyx_v_spread_percentage) + __pyx_v_slippage_percentage));
 
-        /* "backtester_cython.pyx":161
+        /* "backtester_cython.pyx":163
  *                 # Apply spread and slippage correctly - don't double apply
  *                 entry_price = current_price * (1 + spread_percentage + slippage_percentage)
  *                 total_trades += 1             # <<<<<<<<<<<<<<
@@ -6465,7 +6465,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
 */
         __pyx_v_total_trades = (__pyx_v_total_trades + 1);
 
-        /* "backtester_cython.pyx":164
+        /* "backtester_cython.pyx":166
  * 
  *                 # Choose position sizing method based on volatility
  *                 if use_fixed_sizing:             # <<<<<<<<<<<<<<
@@ -6475,7 +6475,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
         __pyx_t_1 = (__pyx_v_use_fixed_sizing != 0);
         if (__pyx_t_1) {
 
-          /* "backtester_cython.pyx":166
+          /* "backtester_cython.pyx":168
  *                 if use_fixed_sizing:
  *                     # High volatility: use fixed aggressive sizing
  *                     position_size = current_capital * fixed_position_percentage             # <<<<<<<<<<<<<<
@@ -6484,7 +6484,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
 */
           __pyx_v_position_size = (__pyx_v_current_capital * __pyx_v_fixed_position_percentage);
 
-          /* "backtester_cython.pyx":164
+          /* "backtester_cython.pyx":166
  * 
  *                 # Choose position sizing method based on volatility
  *                 if use_fixed_sizing:             # <<<<<<<<<<<<<<
@@ -6494,7 +6494,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
           goto __pyx_L25;
         }
 
-        /* "backtester_cython.pyx":169
+        /* "backtester_cython.pyx":171
  *                 else:
  *                     # Low volatility: use dynamic sizing based on recent performance
  *                     current_position_percentage = calculate_position_size(recent_trades, recent_trades_count,             # <<<<<<<<<<<<<<
@@ -6503,17 +6503,17 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
 */
         /*else*/ {
 
-          /* "backtester_cython.pyx":172
+          /* "backtester_cython.pyx":174
  *                                                                        base_position_percentage,
  *                                                                        min_position_percentage,
  *                                                                        max_position_percentage)             # <<<<<<<<<<<<<<
  *                     position_size = current_capital * current_position_percentage
  * 
 */
-          __pyx_t_6 = __pyx_f_17backtester_cython_calculate_position_size(__pyx_v_recent_trades, __pyx_v_recent_trades_count, __pyx_v_base_position_percentage, __pyx_v_min_position_percentage, __pyx_v_max_position_percentage); if (unlikely(__pyx_t_6 == ((double)-1) && PyErr_Occurred())) __PYX_ERR(0, 169, __pyx_L1_error)
+          __pyx_t_6 = __pyx_f_17backtester_cython_calculate_position_size(__pyx_v_recent_trades, __pyx_v_recent_trades_count, __pyx_v_base_position_percentage, __pyx_v_min_position_percentage, __pyx_v_max_position_percentage); if (unlikely(__pyx_t_6 == ((double)-1) && PyErr_Occurred())) __PYX_ERR(0, 171, __pyx_L1_error)
           __pyx_v_current_position_percentage = __pyx_t_6;
 
-          /* "backtester_cython.pyx":173
+          /* "backtester_cython.pyx":175
  *                                                                        min_position_percentage,
  *                                                                        max_position_percentage)
  *                     position_size = current_capital * current_position_percentage             # <<<<<<<<<<<<<<
@@ -6524,7 +6524,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
         }
         __pyx_L25:;
 
-        /* "backtester_cython.pyx":176
+        /* "backtester_cython.pyx":178
  * 
  *                 # Calculate fixed stop loss and take profit for LONG
  *                 fixed_stop_loss_price = entry_price * (1 - fixed_stop_loss_percentage)             # <<<<<<<<<<<<<<
@@ -6533,7 +6533,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
 */
         __pyx_v_fixed_stop_loss_price = (__pyx_v_entry_price * (1.0 - __pyx_v_fixed_stop_loss_percentage));
 
-        /* "backtester_cython.pyx":177
+        /* "backtester_cython.pyx":179
  *                 # Calculate fixed stop loss and take profit for LONG
  *                 fixed_stop_loss_price = entry_price * (1 - fixed_stop_loss_percentage)
  *                 risk_amount = entry_price - fixed_stop_loss_price             # <<<<<<<<<<<<<<
@@ -6542,7 +6542,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
 */
         __pyx_v_risk_amount = (__pyx_v_entry_price - __pyx_v_fixed_stop_loss_price);
 
-        /* "backtester_cython.pyx":178
+        /* "backtester_cython.pyx":180
  *                 fixed_stop_loss_price = entry_price * (1 - fixed_stop_loss_percentage)
  *                 risk_amount = entry_price - fixed_stop_loss_price
  *                 take_profit_price = entry_price + (risk_amount * take_profit_multiple)             # <<<<<<<<<<<<<<
@@ -6551,7 +6551,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
 */
         __pyx_v_take_profit_price = (__pyx_v_entry_price + (__pyx_v_risk_amount * __pyx_v_take_profit_multiple));
 
-        /* "backtester_cython.pyx":180
+        /* "backtester_cython.pyx":182
  *                 take_profit_price = entry_price + (risk_amount * take_profit_multiple)
  * 
  *                 highest_price_since_entry = current_price             # <<<<<<<<<<<<<<
@@ -6560,7 +6560,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
 */
         __pyx_v_highest_price_since_entry = __pyx_v_current_price;
 
-        /* "backtester_cython.pyx":181
+        /* "backtester_cython.pyx":183
  * 
  *                 highest_price_since_entry = current_price
  *                 if atr_values[i] > 0:             # <<<<<<<<<<<<<<
@@ -6575,12 +6575,12 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
         } else if (unlikely(__pyx_t_3 >= __pyx_pybuffernd_atr_values.diminfo[0].shape)) __pyx_t_4 = 0;
         if (unlikely(__pyx_t_4 != -1)) {
           __Pyx_RaiseBufferIndexError(__pyx_t_4);
-          __PYX_ERR(0, 181, __pyx_L1_error)
+          __PYX_ERR(0, 183, __pyx_L1_error)
         }
         __pyx_t_1 = ((*__Pyx_BufPtrStrided1d(__pyx_t_17backtester_cython_DTYPE_t *, __pyx_pybuffernd_atr_values.rcbuffer->pybuffer.buf, __pyx_t_3, __pyx_pybuffernd_atr_values.diminfo[0].strides)) > 0.0);
         if (__pyx_t_1) {
 
-          /* "backtester_cython.pyx":182
+          /* "backtester_cython.pyx":184
  *                 highest_price_since_entry = current_price
  *                 if atr_values[i] > 0:
  *                     trailing_stop_loss = highest_price_since_entry - (atr_values[i] * atr_multiple)             # <<<<<<<<<<<<<<
@@ -6595,11 +6595,11 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
           } else if (unlikely(__pyx_t_3 >= __pyx_pybuffernd_atr_values.diminfo[0].shape)) __pyx_t_4 = 0;
           if (unlikely(__pyx_t_4 != -1)) {
             __Pyx_RaiseBufferIndexError(__pyx_t_4);
-            __PYX_ERR(0, 182, __pyx_L1_error)
+            __PYX_ERR(0, 184, __pyx_L1_error)
           }
           __pyx_v_trailing_stop_loss = (__pyx_v_highest_price_since_entry - ((*__Pyx_BufPtrStrided1d(__pyx_t_17backtester_cython_DTYPE_t *, __pyx_pybuffernd_atr_values.rcbuffer->pybuffer.buf, __pyx_t_3, __pyx_pybuffernd_atr_values.diminfo[0].strides)) * __pyx_v_atr_multiple));
 
-          /* "backtester_cython.pyx":181
+          /* "backtester_cython.pyx":183
  * 
  *                 highest_price_since_entry = current_price
  *                 if atr_values[i] > 0:             # <<<<<<<<<<<<<<
@@ -6608,7 +6608,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
 */
         }
 
-        /* "backtester_cython.pyx":157
+        /* "backtester_cython.pyx":159
  * 
  *         if position == 0: # No open position
  *             if long_entry[i]:             # <<<<<<<<<<<<<<
@@ -6618,7 +6618,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
         goto __pyx_L24;
       }
 
-      /* "backtester_cython.pyx":184
+      /* "backtester_cython.pyx":186
  *                     trailing_stop_loss = highest_price_since_entry - (atr_values[i] * atr_multiple)
  * 
  *             elif short_entry[i]:             # <<<<<<<<<<<<<<
@@ -6633,12 +6633,12 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
       } else if (unlikely(__pyx_t_3 >= __pyx_pybuffernd_short_entry.diminfo[0].shape)) __pyx_t_4 = 0;
       if (unlikely(__pyx_t_4 != -1)) {
         __Pyx_RaiseBufferIndexError(__pyx_t_4);
-        __PYX_ERR(0, 184, __pyx_L1_error)
+        __PYX_ERR(0, 186, __pyx_L1_error)
       }
       __pyx_t_1 = ((*__Pyx_BufPtrStrided1d(__pyx_t_17backtester_cython_UBYTE_t *, __pyx_pybuffernd_short_entry.rcbuffer->pybuffer.buf, __pyx_t_3, __pyx_pybuffernd_short_entry.diminfo[0].strides)) != 0);
       if (__pyx_t_1) {
 
-        /* "backtester_cython.pyx":185
+        /* "backtester_cython.pyx":187
  * 
  *             elif short_entry[i]:
  *                 position = -1             # <<<<<<<<<<<<<<
@@ -6647,7 +6647,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
 */
         __pyx_v_position = -1;
 
-        /* "backtester_cython.pyx":187
+        /* "backtester_cython.pyx":189
  *                 position = -1
  *                 # Apply spread and slippage correctly - don't double apply
  *                 entry_price = current_price * (1 - spread_percentage - slippage_percentage)             # <<<<<<<<<<<<<<
@@ -6656,7 +6656,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
 */
         __pyx_v_entry_price = (__pyx_v_current_price * ((1.0 - __pyx_v_spread_percentage) - __pyx_v_slippage_percentage));
 
-        /* "backtester_cython.pyx":188
+        /* "backtester_cython.pyx":190
  *                 # Apply spread and slippage correctly - don't double apply
  *                 entry_price = current_price * (1 - spread_percentage - slippage_percentage)
  *                 total_trades += 1             # <<<<<<<<<<<<<<
@@ -6665,7 +6665,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
 */
         __pyx_v_total_trades = (__pyx_v_total_trades + 1);
 
-        /* "backtester_cython.pyx":191
+        /* "backtester_cython.pyx":193
  * 
  *                 # Choose position sizing method based on volatility
  *                 if use_fixed_sizing:             # <<<<<<<<<<<<<<
@@ -6675,7 +6675,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
         __pyx_t_1 = (__pyx_v_use_fixed_sizing != 0);
         if (__pyx_t_1) {
 
-          /* "backtester_cython.pyx":193
+          /* "backtester_cython.pyx":195
  *                 if use_fixed_sizing:
  *                     # High volatility: use fixed aggressive sizing
  *                     position_size = current_capital * fixed_position_percentage             # <<<<<<<<<<<<<<
@@ -6684,7 +6684,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
 */
           __pyx_v_position_size = (__pyx_v_current_capital * __pyx_v_fixed_position_percentage);
 
-          /* "backtester_cython.pyx":191
+          /* "backtester_cython.pyx":193
  * 
  *                 # Choose position sizing method based on volatility
  *                 if use_fixed_sizing:             # <<<<<<<<<<<<<<
@@ -6694,7 +6694,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
           goto __pyx_L27;
         }
 
-        /* "backtester_cython.pyx":196
+        /* "backtester_cython.pyx":198
  *                 else:
  *                     # Low volatility: use dynamic sizing based on recent performance
  *                     current_position_percentage = calculate_position_size(recent_trades, recent_trades_count,             # <<<<<<<<<<<<<<
@@ -6703,17 +6703,17 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
 */
         /*else*/ {
 
-          /* "backtester_cython.pyx":199
+          /* "backtester_cython.pyx":201
  *                                                                        base_position_percentage,
  *                                                                        min_position_percentage,
  *                                                                        max_position_percentage)             # <<<<<<<<<<<<<<
  *                     position_size = current_capital * current_position_percentage
  * 
 */
-          __pyx_t_6 = __pyx_f_17backtester_cython_calculate_position_size(__pyx_v_recent_trades, __pyx_v_recent_trades_count, __pyx_v_base_position_percentage, __pyx_v_min_position_percentage, __pyx_v_max_position_percentage); if (unlikely(__pyx_t_6 == ((double)-1) && PyErr_Occurred())) __PYX_ERR(0, 196, __pyx_L1_error)
+          __pyx_t_6 = __pyx_f_17backtester_cython_calculate_position_size(__pyx_v_recent_trades, __pyx_v_recent_trades_count, __pyx_v_base_position_percentage, __pyx_v_min_position_percentage, __pyx_v_max_position_percentage); if (unlikely(__pyx_t_6 == ((double)-1) && PyErr_Occurred())) __PYX_ERR(0, 198, __pyx_L1_error)
           __pyx_v_current_position_percentage = __pyx_t_6;
 
-          /* "backtester_cython.pyx":200
+          /* "backtester_cython.pyx":202
  *                                                                        min_position_percentage,
  *                                                                        max_position_percentage)
  *                     position_size = current_capital * current_position_percentage             # <<<<<<<<<<<<<<
@@ -6724,7 +6724,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
         }
         __pyx_L27:;
 
-        /* "backtester_cython.pyx":203
+        /* "backtester_cython.pyx":205
  * 
  *                 # Calculate fixed stop loss and take profit for SHORT
  *                 fixed_stop_loss_price = entry_price * (1 + fixed_stop_loss_percentage)             # <<<<<<<<<<<<<<
@@ -6733,7 +6733,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
 */
         __pyx_v_fixed_stop_loss_price = (__pyx_v_entry_price * (1.0 + __pyx_v_fixed_stop_loss_percentage));
 
-        /* "backtester_cython.pyx":204
+        /* "backtester_cython.pyx":206
  *                 # Calculate fixed stop loss and take profit for SHORT
  *                 fixed_stop_loss_price = entry_price * (1 + fixed_stop_loss_percentage)
  *                 risk_amount = fixed_stop_loss_price - entry_price             # <<<<<<<<<<<<<<
@@ -6742,7 +6742,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
 */
         __pyx_v_risk_amount = (__pyx_v_fixed_stop_loss_price - __pyx_v_entry_price);
 
-        /* "backtester_cython.pyx":205
+        /* "backtester_cython.pyx":207
  *                 fixed_stop_loss_price = entry_price * (1 + fixed_stop_loss_percentage)
  *                 risk_amount = fixed_stop_loss_price - entry_price
  *                 take_profit_price = entry_price - (risk_amount * take_profit_multiple)             # <<<<<<<<<<<<<<
@@ -6751,7 +6751,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
 */
         __pyx_v_take_profit_price = (__pyx_v_entry_price - (__pyx_v_risk_amount * __pyx_v_take_profit_multiple));
 
-        /* "backtester_cython.pyx":207
+        /* "backtester_cython.pyx":209
  *                 take_profit_price = entry_price - (risk_amount * take_profit_multiple)
  * 
  *                 lowest_price_since_entry = current_price             # <<<<<<<<<<<<<<
@@ -6760,7 +6760,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
 */
         __pyx_v_lowest_price_since_entry = __pyx_v_current_price;
 
-        /* "backtester_cython.pyx":208
+        /* "backtester_cython.pyx":210
  * 
  *                 lowest_price_since_entry = current_price
  *                 if atr_values[i] > 0:             # <<<<<<<<<<<<<<
@@ -6775,12 +6775,12 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
         } else if (unlikely(__pyx_t_3 >= __pyx_pybuffernd_atr_values.diminfo[0].shape)) __pyx_t_4 = 0;
         if (unlikely(__pyx_t_4 != -1)) {
           __Pyx_RaiseBufferIndexError(__pyx_t_4);
-          __PYX_ERR(0, 208, __pyx_L1_error)
+          __PYX_ERR(0, 210, __pyx_L1_error)
         }
         __pyx_t_1 = ((*__Pyx_BufPtrStrided1d(__pyx_t_17backtester_cython_DTYPE_t *, __pyx_pybuffernd_atr_values.rcbuffer->pybuffer.buf, __pyx_t_3, __pyx_pybuffernd_atr_values.diminfo[0].strides)) > 0.0);
         if (__pyx_t_1) {
 
-          /* "backtester_cython.pyx":209
+          /* "backtester_cython.pyx":211
  *                 lowest_price_since_entry = current_price
  *                 if atr_values[i] > 0:
  *                     trailing_stop_loss = lowest_price_since_entry + (atr_values[i] * atr_multiple)             # <<<<<<<<<<<<<<
@@ -6795,11 +6795,11 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
           } else if (unlikely(__pyx_t_3 >= __pyx_pybuffernd_atr_values.diminfo[0].shape)) __pyx_t_4 = 0;
           if (unlikely(__pyx_t_4 != -1)) {
             __Pyx_RaiseBufferIndexError(__pyx_t_4);
-            __PYX_ERR(0, 209, __pyx_L1_error)
+            __PYX_ERR(0, 211, __pyx_L1_error)
           }
           __pyx_v_trailing_stop_loss = (__pyx_v_lowest_price_since_entry + ((*__Pyx_BufPtrStrided1d(__pyx_t_17backtester_cython_DTYPE_t *, __pyx_pybuffernd_atr_values.rcbuffer->pybuffer.buf, __pyx_t_3, __pyx_pybuffernd_atr_values.diminfo[0].strides)) * __pyx_v_atr_multiple));
 
-          /* "backtester_cython.pyx":208
+          /* "backtester_cython.pyx":210
  * 
  *                 lowest_price_since_entry = current_price
  *                 if atr_values[i] > 0:             # <<<<<<<<<<<<<<
@@ -6808,7 +6808,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
 */
         }
 
-        /* "backtester_cython.pyx":184
+        /* "backtester_cython.pyx":186
  *                     trailing_stop_loss = highest_price_since_entry - (atr_values[i] * atr_multiple)
  * 
  *             elif short_entry[i]:             # <<<<<<<<<<<<<<
@@ -6818,7 +6818,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
       }
       __pyx_L24:;
 
-      /* "backtester_cython.pyx":156
+      /* "backtester_cython.pyx":158
  *                 short_exit[i] = 1 # Force exit due to take profit
  * 
  *         if position == 0: # No open position             # <<<<<<<<<<<<<<
@@ -6828,7 +6828,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
       break;
       case 1:
 
-      /* "backtester_cython.pyx":212
+      /* "backtester_cython.pyx":214
  * 
  *         elif position == 1: # Long position
  *             if long_exit[i] or i == n - 1:             # <<<<<<<<<<<<<<
@@ -6843,7 +6843,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
       } else if (unlikely(__pyx_t_3 >= __pyx_pybuffernd_long_exit.diminfo[0].shape)) __pyx_t_4 = 0;
       if (unlikely(__pyx_t_4 != -1)) {
         __Pyx_RaiseBufferIndexError(__pyx_t_4);
-        __PYX_ERR(0, 212, __pyx_L1_error)
+        __PYX_ERR(0, 214, __pyx_L1_error)
       }
       __pyx_t_5 = ((*__Pyx_BufPtrStrided1d(__pyx_t_17backtester_cython_UBYTE_t *, __pyx_pybuffernd_long_exit.rcbuffer->pybuffer.buf, __pyx_t_3, __pyx_pybuffernd_long_exit.diminfo[0].strides)) != 0);
       if (!__pyx_t_5) {
@@ -6856,7 +6856,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
       __pyx_L30_bool_binop_done:;
       if (__pyx_t_1) {
 
-        /* "backtester_cython.pyx":214
+        /* "backtester_cython.pyx":216
  *             if long_exit[i] or i == n - 1:
  *                 # Apply spread and slippage correctly - don't double apply
  *                 exit_price = current_price * (1 - spread_percentage - slippage_percentage)             # <<<<<<<<<<<<<<
@@ -6865,7 +6865,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
 */
         __pyx_v_exit_price = (__pyx_v_current_price * ((1.0 - __pyx_v_spread_percentage) - __pyx_v_slippage_percentage));
 
-        /* "backtester_cython.pyx":215
+        /* "backtester_cython.pyx":217
  *                 # Apply spread and slippage correctly - don't double apply
  *                 exit_price = current_price * (1 - spread_percentage - slippage_percentage)
  *                 profit_loss = (exit_price - entry_price) / entry_price * position_size             # <<<<<<<<<<<<<<
@@ -6875,11 +6875,11 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
         __pyx_t_6 = (__pyx_v_exit_price - __pyx_v_entry_price);
         if (unlikely(__pyx_v_entry_price == 0)) {
           PyErr_SetString(PyExc_ZeroDivisionError, "float division");
-          __PYX_ERR(0, 215, __pyx_L1_error)
+          __PYX_ERR(0, 217, __pyx_L1_error)
         }
         __pyx_v_profit_loss = ((__pyx_t_6 / __pyx_v_entry_price) * __pyx_v_position_size);
 
-        /* "backtester_cython.pyx":216
+        /* "backtester_cython.pyx":218
  *                 exit_price = current_price * (1 - spread_percentage - slippage_percentage)
  *                 profit_loss = (exit_price - entry_price) / entry_price * position_size
  *                 current_capital += profit_loss             # <<<<<<<<<<<<<<
@@ -6888,7 +6888,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
 */
         __pyx_v_current_capital = (__pyx_v_current_capital + __pyx_v_profit_loss);
 
-        /* "backtester_cython.pyx":219
+        /* "backtester_cython.pyx":221
  * 
  *                 # Update max drawdown tracking
  *                 if current_capital > peak_capital:             # <<<<<<<<<<<<<<
@@ -6898,7 +6898,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
         __pyx_t_1 = (__pyx_v_current_capital > __pyx_v_peak_capital);
         if (__pyx_t_1) {
 
-          /* "backtester_cython.pyx":220
+          /* "backtester_cython.pyx":222
  *                 # Update max drawdown tracking
  *                 if current_capital > peak_capital:
  *                     peak_capital = current_capital             # <<<<<<<<<<<<<<
@@ -6907,7 +6907,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
 */
           __pyx_v_peak_capital = __pyx_v_current_capital;
 
-          /* "backtester_cython.pyx":219
+          /* "backtester_cython.pyx":221
  * 
  *                 # Update max drawdown tracking
  *                 if current_capital > peak_capital:             # <<<<<<<<<<<<<<
@@ -6916,7 +6916,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
 */
         }
 
-        /* "backtester_cython.pyx":221
+        /* "backtester_cython.pyx":223
  *                 if current_capital > peak_capital:
  *                     peak_capital = current_capital
  *                 current_drawdown = ((peak_capital - current_capital) / peak_capital) * 100.0             # <<<<<<<<<<<<<<
@@ -6926,11 +6926,11 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
         __pyx_t_6 = (__pyx_v_peak_capital - __pyx_v_current_capital);
         if (unlikely(__pyx_v_peak_capital == 0)) {
           PyErr_SetString(PyExc_ZeroDivisionError, "float division");
-          __PYX_ERR(0, 221, __pyx_L1_error)
+          __PYX_ERR(0, 223, __pyx_L1_error)
         }
         __pyx_v_current_drawdown = ((__pyx_t_6 / __pyx_v_peak_capital) * 100.0);
 
-        /* "backtester_cython.pyx":222
+        /* "backtester_cython.pyx":224
  *                     peak_capital = current_capital
  *                 current_drawdown = ((peak_capital - current_capital) / peak_capital) * 100.0
  *                 if current_drawdown > max_drawdown:             # <<<<<<<<<<<<<<
@@ -6940,7 +6940,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
         __pyx_t_1 = (__pyx_v_current_drawdown > __pyx_v_max_drawdown);
         if (__pyx_t_1) {
 
-          /* "backtester_cython.pyx":223
+          /* "backtester_cython.pyx":225
  *                 current_drawdown = ((peak_capital - current_capital) / peak_capital) * 100.0
  *                 if current_drawdown > max_drawdown:
  *                     max_drawdown = current_drawdown             # <<<<<<<<<<<<<<
@@ -6949,7 +6949,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
 */
           __pyx_v_max_drawdown = __pyx_v_current_drawdown;
 
-          /* "backtester_cython.pyx":222
+          /* "backtester_cython.pyx":224
  *                     peak_capital = current_capital
  *                 current_drawdown = ((peak_capital - current_capital) / peak_capital) * 100.0
  *                 if current_drawdown > max_drawdown:             # <<<<<<<<<<<<<<
@@ -6958,7 +6958,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
 */
         }
 
-        /* "backtester_cython.pyx":225
+        /* "backtester_cython.pyx":227
  *                     max_drawdown = current_drawdown
  * 
  *                 total_profit_loss += profit_loss             # <<<<<<<<<<<<<<
@@ -6967,7 +6967,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
 */
         __pyx_v_total_profit_loss = (__pyx_v_total_profit_loss + __pyx_v_profit_loss);
 
-        /* "backtester_cython.pyx":226
+        /* "backtester_cython.pyx":228
  * 
  *                 total_profit_loss += profit_loss
  *                 long_profit += profit_loss             # <<<<<<<<<<<<<<
@@ -6976,7 +6976,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
 */
         __pyx_v_long_profit = (__pyx_v_long_profit + __pyx_v_profit_loss);
 
-        /* "backtester_cython.pyx":227
+        /* "backtester_cython.pyx":229
  *                 total_profit_loss += profit_loss
  *                 long_profit += profit_loss
  *                 num_long_trades += 1             # <<<<<<<<<<<<<<
@@ -6985,7 +6985,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
 */
         __pyx_v_num_long_trades = (__pyx_v_num_long_trades + 1);
 
-        /* "backtester_cython.pyx":230
+        /* "backtester_cython.pyx":232
  * 
  *                 # Update recent trades history (only for dynamic sizing)
  *                 if not use_fixed_sizing:             # <<<<<<<<<<<<<<
@@ -6995,16 +6995,16 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
         __pyx_t_1 = (!(__pyx_v_use_fixed_sizing != 0));
         if (__pyx_t_1) {
 
-          /* "backtester_cython.pyx":231
+          /* "backtester_cython.pyx":233
  *                 # Update recent trades history (only for dynamic sizing)
  *                 if not use_fixed_sizing:
  *                     update_recent_trades(recent_trades, &recent_trades_count, profit_loss)             # <<<<<<<<<<<<<<
  * 
  *                 if profit_loss > 0:
 */
-          __pyx_f_17backtester_cython_update_recent_trades(__pyx_v_recent_trades, (&__pyx_v_recent_trades_count), __pyx_v_profit_loss); if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 231, __pyx_L1_error)
+          __pyx_f_17backtester_cython_update_recent_trades(__pyx_v_recent_trades, (&__pyx_v_recent_trades_count), __pyx_v_profit_loss); if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 233, __pyx_L1_error)
 
-          /* "backtester_cython.pyx":230
+          /* "backtester_cython.pyx":232
  * 
  *                 # Update recent trades history (only for dynamic sizing)
  *                 if not use_fixed_sizing:             # <<<<<<<<<<<<<<
@@ -7013,7 +7013,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
 */
         }
 
-        /* "backtester_cython.pyx":233
+        /* "backtester_cython.pyx":235
  *                     update_recent_trades(recent_trades, &recent_trades_count, profit_loss)
  * 
  *                 if profit_loss > 0:             # <<<<<<<<<<<<<<
@@ -7023,7 +7023,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
         __pyx_t_1 = (__pyx_v_profit_loss > 0.0);
         if (__pyx_t_1) {
 
-          /* "backtester_cython.pyx":234
+          /* "backtester_cython.pyx":236
  * 
  *                 if profit_loss > 0:
  *                     winning_trades += 1             # <<<<<<<<<<<<<<
@@ -7032,7 +7032,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
 */
           __pyx_v_winning_trades = (__pyx_v_winning_trades + 1);
 
-          /* "backtester_cython.pyx":233
+          /* "backtester_cython.pyx":235
  *                     update_recent_trades(recent_trades, &recent_trades_count, profit_loss)
  * 
  *                 if profit_loss > 0:             # <<<<<<<<<<<<<<
@@ -7042,7 +7042,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
           goto __pyx_L35;
         }
 
-        /* "backtester_cython.pyx":236
+        /* "backtester_cython.pyx":238
  *                     winning_trades += 1
  *                 else:
  *                     losing_trades += 1             # <<<<<<<<<<<<<<
@@ -7054,7 +7054,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
         }
         __pyx_L35:;
 
-        /* "backtester_cython.pyx":237
+        /* "backtester_cython.pyx":239
  *                 else:
  *                     losing_trades += 1
  *                 position = 0             # <<<<<<<<<<<<<<
@@ -7063,7 +7063,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
 */
         __pyx_v_position = 0;
 
-        /* "backtester_cython.pyx":238
+        /* "backtester_cython.pyx":240
  *                     losing_trades += 1
  *                 position = 0
  *                 position_size = 0.0             # <<<<<<<<<<<<<<
@@ -7072,7 +7072,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
 */
         __pyx_v_position_size = 0.0;
 
-        /* "backtester_cython.pyx":239
+        /* "backtester_cython.pyx":241
  *                 position = 0
  *                 position_size = 0.0
  *                 highest_price_since_entry = 0.0             # <<<<<<<<<<<<<<
@@ -7081,7 +7081,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
 */
         __pyx_v_highest_price_since_entry = 0.0;
 
-        /* "backtester_cython.pyx":240
+        /* "backtester_cython.pyx":242
  *                 position_size = 0.0
  *                 highest_price_since_entry = 0.0
  *                 trailing_stop_loss = 0.0             # <<<<<<<<<<<<<<
@@ -7090,7 +7090,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
 */
         __pyx_v_trailing_stop_loss = 0.0;
 
-        /* "backtester_cython.pyx":241
+        /* "backtester_cython.pyx":243
  *                 highest_price_since_entry = 0.0
  *                 trailing_stop_loss = 0.0
  *                 fixed_stop_loss_price = 0.0             # <<<<<<<<<<<<<<
@@ -7099,7 +7099,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
 */
         __pyx_v_fixed_stop_loss_price = 0.0;
 
-        /* "backtester_cython.pyx":242
+        /* "backtester_cython.pyx":244
  *                 trailing_stop_loss = 0.0
  *                 fixed_stop_loss_price = 0.0
  *                 take_profit_price = 0.0             # <<<<<<<<<<<<<<
@@ -7108,7 +7108,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
 */
         __pyx_v_take_profit_price = 0.0;
 
-        /* "backtester_cython.pyx":212
+        /* "backtester_cython.pyx":214
  * 
  *         elif position == 1: # Long position
  *             if long_exit[i] or i == n - 1:             # <<<<<<<<<<<<<<
@@ -7117,7 +7117,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
 */
       }
 
-      /* "backtester_cython.pyx":211
+      /* "backtester_cython.pyx":213
  *                     trailing_stop_loss = lowest_price_since_entry + (atr_values[i] * atr_multiple)
  * 
  *         elif position == 1: # Long position             # <<<<<<<<<<<<<<
@@ -7127,7 +7127,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
       break;
       case -1L:
 
-      /* "backtester_cython.pyx":245
+      /* "backtester_cython.pyx":247
  * 
  *         elif position == -1: # Short position
  *             if short_exit[i] or i == n - 1:             # <<<<<<<<<<<<<<
@@ -7142,7 +7142,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
       } else if (unlikely(__pyx_t_3 >= __pyx_pybuffernd_short_exit.diminfo[0].shape)) __pyx_t_4 = 0;
       if (unlikely(__pyx_t_4 != -1)) {
         __Pyx_RaiseBufferIndexError(__pyx_t_4);
-        __PYX_ERR(0, 245, __pyx_L1_error)
+        __PYX_ERR(0, 247, __pyx_L1_error)
       }
       __pyx_t_5 = ((*__Pyx_BufPtrStrided1d(__pyx_t_17backtester_cython_UBYTE_t *, __pyx_pybuffernd_short_exit.rcbuffer->pybuffer.buf, __pyx_t_3, __pyx_pybuffernd_short_exit.diminfo[0].strides)) != 0);
       if (!__pyx_t_5) {
@@ -7155,7 +7155,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
       __pyx_L37_bool_binop_done:;
       if (__pyx_t_1) {
 
-        /* "backtester_cython.pyx":247
+        /* "backtester_cython.pyx":249
  *             if short_exit[i] or i == n - 1:
  *                 # Apply spread and slippage correctly - don't double apply
  *                 exit_price = current_price * (1 + spread_percentage + slippage_percentage)             # <<<<<<<<<<<<<<
@@ -7164,7 +7164,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
 */
         __pyx_v_exit_price = (__pyx_v_current_price * ((1.0 + __pyx_v_spread_percentage) + __pyx_v_slippage_percentage));
 
-        /* "backtester_cython.pyx":248
+        /* "backtester_cython.pyx":250
  *                 # Apply spread and slippage correctly - don't double apply
  *                 exit_price = current_price * (1 + spread_percentage + slippage_percentage)
  *                 profit_loss = (entry_price - exit_price) / entry_price * position_size             # <<<<<<<<<<<<<<
@@ -7174,11 +7174,11 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
         __pyx_t_6 = (__pyx_v_entry_price - __pyx_v_exit_price);
         if (unlikely(__pyx_v_entry_price == 0)) {
           PyErr_SetString(PyExc_ZeroDivisionError, "float division");
-          __PYX_ERR(0, 248, __pyx_L1_error)
+          __PYX_ERR(0, 250, __pyx_L1_error)
         }
         __pyx_v_profit_loss = ((__pyx_t_6 / __pyx_v_entry_price) * __pyx_v_position_size);
 
-        /* "backtester_cython.pyx":249
+        /* "backtester_cython.pyx":251
  *                 exit_price = current_price * (1 + spread_percentage + slippage_percentage)
  *                 profit_loss = (entry_price - exit_price) / entry_price * position_size
  *                 current_capital += profit_loss             # <<<<<<<<<<<<<<
@@ -7187,7 +7187,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
 */
         __pyx_v_current_capital = (__pyx_v_current_capital + __pyx_v_profit_loss);
 
-        /* "backtester_cython.pyx":252
+        /* "backtester_cython.pyx":254
  * 
  *                 # Update max drawdown tracking
  *                 if current_capital > peak_capital:             # <<<<<<<<<<<<<<
@@ -7197,7 +7197,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
         __pyx_t_1 = (__pyx_v_current_capital > __pyx_v_peak_capital);
         if (__pyx_t_1) {
 
-          /* "backtester_cython.pyx":253
+          /* "backtester_cython.pyx":255
  *                 # Update max drawdown tracking
  *                 if current_capital > peak_capital:
  *                     peak_capital = current_capital             # <<<<<<<<<<<<<<
@@ -7206,7 +7206,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
 */
           __pyx_v_peak_capital = __pyx_v_current_capital;
 
-          /* "backtester_cython.pyx":252
+          /* "backtester_cython.pyx":254
  * 
  *                 # Update max drawdown tracking
  *                 if current_capital > peak_capital:             # <<<<<<<<<<<<<<
@@ -7215,7 +7215,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
 */
         }
 
-        /* "backtester_cython.pyx":254
+        /* "backtester_cython.pyx":256
  *                 if current_capital > peak_capital:
  *                     peak_capital = current_capital
  *                 current_drawdown = ((peak_capital - current_capital) / peak_capital) * 100.0             # <<<<<<<<<<<<<<
@@ -7225,11 +7225,11 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
         __pyx_t_6 = (__pyx_v_peak_capital - __pyx_v_current_capital);
         if (unlikely(__pyx_v_peak_capital == 0)) {
           PyErr_SetString(PyExc_ZeroDivisionError, "float division");
-          __PYX_ERR(0, 254, __pyx_L1_error)
+          __PYX_ERR(0, 256, __pyx_L1_error)
         }
         __pyx_v_current_drawdown = ((__pyx_t_6 / __pyx_v_peak_capital) * 100.0);
 
-        /* "backtester_cython.pyx":255
+        /* "backtester_cython.pyx":257
  *                     peak_capital = current_capital
  *                 current_drawdown = ((peak_capital - current_capital) / peak_capital) * 100.0
  *                 if current_drawdown > max_drawdown:             # <<<<<<<<<<<<<<
@@ -7239,7 +7239,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
         __pyx_t_1 = (__pyx_v_current_drawdown > __pyx_v_max_drawdown);
         if (__pyx_t_1) {
 
-          /* "backtester_cython.pyx":256
+          /* "backtester_cython.pyx":258
  *                 current_drawdown = ((peak_capital - current_capital) / peak_capital) * 100.0
  *                 if current_drawdown > max_drawdown:
  *                     max_drawdown = current_drawdown             # <<<<<<<<<<<<<<
@@ -7248,7 +7248,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
 */
           __pyx_v_max_drawdown = __pyx_v_current_drawdown;
 
-          /* "backtester_cython.pyx":255
+          /* "backtester_cython.pyx":257
  *                     peak_capital = current_capital
  *                 current_drawdown = ((peak_capital - current_capital) / peak_capital) * 100.0
  *                 if current_drawdown > max_drawdown:             # <<<<<<<<<<<<<<
@@ -7257,7 +7257,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
 */
         }
 
-        /* "backtester_cython.pyx":258
+        /* "backtester_cython.pyx":260
  *                     max_drawdown = current_drawdown
  * 
  *                 total_profit_loss += profit_loss             # <<<<<<<<<<<<<<
@@ -7266,7 +7266,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
 */
         __pyx_v_total_profit_loss = (__pyx_v_total_profit_loss + __pyx_v_profit_loss);
 
-        /* "backtester_cython.pyx":259
+        /* "backtester_cython.pyx":261
  * 
  *                 total_profit_loss += profit_loss
  *                 short_profit += profit_loss             # <<<<<<<<<<<<<<
@@ -7275,7 +7275,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
 */
         __pyx_v_short_profit = (__pyx_v_short_profit + __pyx_v_profit_loss);
 
-        /* "backtester_cython.pyx":260
+        /* "backtester_cython.pyx":262
  *                 total_profit_loss += profit_loss
  *                 short_profit += profit_loss
  *                 num_short_trades += 1             # <<<<<<<<<<<<<<
@@ -7284,7 +7284,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
 */
         __pyx_v_num_short_trades = (__pyx_v_num_short_trades + 1);
 
-        /* "backtester_cython.pyx":263
+        /* "backtester_cython.pyx":265
  * 
  *                 # Update recent trades history (only for dynamic sizing)
  *                 if not use_fixed_sizing:             # <<<<<<<<<<<<<<
@@ -7294,16 +7294,16 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
         __pyx_t_1 = (!(__pyx_v_use_fixed_sizing != 0));
         if (__pyx_t_1) {
 
-          /* "backtester_cython.pyx":264
+          /* "backtester_cython.pyx":266
  *                 # Update recent trades history (only for dynamic sizing)
  *                 if not use_fixed_sizing:
  *                     update_recent_trades(recent_trades, &recent_trades_count, profit_loss)             # <<<<<<<<<<<<<<
  * 
  *                 if profit_loss > 0:
 */
-          __pyx_f_17backtester_cython_update_recent_trades(__pyx_v_recent_trades, (&__pyx_v_recent_trades_count), __pyx_v_profit_loss); if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 264, __pyx_L1_error)
+          __pyx_f_17backtester_cython_update_recent_trades(__pyx_v_recent_trades, (&__pyx_v_recent_trades_count), __pyx_v_profit_loss); if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 266, __pyx_L1_error)
 
-          /* "backtester_cython.pyx":263
+          /* "backtester_cython.pyx":265
  * 
  *                 # Update recent trades history (only for dynamic sizing)
  *                 if not use_fixed_sizing:             # <<<<<<<<<<<<<<
@@ -7312,7 +7312,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
 */
         }
 
-        /* "backtester_cython.pyx":266
+        /* "backtester_cython.pyx":268
  *                     update_recent_trades(recent_trades, &recent_trades_count, profit_loss)
  * 
  *                 if profit_loss > 0:             # <<<<<<<<<<<<<<
@@ -7322,7 +7322,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
         __pyx_t_1 = (__pyx_v_profit_loss > 0.0);
         if (__pyx_t_1) {
 
-          /* "backtester_cython.pyx":267
+          /* "backtester_cython.pyx":269
  * 
  *                 if profit_loss > 0:
  *                     winning_trades += 1             # <<<<<<<<<<<<<<
@@ -7331,7 +7331,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
 */
           __pyx_v_winning_trades = (__pyx_v_winning_trades + 1);
 
-          /* "backtester_cython.pyx":266
+          /* "backtester_cython.pyx":268
  *                     update_recent_trades(recent_trades, &recent_trades_count, profit_loss)
  * 
  *                 if profit_loss > 0:             # <<<<<<<<<<<<<<
@@ -7341,7 +7341,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
           goto __pyx_L42;
         }
 
-        /* "backtester_cython.pyx":269
+        /* "backtester_cython.pyx":271
  *                     winning_trades += 1
  *                 else:
  *                     losing_trades += 1             # <<<<<<<<<<<<<<
@@ -7353,7 +7353,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
         }
         __pyx_L42:;
 
-        /* "backtester_cython.pyx":270
+        /* "backtester_cython.pyx":272
  *                 else:
  *                     losing_trades += 1
  *                 position = 0             # <<<<<<<<<<<<<<
@@ -7362,7 +7362,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
 */
         __pyx_v_position = 0;
 
-        /* "backtester_cython.pyx":271
+        /* "backtester_cython.pyx":273
  *                     losing_trades += 1
  *                 position = 0
  *                 position_size = 0.0             # <<<<<<<<<<<<<<
@@ -7371,7 +7371,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
 */
         __pyx_v_position_size = 0.0;
 
-        /* "backtester_cython.pyx":272
+        /* "backtester_cython.pyx":274
  *                 position = 0
  *                 position_size = 0.0
  *                 lowest_price_since_entry = 0.0             # <<<<<<<<<<<<<<
@@ -7380,7 +7380,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
 */
         __pyx_v_lowest_price_since_entry = 0.0;
 
-        /* "backtester_cython.pyx":273
+        /* "backtester_cython.pyx":275
  *                 position_size = 0.0
  *                 lowest_price_since_entry = 0.0
  *                 trailing_stop_loss = 0.0             # <<<<<<<<<<<<<<
@@ -7389,7 +7389,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
 */
         __pyx_v_trailing_stop_loss = 0.0;
 
-        /* "backtester_cython.pyx":274
+        /* "backtester_cython.pyx":276
  *                 lowest_price_since_entry = 0.0
  *                 trailing_stop_loss = 0.0
  *                 fixed_stop_loss_price = 0.0             # <<<<<<<<<<<<<<
@@ -7398,7 +7398,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
 */
         __pyx_v_fixed_stop_loss_price = 0.0;
 
-        /* "backtester_cython.pyx":275
+        /* "backtester_cython.pyx":277
  *                 trailing_stop_loss = 0.0
  *                 fixed_stop_loss_price = 0.0
  *                 take_profit_price = 0.0             # <<<<<<<<<<<<<<
@@ -7407,7 +7407,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
 */
         __pyx_v_take_profit_price = 0.0;
 
-        /* "backtester_cython.pyx":245
+        /* "backtester_cython.pyx":247
  * 
  *         elif position == -1: # Short position
  *             if short_exit[i] or i == n - 1:             # <<<<<<<<<<<<<<
@@ -7416,7 +7416,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
 */
       }
 
-      /* "backtester_cython.pyx":244
+      /* "backtester_cython.pyx":246
  *                 take_profit_price = 0.0
  * 
  *         elif position == -1: # Short position             # <<<<<<<<<<<<<<
@@ -7428,7 +7428,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
     }
   }
 
-  /* "backtester_cython.pyx":277
+  /* "backtester_cython.pyx":279
  *                 take_profit_price = 0.0
  * 
  *     cdef double win_rate = 0.0             # <<<<<<<<<<<<<<
@@ -7437,7 +7437,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
 */
   __pyx_v_win_rate = 0.0;
 
-  /* "backtester_cython.pyx":278
+  /* "backtester_cython.pyx":280
  * 
  *     cdef double win_rate = 0.0
  *     if total_trades > 0:             # <<<<<<<<<<<<<<
@@ -7447,7 +7447,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
   __pyx_t_1 = (__pyx_v_total_trades > 0);
   if (__pyx_t_1) {
 
-    /* "backtester_cython.pyx":279
+    /* "backtester_cython.pyx":281
  *     cdef double win_rate = 0.0
  *     if total_trades > 0:
  *         win_rate = <double>winning_trades / total_trades             # <<<<<<<<<<<<<<
@@ -7456,11 +7456,11 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
 */
     if (unlikely(__pyx_v_total_trades == 0)) {
       PyErr_SetString(PyExc_ZeroDivisionError, "float division");
-      __PYX_ERR(0, 279, __pyx_L1_error)
+      __PYX_ERR(0, 281, __pyx_L1_error)
     }
     __pyx_v_win_rate = (((double)__pyx_v_winning_trades) / ((double)__pyx_v_total_trades));
 
-    /* "backtester_cython.pyx":278
+    /* "backtester_cython.pyx":280
  * 
  *     cdef double win_rate = 0.0
  *     if total_trades > 0:             # <<<<<<<<<<<<<<
@@ -7469,7 +7469,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
 */
   }
 
-  /* "backtester_cython.pyx":281
+  /* "backtester_cython.pyx":283
  *         win_rate = <double>winning_trades / total_trades
  * 
  *     cdef double total_profit_percentage = 0.0             # <<<<<<<<<<<<<<
@@ -7478,7 +7478,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
 */
   __pyx_v_total_profit_percentage = 0.0;
 
-  /* "backtester_cython.pyx":282
+  /* "backtester_cython.pyx":284
  * 
  *     cdef double total_profit_percentage = 0.0
  *     if initial_capital != 0:             # <<<<<<<<<<<<<<
@@ -7488,7 +7488,7 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
   __pyx_t_1 = (__pyx_v_initial_capital != 0.0);
   if (__pyx_t_1) {
 
-    /* "backtester_cython.pyx":283
+    /* "backtester_cython.pyx":285
  *     cdef double total_profit_percentage = 0.0
  *     if initial_capital != 0:
  *         total_profit_percentage = ((current_capital - initial_capital) / initial_capital) * 100.0             # <<<<<<<<<<<<<<
@@ -7498,11 +7498,11 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
     __pyx_t_6 = (__pyx_v_current_capital - __pyx_v_initial_capital);
     if (unlikely(__pyx_v_initial_capital == 0)) {
       PyErr_SetString(PyExc_ZeroDivisionError, "float division");
-      __PYX_ERR(0, 283, __pyx_L1_error)
+      __PYX_ERR(0, 285, __pyx_L1_error)
     }
     __pyx_v_total_profit_percentage = ((__pyx_t_6 / __pyx_v_initial_capital) * 100.0);
 
-    /* "backtester_cython.pyx":282
+    /* "backtester_cython.pyx":284
  * 
  *     cdef double total_profit_percentage = 0.0
  *     if initial_capital != 0:             # <<<<<<<<<<<<<<
@@ -7511,17 +7511,17 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
 */
   }
 
-  /* "backtester_cython.pyx":287
+  /* "backtester_cython.pyx":289
  *     # TODO: Implement proper Sharpe Ratio calculation in Cython
  *     # For now, return placeholder to unblock frontend
  *     cdef double sharpe_ratio = 0.0             # <<<<<<<<<<<<<<
  * 
- *     return {
+ * 
 */
   __pyx_v_sharpe_ratio = 0.0;
 
-  /* "backtester_cython.pyx":289
- *     cdef double sharpe_ratio = 0.0
+  /* "backtester_cython.pyx":293
+ * 
  * 
  *     return {             # <<<<<<<<<<<<<<
  *         "final_capital": current_capital,
@@ -7529,173 +7529,173 @@ static PyObject *__pyx_pf_17backtester_cython_run_backtest_cython(CYTHON_UNUSED 
 */
   __Pyx_XDECREF(__pyx_r);
 
-  /* "backtester_cython.pyx":290
+  /* "backtester_cython.pyx":294
  * 
  *     return {
  *         "final_capital": current_capital,             # <<<<<<<<<<<<<<
  *         "total_profit_loss": total_profit_loss,
  *         "total_profit_percentage": total_profit_percentage,
 */
-  __pyx_t_7 = __Pyx_PyDict_NewPresized(14); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 290, __pyx_L1_error)
+  __pyx_t_7 = __Pyx_PyDict_NewPresized(14); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 294, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_7);
-  __pyx_t_8 = PyFloat_FromDouble(__pyx_v_current_capital); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 290, __pyx_L1_error)
+  __pyx_t_8 = PyFloat_FromDouble(__pyx_v_current_capital); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 294, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_8);
-  if (PyDict_SetItem(__pyx_t_7, __pyx_mstate_global->__pyx_n_u_final_capital, __pyx_t_8) < 0) __PYX_ERR(0, 290, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_t_7, __pyx_mstate_global->__pyx_n_u_final_capital, __pyx_t_8) < 0) __PYX_ERR(0, 294, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_8); __pyx_t_8 = 0;
 
-  /* "backtester_cython.pyx":291
+  /* "backtester_cython.pyx":295
  *     return {
  *         "final_capital": current_capital,
  *         "total_profit_loss": total_profit_loss,             # <<<<<<<<<<<<<<
  *         "total_profit_percentage": total_profit_percentage,
  *         "total_trades": total_trades,
 */
-  __pyx_t_8 = PyFloat_FromDouble(__pyx_v_total_profit_loss); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 291, __pyx_L1_error)
+  __pyx_t_8 = PyFloat_FromDouble(__pyx_v_total_profit_loss); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 295, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_8);
-  if (PyDict_SetItem(__pyx_t_7, __pyx_mstate_global->__pyx_n_u_total_profit_loss, __pyx_t_8) < 0) __PYX_ERR(0, 290, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_t_7, __pyx_mstate_global->__pyx_n_u_total_profit_loss, __pyx_t_8) < 0) __PYX_ERR(0, 294, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_8); __pyx_t_8 = 0;
 
-  /* "backtester_cython.pyx":292
+  /* "backtester_cython.pyx":296
  *         "final_capital": current_capital,
  *         "total_profit_loss": total_profit_loss,
  *         "total_profit_percentage": total_profit_percentage,             # <<<<<<<<<<<<<<
  *         "total_trades": total_trades,
  *         "winning_trades": winning_trades,
 */
-  __pyx_t_8 = PyFloat_FromDouble(__pyx_v_total_profit_percentage); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 292, __pyx_L1_error)
+  __pyx_t_8 = PyFloat_FromDouble(__pyx_v_total_profit_percentage); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 296, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_8);
-  if (PyDict_SetItem(__pyx_t_7, __pyx_mstate_global->__pyx_n_u_total_profit_percentage, __pyx_t_8) < 0) __PYX_ERR(0, 290, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_t_7, __pyx_mstate_global->__pyx_n_u_total_profit_percentage, __pyx_t_8) < 0) __PYX_ERR(0, 294, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_8); __pyx_t_8 = 0;
 
-  /* "backtester_cython.pyx":293
+  /* "backtester_cython.pyx":297
  *         "total_profit_loss": total_profit_loss,
  *         "total_profit_percentage": total_profit_percentage,
  *         "total_trades": total_trades,             # <<<<<<<<<<<<<<
  *         "winning_trades": winning_trades,
  *         "losing_trades": losing_trades,
 */
-  __pyx_t_8 = __Pyx_PyLong_From_int(__pyx_v_total_trades); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 293, __pyx_L1_error)
+  __pyx_t_8 = __Pyx_PyLong_From_int(__pyx_v_total_trades); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 297, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_8);
-  if (PyDict_SetItem(__pyx_t_7, __pyx_mstate_global->__pyx_n_u_total_trades, __pyx_t_8) < 0) __PYX_ERR(0, 290, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_t_7, __pyx_mstate_global->__pyx_n_u_total_trades, __pyx_t_8) < 0) __PYX_ERR(0, 294, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_8); __pyx_t_8 = 0;
 
-  /* "backtester_cython.pyx":294
+  /* "backtester_cython.pyx":298
  *         "total_profit_percentage": total_profit_percentage,
  *         "total_trades": total_trades,
  *         "winning_trades": winning_trades,             # <<<<<<<<<<<<<<
  *         "losing_trades": losing_trades,
  *         "win_rate": win_rate * 100.0, # Convert to percentage
 */
-  __pyx_t_8 = __Pyx_PyLong_From_int(__pyx_v_winning_trades); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 294, __pyx_L1_error)
+  __pyx_t_8 = __Pyx_PyLong_From_int(__pyx_v_winning_trades); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 298, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_8);
-  if (PyDict_SetItem(__pyx_t_7, __pyx_mstate_global->__pyx_n_u_winning_trades, __pyx_t_8) < 0) __PYX_ERR(0, 290, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_t_7, __pyx_mstate_global->__pyx_n_u_winning_trades, __pyx_t_8) < 0) __PYX_ERR(0, 294, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_8); __pyx_t_8 = 0;
 
-  /* "backtester_cython.pyx":295
+  /* "backtester_cython.pyx":299
  *         "total_trades": total_trades,
  *         "winning_trades": winning_trades,
  *         "losing_trades": losing_trades,             # <<<<<<<<<<<<<<
  *         "win_rate": win_rate * 100.0, # Convert to percentage
  *         "sharpe_ratio": sharpe_ratio,
 */
-  __pyx_t_8 = __Pyx_PyLong_From_int(__pyx_v_losing_trades); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 295, __pyx_L1_error)
+  __pyx_t_8 = __Pyx_PyLong_From_int(__pyx_v_losing_trades); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 299, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_8);
-  if (PyDict_SetItem(__pyx_t_7, __pyx_mstate_global->__pyx_n_u_losing_trades, __pyx_t_8) < 0) __PYX_ERR(0, 290, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_t_7, __pyx_mstate_global->__pyx_n_u_losing_trades, __pyx_t_8) < 0) __PYX_ERR(0, 294, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_8); __pyx_t_8 = 0;
 
-  /* "backtester_cython.pyx":296
+  /* "backtester_cython.pyx":300
  *         "winning_trades": winning_trades,
  *         "losing_trades": losing_trades,
  *         "win_rate": win_rate * 100.0, # Convert to percentage             # <<<<<<<<<<<<<<
  *         "sharpe_ratio": sharpe_ratio,
  *         "max_drawdown": max_drawdown,
 */
-  __pyx_t_8 = PyFloat_FromDouble((__pyx_v_win_rate * 100.0)); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 296, __pyx_L1_error)
+  __pyx_t_8 = PyFloat_FromDouble((__pyx_v_win_rate * 100.0)); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 300, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_8);
-  if (PyDict_SetItem(__pyx_t_7, __pyx_mstate_global->__pyx_n_u_win_rate, __pyx_t_8) < 0) __PYX_ERR(0, 290, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_t_7, __pyx_mstate_global->__pyx_n_u_win_rate, __pyx_t_8) < 0) __PYX_ERR(0, 294, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_8); __pyx_t_8 = 0;
 
-  /* "backtester_cython.pyx":297
+  /* "backtester_cython.pyx":301
  *         "losing_trades": losing_trades,
  *         "win_rate": win_rate * 100.0, # Convert to percentage
  *         "sharpe_ratio": sharpe_ratio,             # <<<<<<<<<<<<<<
  *         "max_drawdown": max_drawdown,
  *         "long_profit": long_profit,
 */
-  __pyx_t_8 = PyFloat_FromDouble(__pyx_v_sharpe_ratio); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 297, __pyx_L1_error)
+  __pyx_t_8 = PyFloat_FromDouble(__pyx_v_sharpe_ratio); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 301, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_8);
-  if (PyDict_SetItem(__pyx_t_7, __pyx_mstate_global->__pyx_n_u_sharpe_ratio, __pyx_t_8) < 0) __PYX_ERR(0, 290, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_t_7, __pyx_mstate_global->__pyx_n_u_sharpe_ratio, __pyx_t_8) < 0) __PYX_ERR(0, 294, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_8); __pyx_t_8 = 0;
 
-  /* "backtester_cython.pyx":298
+  /* "backtester_cython.pyx":302
  *         "win_rate": win_rate * 100.0, # Convert to percentage
  *         "sharpe_ratio": sharpe_ratio,
  *         "max_drawdown": max_drawdown,             # <<<<<<<<<<<<<<
  *         "long_profit": long_profit,
  *         "short_profit": short_profit,
 */
-  __pyx_t_8 = PyFloat_FromDouble(__pyx_v_max_drawdown); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 298, __pyx_L1_error)
+  __pyx_t_8 = PyFloat_FromDouble(__pyx_v_max_drawdown); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 302, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_8);
-  if (PyDict_SetItem(__pyx_t_7, __pyx_mstate_global->__pyx_n_u_max_drawdown, __pyx_t_8) < 0) __PYX_ERR(0, 290, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_t_7, __pyx_mstate_global->__pyx_n_u_max_drawdown, __pyx_t_8) < 0) __PYX_ERR(0, 294, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_8); __pyx_t_8 = 0;
 
-  /* "backtester_cython.pyx":299
+  /* "backtester_cython.pyx":303
  *         "sharpe_ratio": sharpe_ratio,
  *         "max_drawdown": max_drawdown,
  *         "long_profit": long_profit,             # <<<<<<<<<<<<<<
  *         "short_profit": short_profit,
  *         "num_long_trades": num_long_trades,
 */
-  __pyx_t_8 = PyFloat_FromDouble(__pyx_v_long_profit); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 299, __pyx_L1_error)
+  __pyx_t_8 = PyFloat_FromDouble(__pyx_v_long_profit); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 303, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_8);
-  if (PyDict_SetItem(__pyx_t_7, __pyx_mstate_global->__pyx_n_u_long_profit, __pyx_t_8) < 0) __PYX_ERR(0, 290, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_t_7, __pyx_mstate_global->__pyx_n_u_long_profit, __pyx_t_8) < 0) __PYX_ERR(0, 294, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_8); __pyx_t_8 = 0;
 
-  /* "backtester_cython.pyx":300
+  /* "backtester_cython.pyx":304
  *         "max_drawdown": max_drawdown,
  *         "long_profit": long_profit,
  *         "short_profit": short_profit,             # <<<<<<<<<<<<<<
  *         "num_long_trades": num_long_trades,
  *         "num_short_trades": num_short_trades,
 */
-  __pyx_t_8 = PyFloat_FromDouble(__pyx_v_short_profit); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 300, __pyx_L1_error)
+  __pyx_t_8 = PyFloat_FromDouble(__pyx_v_short_profit); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 304, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_8);
-  if (PyDict_SetItem(__pyx_t_7, __pyx_mstate_global->__pyx_n_u_short_profit, __pyx_t_8) < 0) __PYX_ERR(0, 290, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_t_7, __pyx_mstate_global->__pyx_n_u_short_profit, __pyx_t_8) < 0) __PYX_ERR(0, 294, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_8); __pyx_t_8 = 0;
 
-  /* "backtester_cython.pyx":301
+  /* "backtester_cython.pyx":305
  *         "long_profit": long_profit,
  *         "short_profit": short_profit,
  *         "num_long_trades": num_long_trades,             # <<<<<<<<<<<<<<
  *         "num_short_trades": num_short_trades,
  *         "final_position": position # Add the final position
 */
-  __pyx_t_8 = __Pyx_PyLong_From_int(__pyx_v_num_long_trades); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 301, __pyx_L1_error)
+  __pyx_t_8 = __Pyx_PyLong_From_int(__pyx_v_num_long_trades); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 305, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_8);
-  if (PyDict_SetItem(__pyx_t_7, __pyx_mstate_global->__pyx_n_u_num_long_trades, __pyx_t_8) < 0) __PYX_ERR(0, 290, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_t_7, __pyx_mstate_global->__pyx_n_u_num_long_trades, __pyx_t_8) < 0) __PYX_ERR(0, 294, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_8); __pyx_t_8 = 0;
 
-  /* "backtester_cython.pyx":302
+  /* "backtester_cython.pyx":306
  *         "short_profit": short_profit,
  *         "num_long_trades": num_long_trades,
  *         "num_short_trades": num_short_trades,             # <<<<<<<<<<<<<<
  *         "final_position": position # Add the final position
  *     }
 */
-  __pyx_t_8 = __Pyx_PyLong_From_int(__pyx_v_num_short_trades); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 302, __pyx_L1_error)
+  __pyx_t_8 = __Pyx_PyLong_From_int(__pyx_v_num_short_trades); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 306, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_8);
-  if (PyDict_SetItem(__pyx_t_7, __pyx_mstate_global->__pyx_n_u_num_short_trades, __pyx_t_8) < 0) __PYX_ERR(0, 290, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_t_7, __pyx_mstate_global->__pyx_n_u_num_short_trades, __pyx_t_8) < 0) __PYX_ERR(0, 294, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_8); __pyx_t_8 = 0;
 
-  /* "backtester_cython.pyx":303
+  /* "backtester_cython.pyx":307
  *         "num_long_trades": num_long_trades,
  *         "num_short_trades": num_short_trades,
  *         "final_position": position # Add the final position             # <<<<<<<<<<<<<<
  *     }
 */
-  __pyx_t_8 = __Pyx_PyLong_From_int(__pyx_v_position); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 303, __pyx_L1_error)
+  __pyx_t_8 = __Pyx_PyLong_From_int(__pyx_v_position); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 307, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_8);
-  if (PyDict_SetItem(__pyx_t_7, __pyx_mstate_global->__pyx_n_u_final_position, __pyx_t_8) < 0) __PYX_ERR(0, 290, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_t_7, __pyx_mstate_global->__pyx_n_u_final_position, __pyx_t_8) < 0) __PYX_ERR(0, 294, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_8); __pyx_t_8 = 0;
   __pyx_r = __pyx_t_7;
   __pyx_t_7 = 0;
@@ -8280,7 +8280,7 @@ __Pyx_RefNannySetupContext("PyInit_backtester_cython", 0);
  *                         double slippage_percentage,
  *                         double daily_volatility=0.0):  # New parameter for volatility             # <<<<<<<<<<<<<<
  * 
- *     cdef int n = prices.shape[0]
+ * 
 */
   __pyx_t_2 = PyFloat_FromDouble(((double)0.0)); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 79, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
@@ -8511,7 +8511,7 @@ static int __Pyx_CreateCodeObjects(__pyx_mstatetype *__pyx_mstate) {
   PyObject* tuple_dedup_map = PyDict_New();
   if (unlikely(!tuple_dedup_map)) return -1;
   {
-    const __Pyx_PyCode_New_function_description descr = {13, 0, 0, 53, (unsigned int)(CO_OPTIMIZED|CO_NEWLOCALS), 67, 1419};
+    const __Pyx_PyCode_New_function_description descr = {13, 0, 0, 53, (unsigned int)(CO_OPTIMIZED|CO_NEWLOCALS), 67, 1423};
     PyObject* const varnames[] = {__pyx_mstate->__pyx_n_u_prices, __pyx_mstate->__pyx_n_u_long_entry, __pyx_mstate->__pyx_n_u_short_entry, __pyx_mstate->__pyx_n_u_long_exit, __pyx_mstate->__pyx_n_u_short_exit, __pyx_mstate->__pyx_n_u_atr_values, __pyx_mstate->__pyx_n_u_atr_multiple, __pyx_mstate->__pyx_n_u_fixed_stop_loss_percentage, __pyx_mstate->__pyx_n_u_take_profit_multiple, __pyx_mstate->__pyx_n_u_initial_capital, __pyx_mstate->__pyx_n_u_spread_percentage, __pyx_mstate->__pyx_n_u_slippage_percentage, __pyx_mstate->__pyx_n_u_daily_volatility, __pyx_mstate->__pyx_n_u_n, __pyx_mstate->__pyx_n_u_current_capital, __pyx_mstate->__pyx_n_u_position, __pyx_mstate->__pyx_n_u_entry_price, __pyx_mstate->__pyx_n_u_highest_price_since_entry, __pyx_mstate->__pyx_n_u_lowest_price_since_entry, __pyx_mstate->__pyx_n_u_trailing_stop_loss, __pyx_mstate->__pyx_n_u_position_size, __pyx_mstate->__pyx_n_u_fixed_stop_loss_price, __pyx_mstate->__pyx_n_u_take_profit_price, __pyx_mstate->__pyx_n_u_total_trades, __pyx_mstate->__pyx_n_u_winning_trades, __pyx_mstate->__pyx_n_u_losing_trades, __pyx_mstate->__pyx_n_u_total_profit_loss, __pyx_mstate->__pyx_n_u_long_profit, __pyx_mstate->__pyx_n_u_short_profit, __pyx_mstate->__pyx_n_u_num_long_trades, __pyx_mstate->__pyx_n_u_num_short_trades, __pyx_mstate->__pyx_n_u_peak_capital, __pyx_mstate->__pyx_n_u_max_drawdown, __pyx_mstate->__pyx_n_u_current_drawdown, __pyx_mstate->__pyx_n_u_base_position_percentage, __pyx_mstate->__pyx_n_u_fixed_position_percentage, __pyx_mstate->__pyx_n_u_volatility_threshold, __pyx_mstate->__pyx_n_u_min_position_percentage, __pyx_mstate->__pyx_n_u_max_position_percentage, __pyx_mstate->__pyx_n_u_recent_trades, __pyx_mstate->__pyx_n_u_recent_trades_count, __pyx_mstate->__pyx_n_u_current_position_percentage, __pyx_mstate->__pyx_n_u_use_fixed_sizing, __pyx_mstate->__pyx_n_u_current_price, __pyx_mstate->__pyx_n_u_current_ask_price, __pyx_mstate->__pyx_n_u_current_bid_price, __pyx_mstate->__pyx_n_u_profit_loss, __pyx_mstate->__pyx_n_u_exit_price, __pyx_mstate->__pyx_n_u_risk_amount, __pyx_mstate->__pyx_n_u_i, __pyx_mstate->__pyx_n_u_win_rate, __pyx_mstate->__pyx_n_u_total_profit_percentage, __pyx_mstate->__pyx_n_u_sharpe_ratio};
     __pyx_mstate_global->__pyx_codeobj_tab[0] = __Pyx_PyCode_New(descr, varnames, __pyx_mstate->__pyx_kp_u_backtester_cython_pyx, __pyx_mstate->__pyx_n_u_run_backtest_cython, __pyx_k_vQa_a_A_1_Q_A_A_a_Q_A_a_q_q_q_q, tuple_dedup_map); if (unlikely(!__pyx_mstate_global->__pyx_codeobj_tab[0])) goto bad;
   }

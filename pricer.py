@@ -18,6 +18,7 @@ from datetime import datetime, timedelta
 import logging
 from pathlib import Path
 
+from core.logger_config import setup_logging
 from strategy import Strategy
 from backtester import Backtester
 from indicators import Indicators
@@ -369,12 +370,7 @@ def run_continuous_analysis(crypto_id, interval_minutes=60, strategy_name=None):
 
 def main():
     """Main function with refactored logic using existing components."""
-    logging.basicConfig(level=logging.INFO,
-                        format='%(asctime)s - %(levelname)s - %(message)s',
-                        handlers=[
-                            logging.FileHandler("debug.log"),
-                            logging.StreamHandler()
-                        ])
+    setup_logging()
     pd.set_option('display.float_format', '{:f}'.format)
     parser = argparse.ArgumentParser(description='Refactored Crypto Pricer - Uses existing backtester components')
     
@@ -430,7 +426,7 @@ def main():
                     if isinstance(backtest, dict):
                         print(f"\nBacktest Performance:")
                         print(f"  Total Profit: {backtest.get('total_profit_percentage', 0):.2f}%")
-                        print(f"  Number of Trades: {backtest.get('num_trades', 0)}")
+                        print(f"  Number of Trades: {backtest.get('total_trades', 0)}")
                         print(f"  Win Rate: {backtest.get('win_rate', 0):.1f}%")
                         print(f"  Sharpe Ratio: {backtest.get('sharpe_ratio', 0):.2f}")
                 
@@ -441,7 +437,11 @@ def main():
                 if result['next_move_prediction']:
                     pred = result['next_move_prediction']
                     print(f"\nNext Move Prediction:")
-                    print(f"  Direction: {pred.get('direction', 'Unknown')}")
+                    print(f"  Prediction Score: {pred.get('prediction_score', 'N/A')}")
+                    print(f"  Reasons:")
+                    for reason in pred.get('reasons', []):
+                        print(f"  - {reason}")
+                    print(f"  Prediction: {pred.get('direction', 'Unknown')}")
                     print(f"  Confidence: {pred.get('confidence', 0):.1f}%")
                 
                 print(f"\nResults saved to: {filepath}")
