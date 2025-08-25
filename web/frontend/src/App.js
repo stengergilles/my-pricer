@@ -14,6 +14,7 @@ import { LoadingStateTest } from './components/LoadingStateTest.tsx';
 import { useAuth0 } from '@auth0/auth0-react';
 import { useApiClient } from './hooks/useApiClient.ts';
 import { setupRemoteLogger } from './utils/remoteLogger.ts';
+import { ApiLoadingProvider } from './contexts/ApiLoadingContext.tsx';
 
 import LogoutIcon from '@mui/icons-material/Logout';
 
@@ -37,7 +38,7 @@ const StyledTab = styled(Tab)(({ theme }) => ({
 }));
 
 
-function App() {
+function AppContent() {
   const { user, isLoading: auth0Loading, logout } = useAuth0();
   const { isLoading: apiIsLoading } = useApiClient();
   const [activeTab, setActiveTab] = useState('analysis');
@@ -175,6 +176,14 @@ function App() {
         </Container>
       </Box>
     </Router>
+  );
+}
+
+function App() {
+  return (
+    <ApiLoadingProvider>
+      <AppContent />
+    </ApiLoadingProvider>
   );
 }
 

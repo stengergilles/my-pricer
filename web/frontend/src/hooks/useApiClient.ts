@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth0 } from '@auth0/auth0-react'
 import { ApiClient } from '../utils/api.ts'
+import { useApiLoading } from '../contexts/ApiLoadingContext.tsx'
 
 export const useApiClient = () => {
   const { getAccessTokenSilently, isAuthenticated } = useAuth0()
   const [apiClient, setApiClient] = useState<ApiClient | null>(null)
-  const [isLoading, setIsLoading] = useState(false) // Reintroduced: Progress reporting
+  const { isLoading, startOperation, endOperation } = useApiLoading()
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -20,25 +21,28 @@ export const useApiClient = () => {
     if (!apiClient) {
       throw new Error('API client not initialized.')
     }
-    console.log(`🚀 API Call Starting: ${String(method)} - Setting loading to TRUE`)
-    setIsLoading(true) // Set loading to true when API call starts
+    
+    const operationId = `${String(method)}-${Date.now()}`
+    console.log(`🚀 API Call Starting: ${String(method)} - Operation ID: ${operationId}`)
+    startOperation(operationId)
+    
     try {
       // Type assertion to ensure method exists on ApiClient and is callable
       const apiMethod = apiClient[method] as (...args: any[]) => Promise<any>;
       if (typeof apiMethod === 'function') {
         const response = await apiMethod(...args);
-        console.log(`✅ API Call Success: ${String(method)} - Setting loading to FALSE`)
+        console.log(`✅ API Call Success: ${String(method)} - Operation ID: ${operationId}`)
         return response;
       } else {
         throw new Error(`Method ${String(method)} is not a function on ApiClient.`);
       }
     } catch (error) {
-      console.error(`❌ API Call Failed: ${String(method)} - Setting loading to FALSE`, error);
+      console.error(`❌ API Call Failed: ${String(method)} - Operation ID: ${operationId}`, error);
       throw error;
     } finally {
-      setIsLoading(false) // Set loading to false when API call completes
+      endOperation(operationId)
     }
-  }, [apiClient]);
+  }, [apiClient, startOperation, endOperation]);
 
   // Direct method calls that map to ApiClient methods
   const getCryptos = useCallback(async () => {
@@ -103,7 +107,6 @@ export const useApiClient = () => {
     getBacktestHistory,
     healthCheck,
     getConfig,
-    isLoading, 
-    setIsLoading 
+    isLoading
   }
 }
