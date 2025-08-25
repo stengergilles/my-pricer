@@ -43,6 +43,9 @@ function App() {
   const [activeTab, setActiveTab] = useState('analysis');
   const [selectedCryptoForBacktest, setSelectedCryptoForBacktest] = useState(null);
 
+  // Debug logging
+  console.log('App component - apiIsLoading:', apiIsLoading);
+
   useEffect(() => {
     setupRemoteLogger();
   }, []);
@@ -113,10 +116,15 @@ function App() {
                 </Typography>
               </Box>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                {/* Debug: Always show loading state */}
+                <Typography variant="caption" color="text.secondary">
+                  Debug: {apiIsLoading ? 'LOADING' : 'IDLE'}
+                </Typography>
+                
                 {apiIsLoading && (
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <CircularProgress size={16} color="inherit" />
-                    <Typography variant="caption" color="text.secondary">
+                    <CircularProgress size={20} color="primary" />
+                    <Typography variant="caption" color="primary" sx={{ fontWeight: 'bold' }}>
                       Loading...
                     </Typography>
                   </Box>
