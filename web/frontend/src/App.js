@@ -111,11 +111,16 @@ function App() {
                 <Typography variant="body2" color="text.secondary">
                   Welcome back, {user.name}
                 </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  API Loading: {apiIsLoading ? 'True' : 'False'}
-                </Typography>
               </Box>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                {apiIsLoading && (
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <CircularProgress size={16} color="inherit" />
+                    <Typography variant="caption" color="text.secondary">
+                      Loading...
+                    </Typography>
+                  </Box>
+                )}
                 <HealthStatus />
                 <IconButton
                   color="inherit"
