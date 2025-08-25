@@ -14,6 +14,7 @@ import { useAuth0 } from '@auth0/auth0-react';
 import { useApiClient } from './hooks/useApiClient.ts';
 import { setupRemoteLogger } from './utils/remoteLogger.ts';
 import { ApiLoadingProvider } from './contexts/ApiLoadingContext.tsx';
+import { ConfigProvider } from './contexts/ConfigContext.tsx';
 
 import LogoutIcon from '@mui/icons-material/Logout';
 
@@ -168,7 +169,9 @@ function AppContent() {
 function App() {
   return (
     <ApiLoadingProvider>
-      <AppContent />
+      <ConfigProvider>
+        <AppContent />
+      </ConfigProvider>
     </ApiLoadingProvider>
   );
 }

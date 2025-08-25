@@ -5,7 +5,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import toast from 'react-hot-toast'
 import { useApiClient } from '../hooks/useApiClient.ts'
-import { Crypto, Strategy, BacktestFormData, BacktestResponse } from '../utils/types.ts'
+import { useConfig, useStrategyConfigs, useIndicatorDefaults, useDefaultTimeframe } from '../contexts/ConfigContext.tsx'
+import { Crypto, BacktestFormData, BacktestResponse } from '../utils/types.ts'
 import {
   Box,
   Typography,
@@ -37,7 +38,11 @@ const ResultBox = styled(Box)(({ theme }) => ({
 }))
 
 export const BacktestRunner = ({ selectedCrypto, onSetResult, initialResult }) => {
-  const { getCryptos, getStrategies, runBacktest, getConfig, apiClient, isLoading: apiIsLoading } = useApiClient()
+  const { getCryptos, runBacktest, apiClient, isLoading: apiIsLoading } = useApiClient()
+  const { config, isLoading: configLoading, error: configError } = useConfig()
+  const strategyConfigs = useStrategyConfigs()
+  const indicatorDefaults = useIndicatorDefaults()
+  const defaultTimeframe = useDefaultTimeframe()
   const queryClient = useQueryClient()
   const [result, setResult] = useState<BacktestResponse | null>(initialResult);
 
@@ -52,33 +57,21 @@ export const BacktestRunner = ({ selectedCrypto, onSetResult, initialResult }) =
     enabled: !!apiClient, // Only enable query when apiClient is initialized
   })
 
-  const { data: strategies, isLoading: strategiesLoading } = useQuery<{ strategies: Strategy[] }>({
-    queryKey: ['strategies'],
-    queryFn: getStrategies,
-    enabled: !!apiClient, // Only enable query when apiClient is initialized
-  })
-
-  const { data: config, isLoading: configLoading } = useQuery({
-    queryKey: ['config'],
-    queryFn: getConfig,
-    enabled: !!apiClient, // Only enable query when apiClient is initialized
-  });
-
   // Form handling
   const { register, handleSubmit, watch, setValue, formState: { isSubmitting } } = useForm<BacktestFormData>({
     defaultValues: {
       cryptoId: selectedCrypto || 'bitcoin',
       strategyName: 'EMA_Only',
-      timeframe: config?.default_timeframe || 1,
+      timeframe: parseInt(defaultTimeframe) || 30,
       parameters: {}
     }
   });
 
   useEffect(() => {
-    if (config) {
-      setValue('timeframe', Number(config.default_timeframe));
+    if (defaultTimeframe) {
+      setValue('timeframe', parseInt(defaultTimeframe));
     }
-  }, [config, setValue]);
+  }, [defaultTimeframe, setValue]);
 
   useEffect(() => {
     if (selectedCrypto) {
@@ -88,8 +81,86 @@ export const BacktestRunner = ({ selectedCrypto, onSetResult, initialResult }) =
 
   const selectedStrategy = watch('strategyName')
 
+  // Get available strategies from config
+  const availableStrategies = Object.keys(strategyConfigs).map(strategyName => ({
+    name: strategyName,
+    display_name: strategyName.replace(/_/g, ' '),
+    description: `Strategy using: ${strategyConfigs[strategyName].long_entry.join(', ')}`
+  }))
+
   // Get selected strategy details
-  const strategyDetails = strategies?.strategies.find(s => s.name === selectedStrategy)
+  const strategyDetails = availableStrategies.find(s => s.name === selectedStrategy)
+
+  // Generate parameter fields based on indicator defaults
+  const getParameterFields = () => {
+    if (!selectedStrategy || !indicatorDefaults) return []
+    
+    // Define which parameters are relevant for each strategy
+    const strategyParameterMap = {
+      'EMA_Only': [
+        'short_ema', 'long_ema', 'rsi_period', 'rsi_overbought', 'rsi_oversold',
+        'atr_period', 'atr_multiple', 'fixed_stop_loss_percentage', 'take_profit_multiple',
+        'macd_fast_period', 'macd_slow_period', 'macd_signal_period'
+      ],
+      'Strict': [
+        'short_sma', 'long_sma', 'rsi_period', 'rsi_overbought', 'rsi_oversold',
+        'macd_fast_period', 'macd_slow_period', 'macd_signal_period',
+        'atr_period', 'atr_multiple', 'fixed_stop_loss_percentage', 'take_profit_multiple'
+      ],
+      'BB_Breakout': [
+        'bb_period', 'bb_std_dev', 'rsi_period', 'rsi_overbought', 'rsi_oversold',
+        'atr_period', 'atr_multiple', 'fixed_stop_loss_percentage', 'take_profit_multiple'
+      ],
+      'BB_RSI': [
+        'bb_period', 'bb_std_dev', 'rsi_period', 'rsi_overbought', 'rsi_oversold',
+        'atr_period', 'atr_multiple', 'fixed_stop_loss_percentage', 'take_profit_multiple'
+      ],
+      'Combined_Trigger_Verifier': [
+        'short_ema', 'long_ema', 'short_sma', 'long_sma', 'bb_period', 'bb_std_dev',
+        'rsi_period', 'rsi_overbought', 'rsi_oversold',
+        'macd_fast_period', 'macd_slow_period', 'macd_signal_period',
+        'atr_period', 'atr_multiple', 'fixed_stop_loss_percentage', 'take_profit_multiple'
+      ]
+    }
+
+    const relevantParams = strategyParameterMap[selectedStrategy] || []
+    
+    return relevantParams.map(paramKey => {
+      const defaultValue = indicatorDefaults[paramKey]
+      if (defaultValue === undefined) return null
+
+      // Create parameter description
+      const description = paramKey.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+      
+      // Determine min/max based on parameter type
+      let min = 0.001, max = 1000, step = 0.001
+      
+      if (paramKey.includes('period')) {
+        min = 1; max = 100; step = 1
+      } else if (paramKey.includes('percentage')) {
+        min = 0.001; max = 0.1; step = 0.001
+      } else if (paramKey.includes('multiple')) {
+        min = 0.5; max = 10; step = 0.1
+      } else if (paramKey.includes('overbought')) {
+        min = 50; max = 95; step = 1
+      } else if (paramKey.includes('oversold')) {
+        min = 5; max = 50; step = 1
+      } else if (paramKey.includes('std_dev')) {
+        min = 1; max = 3; step = 0.1
+      }
+
+      return {
+        key: paramKey,
+        description,
+        default: defaultValue,
+        min,
+        max,
+        step
+      }
+    }).filter(Boolean)
+  }
+
+  const parameterFields = getParameterFields()
 
   // Backtest mutation
   const backtestMutation = useMutation({
@@ -119,7 +190,7 @@ export const BacktestRunner = ({ selectedCrypto, onSetResult, initialResult }) =
 
   console.log("result:", result)
 
-  if (cryptosLoading || strategiesLoading || configLoading) {
+  if (cryptosLoading || configLoading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '200px' }}>
         <CircularProgress />
@@ -127,10 +198,10 @@ export const BacktestRunner = ({ selectedCrypto, onSetResult, initialResult }) =
     )
   }
 
-  if (!config) {
+  if (configError || !config) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '200px' }}>
-        <Alert severity="error">Failed to load configuration.</Alert>
+        <Alert severity="error">Failed to load configuration: {configError}</Alert>
       </Box>
     )
   }
@@ -174,7 +245,7 @@ export const BacktestRunner = ({ selectedCrypto, onSetResult, initialResult }) =
                   {...register('strategyName', { required: true })}
                   defaultValue="EMA_Only"
                 >
-                  {strategies?.strategies.map((strategy) => (
+                  {availableStrategies.map((strategy) => (
                     <MenuItem key={strategy.name} value={strategy.name}>
                       {strategy.display_name}
                     </MenuItem>
@@ -206,19 +277,23 @@ export const BacktestRunner = ({ selectedCrypto, onSetResult, initialResult }) =
           )}
 
           {/* Strategy Parameters */}
-          {strategyDetails && (
+          {parameterFields.length > 0 && (
             <StyledPaper sx={{ mb: 3 }}>
               <Typography variant="h6" gutterBottom>Strategy Parameters</Typography>
               <Grid container spacing={2}>
-                {Object.entries(strategyDetails.parameters).map(([key, param]) => (
-                  <Grid xs={12} sm={6} key={key}>
+                {parameterFields.map((param) => (
+                  <Grid xs={12} sm={6} key={param.key}>
                     <TextField
                       fullWidth
                       label={param.description}
                       type="number"
-                      inputProps={{ min: param.min, max: param.max }}
+                      inputProps={{ 
+                        min: param.min, 
+                        max: param.max, 
+                        step: param.step 
+                      }}
                       defaultValue={param.default}
-                      {...register(`parameters.${key}` as any, { required: true })}
+                      {...register(`parameters.${param.key}` as any, { required: true })}
                     />
                   </Grid>
                 ))}
