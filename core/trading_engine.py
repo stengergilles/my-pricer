@@ -21,6 +21,7 @@ from .parameter_manager import ParameterManager
 from .crypto_discovery import CryptoDiscovery
 from .optimizer import BayesianOptimizer
 from .backtester_wrapper import BacktesterWrapper
+import config # Import the top-level config.py
 
 class TradingEngine:
     """
@@ -69,7 +70,7 @@ class TradingEngine:
                 return basic_cryptos[:limit]
             
             return cryptos
-            
+        
         except Exception as e:
             self.logger.error(f"Error getting cryptos: {e}")
             return []
@@ -396,6 +397,7 @@ class TradingEngine:
                 timeframe=timeframe,
                 save_result=False
             )
+            self.logger.info(f"Result from run_backtest: {result}")
             
             # Enhance with analysis metadata
             analysis_result = {
@@ -403,20 +405,34 @@ class TradingEngine:
                 'analysis_id': self._generate_analysis_id(),
                 'analysis_type': 'backtest_analysis',
                 'strategy_used': strategy_name,
-                'parameters_source': 'custom' if custom_params else 'optimized'
+                'parameters_source': 'custom' if custom_params else 'optimized',
+                'timeframe_days': self._timeframe_to_days(timeframe), # Add timeframe in days
+                'analysis_timestamp': datetime.now().isoformat() # Add analysis timestamp
             }
+
+            # Add current price
+            crypto_info = self.crypto_discovery.get_crypto_info(crypto_id)
+            if crypto_info and crypto_info.get('market_data') and crypto_info['market_data'].get('current_price') and crypto_info['market_data']['current_price'].get('usd'):
+                analysis_result['current_price'] = crypto_info['market_data']['current_price']['usd']
+            else:
+                raise ValueError(f"Could not retrieve current price for {crypto_id} from external service.")
+
+            # Add current signal based on final position from backtest
+            final_position = result.get('final_position', 0) # 0: None, 1: Long, -1: Short
+            if final_position == 1:
+                analysis_result['current_signal'] = 'LONG'
+            elif final_position == -1:
+                analysis_result['current_signal'] = 'SHORT'
+            else:
+                analysis_result['current_signal'] = 'HOLD'
+            self.logger.info(f"Final analysis_result: {analysis_result}")
             
             self.logger.info(f"Analysis completed for {crypto_id}")
             return analysis_result
             
         except Exception as e:
             self.logger.error(f"Analysis failed for {crypto_id}: {str(e)}")
-            return {
-                'crypto': crypto_id,
-                'success': False,
-                'error': str(e),
-                'timestamp': datetime.now().isoformat()
-            }
+            raise e
     
     # ========== System Health ==========
     
@@ -480,6 +496,31 @@ class TradingEngine:
     
     # ========== Utility Methods ==========
     
+    def _timeframe_to_days(self, timeframe: str) -> int:
+        """Convert timeframe string to number of days."""
+        if isinstance(timeframe, int):
+            return timeframe
+        if not isinstance(timeframe, str):
+            return 0
+        
+        timeframe = timeframe.lower()
+        
+        if timeframe.endswith('d'):
+            return int(timeframe[:-1])
+        elif timeframe.endswith('h'):
+            # Return as a fraction of a day
+            return int(timeframe[:-1]) / 24
+        elif timeframe.endswith('m'):
+            # Return as a fraction of a day
+            return int(timeframe[:-1]) / (24 * 60)
+        else:
+            try:
+                # Assume it's already in days if no suffix
+                return int(timeframe)
+            except ValueError:
+                self.logger.warning(f"Could not parse timeframe: {timeframe}. Defaulting to 0.")
+                return 0
+    
     def _generate_analysis_id(self) -> str:
         """Generate unique analysis ID."""
         return f"analysis_{datetime.now().strftime('%Y%m%d_%H%M%S_%f')}"
@@ -488,12 +529,37 @@ class TradingEngine:
         """Generate unique backtest ID."""
         return f"backtest_{datetime.now().strftime('%Y%m%d_%H%M%S_%f')}"
     
+    def _timeframe_to_days(self, timeframe: str) -> int:
+        """Convert timeframe string to number of days."""
+        if isinstance(timeframe, int):
+            return timeframe
+        if not isinstance(timeframe, str):
+            return 0
+        
+        timeframe = timeframe.lower()
+        
+        if timeframe.endswith('d'):
+            return int(timeframe[:-1])
+        elif timeframe.endswith('h'):
+            # Return as a fraction of a day
+            return int(timeframe[:-1]) / 24
+        elif timeframe.endswith('m'):
+            # Return as a fraction of a day
+            return int(timeframe[:-1]) / (24 * 60)
+        else:
+            try:
+                # Assume it's already in days if no suffix
+                return int(timeframe)
+            except ValueError:
+                self.logger.warning(f"Could not parse timeframe: {timeframe}. Defaulting to 0.")
+                return 0
+
     def get_config(self) -> Dict[str, Any]:
         """Get system configuration for frontend."""
         return {
             'strategies': self.get_strategies(),
-            'default_timeframe': '7d',
-            'default_interval': '30m',
+            'default_timeframe': config.DEFAULT_TIMEFRAME, # Use value from config.py
+            'default_interval': config.DEFAULT_INTERVAL, # Also use this from config.py
             'max_optimization_trials': 100,
             'supported_timeframes': ['1d', '7d', '30d', '90d'],
             'supported_intervals': ['15m', '30m', '1h', '4h', '1d'],

@@ -11,6 +11,7 @@ from dataclasses import dataclass
 # Add parent directory to path for config imports
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 try:
     from config import strategy_configs, indicator_defaults
 except ImportError:
@@ -251,27 +252,30 @@ class ParameterManager:
         param_ranges = self._parameter_ranges[strategy_name]
         
         for param_name, param_range in param_ranges.items():
-            # Use middle value as default
-            if param_range.param_type == 'int':
-                defaults[param_name] = int((param_range.min_val + param_range.max_val) // 2)
+            if param_name in indicator_defaults:
+                defaults[param_name] = indicator_defaults[param_name]
             else:
-                defaults[param_name] = (param_range.min_val + param_range.max_val) / 2
+                # Fallback to middle value if not in indicator_defaults
+                if param_range.param_type == 'int':
+                    defaults[param_name] = int((param_range.min_val + param_range.max_val) // 2)
+                else:
+                    defaults[param_name] = (param_range.min_val + param_range.max_val) / 2
         
-        # Adjust interdependent defaults
-        if 'short_ema_period' in defaults and 'long_ema_period' in defaults:
-            defaults['short_ema_period'] = 12
-            defaults['long_ema_period'] = 26
+        # Remove hardcoded adjustments as indicator_defaults should handle them
+        # if 'short_ema_period' in defaults and 'long_ema_period' in defaults:
+        #     defaults['short_ema_period'] = 12
+        #     defaults['long_ema_period'] = 26
         
-        if 'short_sma_period' in defaults and 'long_sma_period' in defaults:
-            defaults['short_sma_period'] = 20
-            defaults['long_sma_period'] = 50
+        # if 'short_sma_period' in defaults and 'long_sma_period' in defaults:
+        #     defaults['short_sma_period'] = 20
+        #     defaults['long_sma_period'] = 50
         
-        if 'rsi_oversold' in defaults and 'rsi_overbought' in defaults:
-            defaults['rsi_oversold'] = 30
-            defaults['rsi_overbought'] = 70
+        # if 'rsi_oversold' in defaults and 'rsi_overbought' in defaults:
+        #     defaults['rsi_oversold'] = 30
+        #     defaults['rsi_overbought'] = 70
         
-        if 'macd_fast_period' in defaults and 'macd_slow_period' in defaults:
-            defaults['macd_fast_period'] = 12
-            defaults['macd_slow_period'] = 26
+        # if 'macd_fast_period' in defaults and 'macd_slow_period' in defaults:
+        #     defaults['macd_fast_period'] = 12
+        #     defaults['macd_slow_period'] = 26
         
         return defaults

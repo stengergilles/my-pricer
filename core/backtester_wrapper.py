@@ -156,8 +156,18 @@ class BacktesterWrapper:
                     'timestamp': datetime.now().isoformat()
                 }
             
+            # Ensure the result is a plain, JSON-serializable dictionary to break any circular references
+            try:
+                serializable_result = json.loads(json.dumps(result))
+            except TypeError as e:
+                self.logger.error(f"Failed to serialize backtest result for {crypto}/{strategy}: {e}")
+                # Fallback to a basic representation if serialization fails
+                serializable_result = {'error': f'Serialization failed: {e}', 'raw_result': str(result)}
+
             # Convert result to standardized format
-            return self._format_result(result, crypto, strategy, parameters)
+            formatted_result = self._format_result(result, crypto, strategy, parameters, timeframe)
+            formatted_result['backtest_result'] = result # Wrap the actual backtest result
+            return formatted_result
             
         except Exception as e:
             self.logger.error(f"Backtest failed for {crypto}/{strategy}: {e}")
@@ -270,66 +280,44 @@ class BacktesterWrapper:
             self.logger.warning(f"Data not available for {crypto}: {e}")
             return False
     
-    def _timeframe_to_days(self, timeframe: str) -> int:
-        """Convert timeframe string to number of days."""
-        if timeframe.endswith('d'):
-            return int(timeframe[:-1])
-        elif timeframe.endswith('w'):
-            return int(timeframe[:-1]) * 7
-        elif timeframe.endswith('m'):
-            return int(timeframe[:-1]) * 30
+    def _timeframe_to_days(self, timeframe: Any) -> int:
+        """Convert timeframe string (e.g., '7d') or int (days) to number of days."""
+        if isinstance(timeframe, int):
+            return timeframe
+        elif isinstance(timeframe, str):
+            if timeframe.endswith('d'):
+                return int(timeframe[:-1])
+            elif timeframe.endswith('w'):
+                return int(timeframe[:-1]) * 7
+            elif timeframe.endswith('m'):
+                return int(timeframe[:-1]) * 30
+            else:
+                # Default to 7 days if format is unknown
+                self.logger.warning(f"Unknown timeframe format: {timeframe}. Defaulting to 7 days.")
+                return 7
         else:
-            # Default to 7 days
-            return 7
+            self.logger.error(f"Invalid timeframe type: {type(timeframe)}. Expected int or str.")
+            return 7 # Default to 7 days on invalid type
     
     def _format_result(self, 
                       result: Any, 
                       crypto: str, 
                       strategy: str, 
-                      parameters: Dict[str, Any]) -> Dict[str, Any]:
+                      parameters: Dict[str, Any],
+                      timeframe: str) -> Dict[str, Any]:
         """Format backtest result as dictionary."""
         
-        # Handle different result formats
-        if isinstance(result, dict):
-            # Result is already a dictionary
-            formatted_result = {
-                'crypto': crypto,
-                'strategy': strategy,
-                'parameters': parameters,
-                'success': True,
-                'timestamp': datetime.now().isoformat()
-            }
-            formatted_result.update(result)
-            return formatted_result
-        
-        elif hasattr(result, '__dict__'):
-            # Result is an object, convert to dict
-            result_dict = result.__dict__ if hasattr(result, '__dict__') else {}
-            return {
-                'crypto': crypto,
-                'strategy': strategy,
-                'parameters': parameters,
-                'success': True,
-                'total_profit_percentage': result_dict.get('total_profit_percentage', 0.0),
-                'total_trades': result_dict.get('total_trades', 0),
-                'winning_trades': result_dict.get('winning_trades', 0),
-                'losing_trades': result_dict.get('losing_trades', 0),
-                'win_rate': result_dict.get('win_rate', 0.0),
-                'max_drawdown': result_dict.get('max_drawdown', 0.0),
-                'sharpe_ratio': result_dict.get('sharpe_ratio', 0.0),
-                'timestamp': datetime.now().isoformat()
-            }
-        
-        else:
-            # Unknown result format, return basic info
-            return {
-                'crypto': crypto,
-                'strategy': strategy,
-                'parameters': parameters,
-                'success': True,
-                'result': str(result),
-                'timestamp': datetime.now().isoformat()
-            }
+        # Result is already a dictionary from Cython
+        formatted_result = {
+            'crypto': crypto,
+            'strategy': strategy,
+            'parameters': parameters,
+            'success': True,
+            'timestamp': datetime.now().isoformat(),
+            'timeframe': timeframe # Add timeframe here
+        }
+        formatted_result.update(result)
+        return formatted_result
     
     def _mock_backtest_result(self, 
                             crypto: str, 

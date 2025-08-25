@@ -299,5 +299,6 @@ def run_backtest_cython(np.ndarray[DTYPE_t, ndim=1] prices,
         "long_profit": long_profit,
         "short_profit": short_profit,
         "num_long_trades": num_long_trades,
-        "num_short_trades": num_short_trades
+        "num_short_trades": num_short_trades,
+        "final_position": position # Add the final position
     }

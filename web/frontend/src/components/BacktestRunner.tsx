@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
-import toast from 'react-hot-toast'
 import { useApiClient } from '../hooks/useApiClient.ts'
 import { useConfig, useStrategyConfigs, useIndicatorDefaults, useDefaultTimeframe } from '../contexts/ConfigContext.tsx'
 import { Crypto, BacktestFormData, BacktestResponse } from '../utils/types.ts'
@@ -22,6 +21,7 @@ import {
   Alert,
 } from '@mui/material'
 import { styled } from '@mui/system'
+import { ErrorDisplay } from './ErrorDisplay.tsx'
 
 // Styled components for consistent styling
 const StyledPaper = styled(Paper)(({ theme }) => ({
@@ -45,9 +45,11 @@ export const BacktestRunner = ({ selectedCrypto, onSetResult, initialResult }) =
   const defaultTimeframe = useDefaultTimeframe()
   const queryClient = useQueryClient()
   const [result, setResult] = useState<BacktestResponse | null>(initialResult);
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     setResult(initialResult);
+    console.log("Raw backtest result from backend:", initialResult);
   }, [initialResult]);
 
   // Fetch data
@@ -82,10 +84,10 @@ export const BacktestRunner = ({ selectedCrypto, onSetResult, initialResult }) =
   const selectedStrategy = watch('strategyName')
 
   // Get available strategies from config
-  const availableStrategies = Object.keys(strategyConfigs).map(strategyName => ({
-    name: strategyName,
-    display_name: strategyName.replace(/_/g, ' '),
-    description: `Strategy using: ${strategyConfigs[strategyName].long_entry.join(', ')}`
+  const availableStrategies = (strategyConfigs || []).map(strategy => ({
+    name: strategy.name,
+    display_name: strategy.display_name,
+    description: strategy.description
   }))
 
   // Get selected strategy details
@@ -168,7 +170,7 @@ export const BacktestRunner = ({ selectedCrypto, onSetResult, initialResult }) =
       const requestData = {
         crypto_id: data.cryptoId,
         strategy_name: data.strategyName,
-        timeframe: Number(data.timeframe),
+        timeframe: data.timeframe,
         parameters: data.parameters
       }
       return runBacktest(requestData)
@@ -176,15 +178,16 @@ export const BacktestRunner = ({ selectedCrypto, onSetResult, initialResult }) =
     onSuccess: (data) => {
       setResult(data)
       onSetResult(data)
-      toast.success('Backtest completed successfully!')
       queryClient.invalidateQueries({ queryKey: ['backtest-history'] })
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.error || 'Backtest failed')
+      setError(error.message || 'Backtest failed')
     }
   })
 
   const onSubmit = (data: BacktestFormData) => {
+    setError(null)
+    setResult(null)
     backtestMutation.mutate(data)
   }
 
@@ -208,6 +211,7 @@ export const BacktestRunner = ({ selectedCrypto, onSetResult, initialResult }) =
 
   return (
     <Box sx={{ my: 3 }}>
+      <ErrorDisplay error={error} onDismiss={() => setError(null)} />
       <StyledPaper sx={{ mb: 3 }}>
         <Typography variant="h5" component="h2" gutterBottom>
           Strategy Backtesting
@@ -332,10 +336,10 @@ export const BacktestRunner = ({ selectedCrypto, onSetResult, initialResult }) =
                   variant="h6"
                   sx={{
                     fontWeight: 'bold',
-                    color: (result?.backtest?.result?.total_profit_loss ?? 0) > 0 ? 'success.main' : ((result?.backtest?.result?.total_profit_loss ?? 0) < 0 ? 'error.main' : 'text.secondary'),
+                    color: (result?.result?.total_profit_percentage ?? 0) > 0 ? 'success.main' : ((result?.result?.total_profit_percentage ?? 0) < 0 ? 'error.main' : 'text.secondary'),
                   }}
                 >
-                  ${(result?.backtest?.result?.total_profit_loss ?? 0).toFixed(2)}
+                  {(result?.result?.total_profit_percentage ?? 0).toFixed(2)}%
                 </Typography>
               </ResultBox>
             </Grid>
@@ -344,8 +348,8 @@ export const BacktestRunner = ({ selectedCrypto, onSetResult, initialResult }) =
               <ResultBox>
                 <Typography variant="body2" color="text.secondary">Number of Trades</Typography>
                 <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-                  {result?.backtest?.result?.total_trades !== undefined && result?.backtest?.result?.total_trades !== null
-                    ? String(result.backtest.result.total_trades)
+                  {result?.result?.total_trades !== undefined && result?.result?.total_trades !== null
+                    ? String(result.result.total_trades)
                     : 'N/A'}
                 </Typography>
               </ResultBox>
@@ -355,7 +359,7 @@ export const BacktestRunner = ({ selectedCrypto, onSetResult, initialResult }) =
               <ResultBox>
                 <Typography variant="body2" color="text.secondary">Win Rate</Typography>
                 <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-                  {(result?.backtest?.result?.win_rate ?? 0).toFixed(1)}%
+                  {(result?.result?.win_rate ?? 0).toFixed(1)}%
                 </Typography>
               </ResultBox>
             </Grid>
@@ -370,16 +374,16 @@ export const BacktestRunner = ({ selectedCrypto, onSetResult, initialResult }) =
                 <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                   <Typography variant="body2" color="text.secondary">Max Drawdown:</Typography>
                   <Typography variant="body2" sx={{ fontWeight: 'medium', color: 'error.main' }}>
-                    {(result?.backtest?.result?.max_drawdown ?? 0).toFixed(2)}%
+                    {(result?.result?.max_drawdown ?? 0).toFixed(2)}%
                   </Typography>
                 </Box>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                   <Typography variant="body2" color="text.secondary">Strategy:</Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 'medium' }}>{result?.backtest?.strategy_name?.replace('_', ' ')}</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 'medium' }}>{result?.result?.strategy?.replace('_', ' ')}</Typography>
                 </Box>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                   <Typography variant="body2" color="text.secondary">Timeframe:</Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 'medium' }}>{result?.backtest?.timeframe_days} days</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 'medium' }}>{result?.result?.timeframe}</Typography>
                 </Box>
               </Box>
             </Grid>
@@ -400,7 +404,7 @@ export const BacktestRunner = ({ selectedCrypto, onSetResult, initialResult }) =
           
 
           <Typography variant="caption" color="text.secondary" sx={{ mt: 3, display: 'block' }}>
-            Backtest completed at {new Date(result?.backtest?.timestamp).toLocaleString()}
+            Backtest completed at {result?.result?.timestamp ? result.result.timestamp.slice(0, 10) + ' ' + result.result.timestamp.slice(11, 19) : 'N/A'}
           </Typography>
         </StyledPaper>
       )}
