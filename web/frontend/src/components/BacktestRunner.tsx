@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import toast from 'react-hot-toast'
 import { useApiClient } from '../hooks/useApiClient.ts'
-import { Crypto, Strategy, BacktestFormData } from '../utils/types.ts'
+import { Crypto, Strategy, BacktestFormData, BacktestResponse } from '../utils/types.ts'
 import {
   Box,
   Typography,
@@ -37,7 +37,7 @@ const ResultBox = styled(Box)(({ theme }) => ({
 }))
 
 export const BacktestRunner = ({ selectedCrypto, onSetResult, initialResult }) => {
-  const { getCryptos, getStrategies, runBacktest, apiClient, isLoading: apiIsLoading } = useApiClient()
+  const { getCryptos, getStrategies, runBacktest, getConfig, apiClient, isLoading: apiIsLoading } = useApiClient()
   const queryClient = useQueryClient()
   const [result, setResult] = useState<BacktestResponse | null>(initialResult);
 
