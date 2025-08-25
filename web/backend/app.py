@@ -61,9 +61,35 @@ register_error_handlers(app)
 @app.route('/api/config')
 def get_config():
     """Returns public configuration settings."""
+    # Import all config data from the top-level config.py
+    import sys
+    import os
+    sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
+    
+    from config import (
+        strategy_configs, 
+        ATR_PERIOD, 
+        ATR_MULTIPLE,
+        DEFAULT_TIMEFRAME, 
+        DEFAULT_INTERVAL, 
+        DEFAULT_SPREAD_PERCENTAGE, 
+        DEFAULT_SLIPPAGE_PERCENTAGE,
+        indicator_defaults,
+        backtest_configs,
+        param_sets
+    )
+    
     return jsonify({
+        'strategy_configs': strategy_configs,
+        'atr_period': ATR_PERIOD,
+        'atr_multiple': ATR_MULTIPLE,
         'default_timeframe': DEFAULT_TIMEFRAME,
-        'default_interval': DEFAULT_INTERVAL
+        'default_interval': DEFAULT_INTERVAL,
+        'default_spread_percentage': DEFAULT_SPREAD_PERCENTAGE,
+        'default_slippage_percentage': DEFAULT_SLIPPAGE_PERCENTAGE,
+        'indicator_defaults': indicator_defaults,
+        'backtest_configs': backtest_configs,
+        'param_sets': param_sets
     })
 
 # Health check endpoint (no auth required)
