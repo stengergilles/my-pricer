@@ -229,10 +229,15 @@ export const BacktestRunner = ({ selectedCrypto, onSetResult, initialResult }) =
                   {cryptos?.cryptos.map((crypto) => (
                     <MenuItem key={crypto.id} value={crypto.id}>
                       {crypto.name} ({crypto.symbol})
+                      {crypto.has_config_params && <span style={{ color: 'green', marginLeft: '8px' }}>📋</span>}
+                      {crypto.has_optimization_results && <span style={{ color: 'blue', marginLeft: '4px' }}>🎯</span>}
                     </MenuItem>
                   ))}
                 </Select>
               </FormControl>
+              <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+                📋 Has config params • 🎯 Has optimization results
+              </Typography>
             </Grid>
 
             {/* Strategy Selection */}
