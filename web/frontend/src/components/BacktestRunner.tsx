@@ -252,10 +252,10 @@ export const BacktestRunner = ({ selectedCrypto, onSetResult, initialResult }) =
                   variant="h6"
                   sx={{
                     fontWeight: 'bold',
-                    color: (result?.backtest?.result?.total_profit_loss ?? 0) > 0 ? 'success.main' : ((result?.backtest?.result?.total_profit_loss ?? 0) < 0 ? 'error.main' : 'text.secondary'),
+                    color: (result?.result?.total_profit_loss ?? 0) > 0 ? 'success.main' : ((result?.result?.total_profit_loss ?? 0) < 0 ? 'error.main' : 'text.secondary'),
                   }}
                 >
-                  ${(result?.backtest?.result?.total_profit_loss ?? 0).toFixed(2)}
+                  ${(result?.result?.total_profit_loss ?? 0).toFixed(2)}
                 </Typography>
               </ResultBox>
             </Grid>
@@ -264,8 +264,8 @@ export const BacktestRunner = ({ selectedCrypto, onSetResult, initialResult }) =
               <ResultBox>
                 <Typography variant="body2" color="text.secondary">Number of Trades</Typography>
                 <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-                  {result?.backtest?.result?.total_trades !== undefined && result?.backtest?.result?.total_trades !== null
-                    ? String(result.backtest.result.total_trades)
+                  {result?.result?.total_trades !== undefined && result?.result?.total_trades !== null
+                    ? String(result.result.total_trades)
                     : 'N/A'}
                 </Typography>
               </ResultBox>
@@ -275,7 +275,7 @@ export const BacktestRunner = ({ selectedCrypto, onSetResult, initialResult }) =
               <ResultBox>
                 <Typography variant="body2" color="text.secondary">Win Rate</Typography>
                 <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-                  {(result?.backtest?.result?.win_rate ?? 0).toFixed(1)}%
+                  {(result?.result?.win_rate ?? 0).toFixed(1)}%
                 </Typography>
               </ResultBox>
             </Grid>
@@ -290,16 +290,16 @@ export const BacktestRunner = ({ selectedCrypto, onSetResult, initialResult }) =
                 <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                   <Typography variant="body2" color="text.secondary">Max Drawdown:</Typography>
                   <Typography variant="body2" sx={{ fontWeight: 'medium', color: 'error.main' }}>
-                    {(result?.backtest?.result?.max_drawdown ?? 0).toFixed(2)}%
+                    {(result?.result?.max_drawdown ?? 0).toFixed(2)}%
                   </Typography>
                 </Box>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                   <Typography variant="body2" color="text.secondary">Strategy:</Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 'medium' }}>{result?.backtest?.strategy_name.replace('_', ' ')}</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 'medium' }}>{result?.strategy_name?.replace('_', ' ')}</Typography>
                 </Box>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                   <Typography variant="body2" color="text.secondary">Timeframe:</Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 'medium' }}>{result?.backtest?.timeframe_days} days</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 'medium' }}>{result?.timeframe_days} days</Typography>
                 </Box>
               </Box>
             </Grid>
@@ -307,7 +307,7 @@ export const BacktestRunner = ({ selectedCrypto, onSetResult, initialResult }) =
             <Grid xs={12} md={6}>
               <Typography variant="subtitle1" gutterBottom>Parameters Used</Typography>
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                {Object.entries(result?.backtest?.parameters || {}).map(([key, value]) => (
+                {Object.entries(result?.parameters || {}).map(([key, value]) => (
                   <Box key={key} sx={{ display: 'flex', justifyContent: 'space-between' }}>
                     <Typography variant="body2" color="text.secondary">{key.replace('_', ' ')}:</Typography>
                     <Typography variant="body2" sx={{ fontWeight: 'medium' }}>{String(value)}</Typography>
@@ -320,7 +320,7 @@ export const BacktestRunner = ({ selectedCrypto, onSetResult, initialResult }) =
           
 
           <Typography variant="caption" color="text.secondary" sx={{ mt: 3, display: 'block' }}>
-            Backtest completed at {new Date(result?.backtest?.timestamp).toLocaleString()}
+            Backtest completed at {new Date(result?.timestamp).toLocaleString()}
           </Typography>
         </StyledPaper>
       )}

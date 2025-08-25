@@ -97,6 +97,11 @@ def run_backtest_cython(np.ndarray[DTYPE_t, ndim=1] prices,
     cdef double short_profit = 0.0
     cdef int num_long_trades = 0
     cdef int num_short_trades = 0
+    
+    # Max drawdown tracking
+    cdef double peak_capital = initial_capital
+    cdef double max_drawdown = 0.0
+    cdef double current_drawdown = 0.0
 
     # Position sizing variables
     cdef double base_position_percentage = 0.20  # 20% base position size for dynamic
@@ -209,6 +214,13 @@ def run_backtest_cython(np.ndarray[DTYPE_t, ndim=1] prices,
                 exit_price = current_price * (1 - spread_percentage - slippage_percentage)
                 profit_loss = (exit_price - entry_price) / entry_price * position_size
                 current_capital += profit_loss
+                
+                # Update max drawdown tracking
+                if current_capital > peak_capital:
+                    peak_capital = current_capital
+                current_drawdown = ((peak_capital - current_capital) / peak_capital) * 100.0
+                if current_drawdown > max_drawdown:
+                    max_drawdown = current_drawdown
 
                 total_profit_loss += profit_loss
                 long_profit += profit_loss
@@ -235,6 +247,13 @@ def run_backtest_cython(np.ndarray[DTYPE_t, ndim=1] prices,
                 exit_price = current_price * (1 + spread_percentage + slippage_percentage)
                 profit_loss = (entry_price - exit_price) / entry_price * position_size
                 current_capital += profit_loss
+                
+                # Update max drawdown tracking
+                if current_capital > peak_capital:
+                    peak_capital = current_capital
+                current_drawdown = ((peak_capital - current_capital) / peak_capital) * 100.0
+                if current_drawdown > max_drawdown:
+                    max_drawdown = current_drawdown
 
                 total_profit_loss += profit_loss
                 short_profit += profit_loss
@@ -263,10 +282,9 @@ def run_backtest_cython(np.ndarray[DTYPE_t, ndim=1] prices,
     if initial_capital != 0:
         total_profit_percentage = ((current_capital - initial_capital) / initial_capital) * 100.0
 
-    # TODO: Implement proper Sharpe Ratio and Max Drawdown calculation in Cython
-    # For now, return placeholders to unblock frontend
+    # TODO: Implement proper Sharpe Ratio calculation in Cython
+    # For now, return placeholder to unblock frontend
     cdef double sharpe_ratio = 0.0
-    cdef double max_drawdown = 0.0
 
     return {
         "final_capital": current_capital,
