@@ -102,11 +102,21 @@ class TradingEngine:
             parameters = self.param_manager.get_strategy_parameters(name)
             defaults = self.param_manager.get_default_parameters(name)
             
+            # Convert ParameterRange objects to serializable dictionaries
+            serializable_parameters = {}
+            for param_name, param_range in parameters.items():
+                serializable_parameters[param_name] = {
+                    'min_val': param_range.min_val,
+                    'max_val': param_range.max_val,
+                    'param_type': param_range.param_type,
+                    'description': param_range.description
+                }
+            
             strategies.append({
                 'name': name,
                 'display_name': name.replace('_', ' ').title(),
                 'description': self._get_strategy_description(name),
-                'parameters': parameters,
+                'parameters': serializable_parameters,
                 'defaults': defaults
             })
         
@@ -120,11 +130,21 @@ class TradingEngine:
         parameters = self.param_manager.get_strategy_parameters(strategy_name)
         defaults = self.param_manager.get_default_parameters(strategy_name)
         
+        # Convert ParameterRange objects to serializable dictionaries
+        serializable_parameters = {}
+        for param_name, param_range in parameters.items():
+            serializable_parameters[param_name] = {
+                'min_val': param_range.min_val,
+                'max_val': param_range.max_val,
+                'param_type': param_range.param_type,
+                'description': param_range.description
+            }
+        
         return {
             'name': strategy_name,
             'display_name': strategy_name.replace('_', ' ').title(),
             'description': self._get_strategy_description(strategy_name),
-            'parameters': parameters,
+            'parameters': serializable_parameters,
             'defaults': defaults,
             'available': True
         }
