@@ -19,3 +19,10 @@ __pycache__/
 
 # Ignore generated analysis results
 data/results/
+
+# Ignore all log files
+*.log
+
+# Ignore all PNG files except those in web/frontend/public/
+*.png
+!/web/frontend/public/*.png
