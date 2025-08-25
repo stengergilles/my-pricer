@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google'
 import { UserProvider } from '@auth0/nextjs-auth0/client'
 import { QueryProvider } from '@/lib/query-provider'
 import { Toaster } from 'react-hot-toast'
+import { GlobalLoadingIndicator } from '../components/GlobalLoadingIndicator'
 import './globals.css'
 
 const inter = Inter({ subsets: ['latin'] })
@@ -23,6 +24,7 @@ export default function RootLayout({
         <UserProvider>
           <QueryProvider>
             {children}
+            <GlobalLoadingIndicator />
             <Toaster position="top-right" />
           </QueryProvider>
         </UserProvider>

@@ -41,25 +41,36 @@ const ResultBox = styled(Box)(({ theme }) => ({
 }))
 
 export const CryptoAnalysis = ({ setActiveTab, onRunBacktest }) => {
-  const apiClient = useApiClient()
+  console.log('CryptoAnalysis component rendering')
+  const { get, post, apiClient, isLoading: apiIsLoading } = useApiClient()
   const queryClient = useQueryClient()
   const [result, setResult] = useState<AnalysisResult | null>(null)
 
   // Fetch data
   const { data: cryptos, isLoading: cryptosLoading } = useQuery<{ cryptos: Crypto[] }>({
     queryKey: ['cryptos'],
-    queryFn: () => apiClient.getCryptos(),
+    queryFn: () => get('getCryptos'),
+    enabled: !!apiClient, // Only enable query when apiClient is initialized
   })
 
   const { data: strategies, isLoading: strategiesLoading } = useQuery<{ strategies: Strategy[] }>({
     queryKey: ['strategies'],
-    queryFn: () => apiClient.getStrategies(),
+    queryFn: () => get('getStrategies'),
+    enabled: !!apiClient, // Only enable query when apiClient is initialized
   })
 
-  const { data: config, isLoading: configLoading } = useQuery({
+  const { data: config, isLoading: configLoading, error: configError } = useQuery({
     queryKey: ['config'],
-    queryFn: () => apiClient.getConfig(),
+    queryFn: () => get('getConfig'),
+    enabled: !!apiClient, // Only enable query when apiClient is initialized
   });
+
+  console.log(`CryptoAnalysis - config:`, config);
+  if (configError) {
+    console.error(`CryptoAnalysis - configError:`, configError);
+  }
+
+  console.log(`CryptoAnalysis - cryptosLoading: ${cryptosLoading}, strategiesLoading: ${strategiesLoading}, configLoading: ${configLoading}, apiIsLoading: ${apiIsLoading}`)
 
   // Form handling
   const { register, handleSubmit, watch, setValue, formState: { isSubmitting } } = useForm<AnalysisFormData>({
@@ -93,7 +104,7 @@ export const CryptoAnalysis = ({ setActiveTab, onRunBacktest }) => {
         timeframe: Number(data.timeframe),
         ...(data.useCustomParams && { parameters: data.parameters })
       }
-      return apiClient.runAnalysis(requestData)
+      return post('runAnalysis', requestData)
     },
     onSuccess: (data) => {
       setResult(data.analysis)
@@ -231,7 +242,7 @@ export const CryptoAnalysis = ({ setActiveTab, onRunBacktest }) => {
             type="submit"
             variant="contained"
             color="primary"
-            disabled={isSubmitting}
+            disabled={isSubmitting || apiIsLoading}
             sx={{ mt: 2 }}
           >
             {isSubmitting ? 'Running Analysis...' : 'Run Analysis'}

@@ -37,7 +37,7 @@ const ResultBox = styled(Box)(({ theme }) => ({
 }))
 
 export const BacktestRunner = ({ selectedCrypto, onSetResult, initialResult }) => {
-  const apiClient = useApiClient()
+  const { get, post, apiClient, isLoading: apiIsLoading } = useApiClient()
   const queryClient = useQueryClient()
   const [result, setResult] = useState<BacktestResponse | null>(initialResult);
 
@@ -48,17 +48,20 @@ export const BacktestRunner = ({ selectedCrypto, onSetResult, initialResult }) =
   // Fetch data
   const { data: cryptos, isLoading: cryptosLoading } = useQuery<{ cryptos: Crypto[] }>({
     queryKey: ['cryptos'],
-    queryFn: () => apiClient.getCryptos(),
+    queryFn: () => get('getCryptos'),
+    enabled: !!apiClient, // Only enable query when apiClient is initialized
   })
 
   const { data: strategies, isLoading: strategiesLoading } = useQuery<{ strategies: Strategy[] }>({
     queryKey: ['strategies'],
-    queryFn: () => apiClient.getStrategies(),
+    queryFn: () => get('getStrategies'),
+    enabled: !!apiClient, // Only enable query when apiClient is initialized
   })
 
   const { data: config, isLoading: configLoading } = useQuery({
     queryKey: ['config'],
-    queryFn: () => apiClient.getConfig(),
+    queryFn: () => get('getConfig'),
+    enabled: !!apiClient, // Only enable query when apiClient is initialized
   });
 
   // Form handling
@@ -97,7 +100,7 @@ export const BacktestRunner = ({ selectedCrypto, onSetResult, initialResult }) =
         timeframe: Number(data.timeframe),
         parameters: data.parameters
       }
-      return apiClient.runBacktest(requestData)
+      return post('runBacktest', requestData)
     },
     onSuccess: (data) => {
       setResult(data)
@@ -228,7 +231,7 @@ export const BacktestRunner = ({ selectedCrypto, onSetResult, initialResult }) =
             type="submit"
             variant="contained"
             color="primary"
-            disabled={isSubmitting}
+            disabled={isSubmitting || apiIsLoading}
             sx={{ mt: 2 }}
           >
             {isSubmitting ? 'Running Backtest...' : 'Run Backtest'}

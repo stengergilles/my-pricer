@@ -22,7 +22,7 @@ trading_engine = TradingEngine(Config())
 class AnalysisAPI(Resource):
     """Crypto analysis API."""
     
-    @requires_auth()
+    # @requires_auth()
     def post(self):
         """Run crypto analysis."""
         try:
@@ -62,7 +62,7 @@ class AnalysisAPI(Resource):
             logger.error(f"Error in AnalysisAPI.post: {str(e)}")
             return {'error': 'Analysis failed'}, 500
     
-    @requires_auth()
+    # @requires_auth()
     def get(self, analysis_id=None):
         """Get analysis results."""
         try:

@@ -21,7 +21,7 @@ trading_engine = TradingEngine(Config())
 class ResultsAPI(Resource):
     """Results management API."""
     
-    @requires_auth()
+    # @requires_auth()
     def get(self, result_type=None):
         """Get results by type."""
         try:

@@ -21,7 +21,7 @@ trading_engine = TradingEngine(Config())
 class StrategiesAPI(Resource):
     """Trading strategies API."""
     
-    @requires_auth()
+    # @requires_auth()
     def get(self, strategy_name=None):
         """Get trading strategies."""
         try:

@@ -17,7 +17,8 @@ AUTH0_DOMAIN = os.getenv('AUTH0_DOMAIN')
 API_AUDIENCE = os.getenv('AUTH0_API_AUDIENCE')
 ALGORITHMS = ["RS256"]
 
-logger = logging.getLogger(__name__) # Explicitly set level to DEBUG
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG) # Set logger level to DEBUG
 
 class AuthError(Exception):
     """Auth0 authentication error."""
@@ -28,6 +29,7 @@ class AuthError(Exception):
 def get_token_auth_header():
     """Obtains the Access Token from the Authorization Header."""
     auth = request.headers.get("Authorization", None)
+    logger.debug(f"Auth header received: {auth}")
     if not auth:
         raise AuthError({"code": "authorization_header_missing",
                         "description": "Authorization header is expected"}, 401)
@@ -47,11 +49,14 @@ def get_token_auth_header():
                         "description": "Authorization header must be bearer token"}, 401)
 
     token = parts[1]
+    logger.debug(f"Token extracted: {token}")
     return token
 
 def verify_decode_jwt(token):
     """Verify and decode JWT token."""
     logger.debug(f"Attempting to verify token: {token}")
+    logger.debug(f"Auth0 Domain (backend): {AUTH0_DOMAIN}")
+    logger.debug(f"API Audience (backend): {API_AUDIENCE}")
     if not AUTH0_DOMAIN or not API_AUDIENCE:
         raise AuthError({"code": "configuration_error",
                         "description": "Auth0 configuration missing"}, 500)
@@ -129,8 +134,10 @@ def requires_auth(permission=''):
                 
                 return f(*args, **kwargs)
             except AuthError as e:
+                logger.error(f"AuthError caught in requires_auth: {e.error}")
                 raise e
             except Exception as e:
+                logger.error(f"Unexpected error in requires_auth: {str(e)}")
                 raise AuthError({
                     "code": "invalid_token",
                     "description": "Unable to validate token"

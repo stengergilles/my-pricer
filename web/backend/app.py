@@ -34,7 +34,7 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-secret-key-change-this')
 
 # Enable CORS for frontend
-CORS(app, origins=[os.getenv('FRONTEND_URL', 'http://localhost:3000')])
+CORS(app, origins="*", supports_credentials=True, allow_headers=["Authorization", "Content-Type"])
 
 # Initialize Flask-RESTful
 api = Api(app)

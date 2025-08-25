@@ -7,7 +7,7 @@ import { Box, Typography, CircularProgress } from '@mui/material';
 import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord';
 
 export const HealthStatus = () => {
-  const apiClient = useApiClient()
+  const { apiClient } = useApiClient()
   const { data: health, isLoading } = useQuery<HealthCheck>({
     queryKey: ['health'],
     queryFn: () => apiClient.healthCheck(),

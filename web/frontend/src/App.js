@@ -11,9 +11,11 @@ import { BacktestRunner } from './components/BacktestRunner.tsx';
 import { HealthStatus } from './components/HealthStatus.tsx';
 
 import { useAuth0 } from '@auth0/auth0-react';
+import { useApiClient } from './hooks/useApiClient.ts';
 import { setupRemoteLogger } from './utils/remoteLogger.ts';
 
 import LogoutIcon from '@mui/icons-material/Logout';
+
 
 // Styled components for navigation tabs
 const StyledTab = styled(Tab)(({ theme }) => ({
@@ -35,7 +37,8 @@ const StyledTab = styled(Tab)(({ theme }) => ({
 
 
 function App() {
-  const { user, isLoading, logout } = useAuth0();
+  const { user, isLoading: auth0Loading, logout } = useAuth0();
+  const { isLoading: apiIsLoading } = useApiClient();
   const [activeTab, setActiveTab] = useState('analysis');
   const [selectedCryptoForBacktest, setSelectedCryptoForBacktest] = useState(null);
 
@@ -52,7 +55,7 @@ function App() {
     setActiveTab('backtest');
   };
 
-  if (isLoading) {
+  if (auth0Loading) {
     return (
       <Box
         sx={{
@@ -107,6 +110,9 @@ function App() {
                 <Typography variant="body2" color="text.secondary">
                   Welcome back, {user.name}
                 </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  API Loading: {apiIsLoading ? 'True' : 'False'}
+                </Typography>
               </Box>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                 <HealthStatus />
@@ -129,6 +135,7 @@ function App() {
               <Tabs value={activeTab} onChange={handleTabChange} aria-label="navigation tabs">
                 <StyledTab label="Analysis" value="analysis" />
                 <StyledTab label="Backtest" value="backtest" />
+                {/* Removed Config Test tab */}
               </Tabs>
             </Container>
           </Toolbar>
@@ -139,7 +146,7 @@ function App() {
           <Box sx={{ p: 2 }}>
             <Routes>
               <Route path="/" element={activeTab === 'analysis' ? <CryptoAnalysis setActiveTab={setActiveTab} onRunBacktest={handleRunBacktest} /> : <BacktestRunner selectedCrypto={selectedCryptoForBacktest} />} />
-              {/* Add more routes as needed */}
+              {/* Removed Config Test route */}
             </Routes>
           </Box>
         </Container>
