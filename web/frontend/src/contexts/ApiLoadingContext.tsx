@@ -27,7 +27,6 @@ export const ApiLoadingProvider: React.FC<ApiLoadingProviderProps> = ({ children
   const [isLoading, setIsLoading] = useState(false)
 
   const startOperation = (operationId: string) => {
-    console.log(`🚀 Global Loading: Starting operation ${operationId}`)
     setActiveOperations(prev => {
       const newSet = new Set(prev)
       newSet.add(operationId)
@@ -37,13 +36,11 @@ export const ApiLoadingProvider: React.FC<ApiLoadingProviderProps> = ({ children
   }
 
   const endOperation = (operationId: string) => {
-    console.log(`✅ Global Loading: Ending operation ${operationId}`)
     setActiveOperations(prev => {
       const newSet = new Set(prev)
       newSet.delete(operationId)
       const stillLoading = newSet.size > 0
       setIsLoading(stillLoading)
-      console.log(`📊 Global Loading: ${newSet.size} operations remaining, isLoading: ${stillLoading}`)
       return newSet
     })
   }

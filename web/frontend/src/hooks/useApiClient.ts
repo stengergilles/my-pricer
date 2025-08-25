@@ -23,7 +23,6 @@ export const useApiClient = () => {
     }
     
     const operationId = `${String(method)}-${Date.now()}`
-    console.log(`🚀 API Call Starting: ${String(method)} - Operation ID: ${operationId}`)
     startOperation(operationId)
     
     try {
@@ -31,13 +30,12 @@ export const useApiClient = () => {
       const apiMethod = apiClient[method] as (...args: any[]) => Promise<any>;
       if (typeof apiMethod === 'function') {
         const response = await apiMethod(...args);
-        console.log(`✅ API Call Success: ${String(method)} - Operation ID: ${operationId}`)
         return response;
       } else {
         throw new Error(`Method ${String(method)} is not a function on ApiClient.`);
       }
     } catch (error) {
-      console.error(`❌ API Call Failed: ${String(method)} - Operation ID: ${operationId}`, error);
+      console.error(`API call failed for method ${String(method)}:`, error);
       throw error;
     } finally {
       endOperation(operationId)

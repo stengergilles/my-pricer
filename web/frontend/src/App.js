@@ -9,7 +9,6 @@ import { LoginButton } from './components/auth/LoginButton.tsx';
 import { CryptoAnalysis } from './components/CryptoAnalysis.tsx';
 import { BacktestRunner } from './components/BacktestRunner.tsx';
 import { HealthStatus } from './components/HealthStatus.tsx';
-import { LoadingStateTest } from './components/LoadingStateTest.tsx';
 
 import { useAuth0 } from '@auth0/auth0-react';
 import { useApiClient } from './hooks/useApiClient.ts';
@@ -43,9 +42,6 @@ function AppContent() {
   const { isLoading: apiIsLoading } = useApiClient();
   const [activeTab, setActiveTab] = useState('analysis');
   const [selectedCryptoForBacktest, setSelectedCryptoForBacktest] = useState(null);
-
-  // Debug logging
-  console.log('App component - apiIsLoading:', apiIsLoading);
 
   useEffect(() => {
     setupRemoteLogger();
@@ -117,15 +113,10 @@ function AppContent() {
                 </Typography>
               </Box>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                {/* Debug: Always show loading state */}
-                <Typography variant="caption" color="text.secondary">
-                  Debug: {apiIsLoading ? 'LOADING' : 'IDLE'}
-                </Typography>
-                
                 {apiIsLoading && (
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <CircularProgress size={20} color="primary" />
-                    <Typography variant="caption" color="primary" sx={{ fontWeight: 'bold' }}>
+                    <CircularProgress size={16} color="inherit" />
+                    <Typography variant="caption" color="text.secondary">
                       Loading...
                     </Typography>
                   </Box>
@@ -150,7 +141,6 @@ function AppContent() {
               <Tabs value={activeTab} onChange={handleTabChange} aria-label="navigation tabs">
                 <StyledTab label="Analysis" value="analysis" />
                 <StyledTab label="Backtest" value="backtest" />
-                <StyledTab label="Loading Test" value="loading-test" />
               </Tabs>
             </Container>
           </Toolbar>
@@ -163,12 +153,8 @@ function AppContent() {
               <Route path="/" element={
                 activeTab === 'analysis' ? (
                   <CryptoAnalysis setActiveTab={setActiveTab} onRunBacktest={handleRunBacktest} />
-                ) : activeTab === 'backtest' ? (
-                  <BacktestRunner selectedCrypto={selectedCryptoForBacktest} />
-                ) : activeTab === 'loading-test' ? (
-                  <LoadingStateTest />
                 ) : (
-                  <CryptoAnalysis setActiveTab={setActiveTab} onRunBacktest={handleRunBacktest} />
+                  <BacktestRunner selectedCrypto={selectedCryptoForBacktest} />
                 )
               } />
             </Routes>
