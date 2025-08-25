@@ -49,13 +49,19 @@ export class ApiClient {
       if (!response.ok) {
         const errorBody = await response.text();
         let errorMessage = `HTTP error! status: ${response.status}`;
+        let errorJson: any = {};
         try {
-          const errorJson = JSON.parse(errorBody);
+          errorJson = JSON.parse(errorBody);
           errorMessage = errorJson.error || errorJson.message || errorMessage;
         } catch (e) {
           errorMessage = `${errorMessage}, body: ${errorBody}`;
         }
-        throw new Error(errorMessage);
+        const errorToThrow = new Error(errorMessage);
+        (errorToThrow as any).response = {
+          status: response.status,
+          data: errorJson
+        };
+        throw errorToThrow;
       }
 
       // Handle cases where response might be empty (e.g., 204 No Content)

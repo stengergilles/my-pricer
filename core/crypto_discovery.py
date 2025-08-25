@@ -265,7 +265,12 @@ class CryptoDiscovery:
         """Load data from cache file."""
         try:
             with open(cache_file, 'r') as f:
-                return json.load(f)
+                data = json.load(f)
+                if isinstance(data, dict) and 'crypto_ids' in data:
+                    self.logger.warning("Old cache format detected. Deleting and refetching.")
+                    os.remove(cache_file)
+                    return []
+                return data
         except (json.JSONDecodeError, OSError) as e:
             self.logger.error(f"Error loading cache: {e}")
             return []

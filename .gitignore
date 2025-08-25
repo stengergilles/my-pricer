@@ -10,5 +10,12 @@ web/backend/backtester_debug.log
 # Ignore Python cache directories
 __pycache__/
 
+# Ignore compiled Cython/C files
+*.so
+*.o
+
+# Ignore swap files
+*.swp
+
 # Ignore generated analysis results
 data/results/

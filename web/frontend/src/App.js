@@ -43,6 +43,7 @@ function AppContent() {
   const { isLoading: apiIsLoading } = useApiClient();
   const [activeTab, setActiveTab] = useState('analysis');
   const [selectedCryptoForBacktest, setSelectedCryptoForBacktest] = useState(null);
+  const [backtestResult, setBacktestResult] = useState(null);
 
   useEffect(() => {
     setupRemoteLogger();
@@ -155,7 +156,11 @@ function AppContent() {
                 activeTab === 'analysis' ? (
                   <CryptoAnalysis setActiveTab={setActiveTab} onRunBacktest={handleRunBacktest} />
                 ) : (
-                  <BacktestRunner selectedCrypto={selectedCryptoForBacktest} />
+                  <BacktestRunner
+                    selectedCrypto={selectedCryptoForBacktest}
+                    onSetResult={setBacktestResult}
+                    initialResult={backtestResult}
+                  />
                 )
               } />
             </Routes>

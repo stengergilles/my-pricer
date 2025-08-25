@@ -3,9 +3,8 @@
 import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
-import toast from 'react-hot-toast'
 import { useApiClient } from '../hooks/useApiClient.ts'
-import { useConfig, useStrategyConfigs, useIndicatorDefaults, useDefaultTimeframe } from '../contexts/ConfigContext.tsx'
+import { useConfig, useStrategyConfigs, useDefaultTimeframe } from '../contexts/ConfigContext.tsx'
 import { Crypto, AnalysisFormData, AnalysisResult } from '../utils/types.ts'
 import {
   Box,
@@ -24,7 +23,7 @@ import {
   Alert,
 } from '@mui/material'
 import { styled } from '@mui/system'
-
+import { ErrorDisplay } from './ErrorDisplay.tsx'
 
 
 // Styled components for consistent styling
@@ -46,10 +45,10 @@ export const CryptoAnalysis = ({ setActiveTab, onRunBacktest }) => {
   const { getCryptos, runAnalysis, apiClient, isLoading: apiIsLoading } = useApiClient()
   const { config, isLoading: configLoading, error: configError } = useConfig()
   const strategyConfigs = useStrategyConfigs()
-  const indicatorDefaults = useIndicatorDefaults()
   const defaultTimeframe = useDefaultTimeframe()
   const queryClient = useQueryClient()
   const [result, setResult] = useState<AnalysisResult | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
   // Fetch data
   const { data: cryptos, isLoading: cryptosLoading } = useQuery<{ cryptos: Crypto[] }>({
@@ -66,10 +65,11 @@ export const CryptoAnalysis = ({ setActiveTab, onRunBacktest }) => {
   console.log(`CryptoAnalysis - cryptosLoading: ${cryptosLoading}, configLoading: ${configLoading}, apiIsLoading: ${apiIsLoading}`)
 
   // Get available strategies from config
-  const availableStrategies = Object.keys(strategyConfigs).map(strategyName => ({
-    name: strategyName,
-    display_name: strategyName.replace(/_/g, ' '),
-    description: `Strategy using: ${strategyConfigs[strategyName].long_entry.join(', ')}`
+  const availableStrategies = (strategyConfigs || []).map(strategy => ({
+    name: strategy.name,
+    display_name: strategy.display_name,
+    description: strategy.description,
+    defaults: strategy.defaults // Include defaults here
   }))
 
   // Form handling
@@ -95,9 +95,9 @@ export const CryptoAnalysis = ({ setActiveTab, onRunBacktest }) => {
   // Get selected strategy details
   const strategyDetails = availableStrategies.find(s => s.name === selectedStrategy)
 
-  // Generate parameter fields based on indicator defaults (same logic as BacktestRunner)
+  // Generate parameter fields based on strategy defaults
   const getParameterFields = () => {
-    if (!selectedStrategy || !indicatorDefaults) return []
+    if (!selectedStrategy || !strategyDetails || !strategyDetails.defaults) return []
     
     // Define which parameters are relevant for each strategy
     const strategyParameterMap = {
@@ -130,7 +130,7 @@ export const CryptoAnalysis = ({ setActiveTab, onRunBacktest }) => {
     const relevantParams = strategyParameterMap[selectedStrategy] || []
     
     return relevantParams.map(paramKey => {
-      const defaultValue = indicatorDefaults[paramKey]
+      const defaultValue = strategyDetails.defaults[paramKey]
       if (defaultValue === undefined) return null
 
       // Create parameter description
@@ -172,22 +172,29 @@ export const CryptoAnalysis = ({ setActiveTab, onRunBacktest }) => {
       const requestData = {
         crypto_id: data.cryptoId,
         strategy_name: data.strategyName,
-        timeframe: Number(data.timeframe),
+        timeframe: data.timeframe,
         ...(data.useCustomParams && { parameters: data.parameters })
       }
       return runAnalysis(requestData)
     },
     onSuccess: (data) => {
-      setResult(data.analysis)
-      toast.success('Analysis completed successfully!')
+      if (data.analysis && data.analysis.success === false) {
+        setError(data.analysis.error || 'Analysis failed');
+        setResult(null);
+      } else {
+        setResult(data.analysis);
+      }
       queryClient.invalidateQueries({ queryKey: ['analysis-history'] })
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.error || 'Analysis failed')
+      console.error("Analysis mutation error:", error);
+      setError(error.message || 'An unknown error occurred.');
     }
   })
 
   const onSubmit = (data: AnalysisFormData) => {
+    setError(null);
+    setResult(null);
     analysisMutation.mutate(data)
   }
 
@@ -209,6 +216,8 @@ export const CryptoAnalysis = ({ setActiveTab, onRunBacktest }) => {
 
   return (
     <Box sx={{ my: 3 }}>
+      <ErrorDisplay error={error} onDismiss={() => setError(null)} />
+
       <StyledPaper sx={{ mb: 3 }}>
         <Typography variant="h5" component="h2" gutterBottom>
           Crypto Analysis
@@ -226,6 +235,7 @@ export const CryptoAnalysis = ({ setActiveTab, onRunBacktest }) => {
                   {...register('cryptoId', { required: true })}
                   defaultValue="bitcoin"
                 >
+                  {console.log('cryptos object:', cryptos)}
                   {cryptos?.cryptos.map((crypto) => (
                     <MenuItem key={crypto.id} value={crypto.id}>
                       {crypto.name} ({crypto.symbol})

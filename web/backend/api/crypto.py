@@ -64,11 +64,14 @@ class CryptoAPI(Resource):
                 else:
                     cryptos = self.engine.get_cryptos(limit=limit)
                 
-                return {
+                logger.info(f"Cryptos from engine: {cryptos}")
+                response = {
                     'cryptos': cryptos,
                     'count': len(cryptos),
                     'timestamp': datetime.now().isoformat()
                 }
+                logger.info(f"Response to frontend: {response}")
+                return response
                 
         except ValueError as e:
             logger.error(f"Invalid parameter in crypto request: {e}")

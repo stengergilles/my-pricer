@@ -35,7 +35,7 @@ class BacktestAPI(Resource):
         {
             "action": "backtest",
             "crypto_id": "bitcoin",
-            "strategy": "EMA_Only",
+            "strategy_name": "EMA_Only",
             "parameters": {...},
             "timeframe": "7d" (optional),
             "interval": "30m" (optional)
@@ -45,7 +45,7 @@ class BacktestAPI(Resource):
         {
             "action": "optimize",
             "crypto_id": "bitcoin",
-            "strategy": "EMA_Only",
+            "strategy_name": "EMA_Only",
             "n_trials": 50 (optional),
             "timeout": 300 (optional)
         }
@@ -53,7 +53,7 @@ class BacktestAPI(Resource):
         Expected JSON body for volatile optimization:
         {
             "action": "optimize_volatile",
-            "strategy": "EMA_Only",
+            "strategy_name": "EMA_Only",
             "n_trials": 30 (optional),
             "top_count": 10 (optional),
             "min_volatility": 5.0 (optional)
@@ -61,7 +61,9 @@ class BacktestAPI(Resource):
         """
         try:
             data = request.get_json()
+            logger.info(f"Incoming backtest data: {data}")
             if not data:
+                logger.error("No JSON data provided for backtest.")
                 return {'error': 'No JSON data provided'}, 400
             
             action = data.get('action', 'backtest')
@@ -69,17 +71,20 @@ class BacktestAPI(Resource):
             if action == 'backtest':
                 # Run single backtest
                 crypto_id = data.get('crypto_id')
-                strategy = data.get('strategy')
+                strategy_name = data.get('strategy_name')
                 parameters = data.get('parameters', {})
                 timeframe = data.get('timeframe', '7d')
                 interval = data.get('interval', '30m')
                 
-                if not crypto_id or not strategy:
-                    return {'error': 'crypto_id and strategy are required for backtest'}, 400
+                logger.info(f"Backtest request - crypto_id: {crypto_id}, strategy_name: {strategy_name}, timeframe: {timeframe}, interval: {interval}")
+
+                if not crypto_id or not strategy_name:
+                    logger.error(f"Missing required backtest parameters: crypto_id={crypto_id}, strategy_name={strategy_name}")
+                    return {'error': 'crypto_id and strategy_name are required for backtest'}, 400
                 
                 result = self.engine.run_backtest(
                     crypto_id=crypto_id,
-                    strategy_name=strategy,
+                    strategy_name=strategy_name,
                     parameters=parameters,
                     timeframe=timeframe,
                     interval=interval
@@ -94,16 +99,16 @@ class BacktestAPI(Resource):
             elif action == 'optimize':
                 # Run single crypto optimization
                 crypto_id = data.get('crypto_id')
-                strategy = data.get('strategy')
+                strategy_name = data.get('strategy_name')
                 n_trials = data.get('n_trials', 50)
                 timeout = data.get('timeout')
                 
-                if not crypto_id or not strategy:
-                    return {'error': 'crypto_id and strategy are required for optimization'}, 400
+                if not crypto_id or not strategy_name:
+                    return {'error': 'crypto_id and strategy_name are required for optimization'}, 400
                 
                 result = self.engine.run_optimization(
                     crypto_id=crypto_id,
-                    strategy_name=strategy,
+                    strategy_name=strategy_name,
                     n_trials=n_trials,
                     timeout=timeout
                 )
@@ -116,16 +121,16 @@ class BacktestAPI(Resource):
             
             elif action == 'optimize_volatile':
                 # Run volatile crypto optimization
-                strategy = data.get('strategy')
+                strategy_name = data.get('strategy_name')
                 n_trials = data.get('n_trials', 30)
                 top_count = data.get('top_count', 10)
                 min_volatility = data.get('min_volatility', 5.0)
                 
-                if not strategy:
-                    return {'error': 'strategy is required for volatile optimization'}, 400
+                if not strategy_name:
+                    return {'error': 'strategy_name is required for volatile optimization'}, 400
                 
                 result = self.engine.run_volatile_optimization(
-                    strategy_name=strategy,
+                    strategy_name=strategy_name,
                     n_trials=n_trials,
                     top_count=top_count,
                     min_volatility=min_volatility

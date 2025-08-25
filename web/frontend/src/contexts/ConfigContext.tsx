@@ -95,7 +95,7 @@ export const useConfig = (): ConfigContextType => {
 // Helper hooks for specific config sections
 export const useStrategyConfigs = () => {
   const { config } = useConfig()
-  return config?.strategy_configs || {}
+  return config?.strategies || []
 }
 
 export const useIndicatorDefaults = () => {
