@@ -9,6 +9,7 @@ import { LoginButton } from './components/auth/LoginButton.tsx';
 import { CryptoAnalysis } from './components/CryptoAnalysis.tsx';
 import { BacktestRunner } from './components/BacktestRunner.tsx';
 import { HealthStatus } from './components/HealthStatus.tsx';
+import { LoadingStateTest } from './components/LoadingStateTest.tsx';
 
 import { useAuth0 } from '@auth0/auth0-react';
 import { useApiClient } from './hooks/useApiClient.ts';
@@ -135,7 +136,7 @@ function App() {
               <Tabs value={activeTab} onChange={handleTabChange} aria-label="navigation tabs">
                 <StyledTab label="Analysis" value="analysis" />
                 <StyledTab label="Backtest" value="backtest" />
-                {/* Removed Config Test tab */}
+                <StyledTab label="Loading Test" value="loading-test" />
               </Tabs>
             </Container>
           </Toolbar>
@@ -145,8 +146,17 @@ function App() {
         <Container maxWidth="xl" sx={{ py: 3 }}>
           <Box sx={{ p: 2 }}>
             <Routes>
-              <Route path="/" element={activeTab === 'analysis' ? <CryptoAnalysis setActiveTab={setActiveTab} onRunBacktest={handleRunBacktest} /> : <BacktestRunner selectedCrypto={selectedCryptoForBacktest} />} />
-              {/* Removed Config Test route */}
+              <Route path="/" element={
+                activeTab === 'analysis' ? (
+                  <CryptoAnalysis setActiveTab={setActiveTab} onRunBacktest={handleRunBacktest} />
+                ) : activeTab === 'backtest' ? (
+                  <BacktestRunner selectedCrypto={selectedCryptoForBacktest} />
+                ) : activeTab === 'loading-test' ? (
+                  <LoadingStateTest />
+                ) : (
+                  <CryptoAnalysis setActiveTab={setActiveTab} onRunBacktest={handleRunBacktest} />
+                )
+              } />
             </Routes>
           </Box>
         </Container>

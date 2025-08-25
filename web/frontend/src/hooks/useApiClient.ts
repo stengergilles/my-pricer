@@ -20,18 +20,20 @@ export const useApiClient = () => {
     if (!apiClient) {
       throw new Error('API client not initialized.')
     }
+    console.log(`🚀 API Call Starting: ${String(method)} - Setting loading to TRUE`)
     setIsLoading(true) // Set loading to true when API call starts
     try {
       // Type assertion to ensure method exists on ApiClient and is callable
       const apiMethod = apiClient[method] as (...args: any[]) => Promise<any>;
       if (typeof apiMethod === 'function') {
         const response = await apiMethod(...args);
+        console.log(`✅ API Call Success: ${String(method)} - Setting loading to FALSE`)
         return response;
       } else {
         throw new Error(`Method ${String(method)} is not a function on ApiClient.`);
       }
     } catch (error) {
-      console.error(`API call failed for method ${String(method)}:`, error);
+      console.error(`❌ API Call Failed: ${String(method)} - Setting loading to FALSE`, error);
       throw error;
     } finally {
       setIsLoading(false) // Set loading to false when API call completes
