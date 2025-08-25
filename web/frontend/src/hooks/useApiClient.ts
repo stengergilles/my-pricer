@@ -20,7 +20,7 @@ export const useApiClient = () => {
     if (!apiClient) {
       throw new Error('API client not initialized.')
     }
-    setIsLoading(true) // Reintroduced: Progress reporting
+    setIsLoading(true) // Set loading to true when API call starts
     try {
       // Type assertion to ensure method exists on ApiClient and is callable
       const apiMethod = apiClient[method] as (...args: any[]) => Promise<any>;
@@ -30,26 +30,78 @@ export const useApiClient = () => {
       } else {
         throw new Error(`Method ${String(method)} is not a function on ApiClient.`);
       }
+    } catch (error) {
+      console.error(`API call failed for method ${String(method)}:`, error);
+      throw error;
     } finally {
-      setIsLoading(false) // Reintroduced: Progress reporting
+      setIsLoading(false) // Set loading to false when API call completes
     }
-  }, [apiClient, setIsLoading]);
+  }, [apiClient]);
 
-  const get = useCallback(async (endpoint: string, ...args: any[]) => {
-    return callApi(endpoint as any, ...args);
+  // Direct method calls that map to ApiClient methods
+  const getCryptos = useCallback(async () => {
+    return callApi('getCryptos');
   }, [callApi]);
 
-  const post = useCallback(async (endpoint: string, ...args: any[]) => {
-    return callApi(endpoint as any, ...args);
+  const getCrypto = useCallback(async (cryptoId: string) => {
+    return callApi('getCrypto', cryptoId);
   }, [callApi]);
 
-  const put = useCallback(async (endpoint: string, ...args: any[]) => {
-    return callApi(endpoint as any, ...args);
+  const getStrategies = useCallback(async () => {
+    return callApi('getStrategies');
   }, [callApi]);
 
-  const del = useCallback(async (endpoint: string, ...args: any[]) => {
-    return callApi(endpoint as any, ...args);
+  const getStrategy = useCallback(async (strategyName: string) => {
+    return callApi('getStrategy', strategyName);
   }, [callApi]);
 
-  return { apiClient, get, post, put, del, isLoading, setIsLoading }
+  const runAnalysis = useCallback(async (data: any) => {
+    return callApi('runAnalysis', data);
+  }, [callApi]);
+
+  const getAnalysis = useCallback(async (analysisId: string) => {
+    return callApi('getAnalysis', analysisId);
+  }, [callApi]);
+
+  const getAnalysisHistory = useCallback(async (cryptoId?: string, limit = 50) => {
+    return callApi('getAnalysisHistory', cryptoId, limit);
+  }, [callApi]);
+
+  const runBacktest = useCallback(async (data: any) => {
+    return callApi('runBacktest', data);
+  }, [callApi]);
+
+  const getBacktest = useCallback(async (backtestId: string) => {
+    return callApi('getBacktest', backtestId);
+  }, [callApi]);
+
+  const getBacktestHistory = useCallback(async (cryptoId?: string, strategyName?: string, limit = 50) => {
+    return callApi('getBacktestHistory', cryptoId, strategyName, limit);
+  }, [callApi]);
+
+  const healthCheck = useCallback(async () => {
+    return callApi('healthCheck');
+  }, [callApi]);
+
+  const getConfig = useCallback(async () => {
+    return callApi('getConfig');
+  }, [callApi]);
+
+  return { 
+    apiClient, 
+    getCryptos,
+    getCrypto,
+    getStrategies,
+    getStrategy,
+    runAnalysis,
+    getAnalysis,
+    getAnalysisHistory,
+    runBacktest,
+    getBacktest,
+    getBacktestHistory,
+    healthCheck,
+    getConfig,
+    isLoading, 
+    setIsLoading 
+  }
 }

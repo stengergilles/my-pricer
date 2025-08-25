@@ -1,0 +1,30 @@
+{
+    "strategy_name": "EMA_Only",
+    "best_params": {
+        "short_sma_period": 10,
+        "long_sma_period": 40,
+        "rsi_overbought": 70,
+        "rsi_oversold": 20,
+        "macd_fast_period": 10,
+        "macd_slow_period": 25,
+        "macd_signal_period": 5,
+        "fixed_stop_loss_percentage": 0.01,
+        "take_profit_multiple": 1.0,
+        "atr_period": 10,
+        "atr_multiple": 1.0,
+        "spread_percentage": 0.0,
+        "slippage_percentage": 0.0
+    },
+    "results": {
+        "final_capital": 100.0,
+        "total_profit_loss": 0.0,
+        "total_trades": 0,
+        "winning_trades": 0,
+        "losing_trades": 0,
+        "win_rate": 0.0,
+        "long_profit": 0.0,
+        "short_profit": 0.0,
+        "num_long_trades": 0,
+        "num_short_trades": 0
+    }
+}

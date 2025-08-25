@@ -1,0 +1,28 @@
+{
+    "strategy_name": "Combined_Trigger_Verifier",
+    "best_params": {
+        "short_sma_period": 10,
+        "long_sma_period": 50,
+        "rsi_overbought": 70,
+        "rsi_oversold": 20,
+        "macd_fast_period": 10,
+        "macd_slow_period": 25,
+        "macd_signal_period": 5,
+        "fixed_stop_loss_percentage": 0.02,
+        "take_profit_multiple": 2.0,
+        "atr_period": 15,
+        "atr_multiple": 2.5
+    },
+    "results": {
+        "total_profit_loss": -48.537090918416894,
+        "final_capital": 51.462909081583106,
+        "total_trades": 35,
+        "winning_trades": 3,
+        "losing_trades": 31,
+        "win_rate": 0.08571428571428572,
+        "long_profit": -32.7235191880802,
+        "short_profit": -15.276832092469077,
+        "num_long_trades": 21,
+        "num_short_trades": 14
+    }
+}

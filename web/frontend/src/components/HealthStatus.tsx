@@ -7,10 +7,10 @@ import { Box, Typography, CircularProgress } from '@mui/material';
 import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord';
 
 export const HealthStatus = () => {
-  const { apiClient } = useApiClient()
+  const { healthCheck } = useApiClient()
   const { data: health, isLoading } = useQuery<HealthCheck>({
     queryKey: ['health'],
-    queryFn: () => apiClient.healthCheck(),
+    queryFn: healthCheck,
     refetchInterval: 30000, // Refetch every 30 seconds
   })
 

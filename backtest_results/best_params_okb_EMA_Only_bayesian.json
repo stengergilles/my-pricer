@@ -1,0 +1,19 @@
+{
+  "best_profit_loss": -17.22435218040863,
+  "best_params": {
+    "short_sma_period": 13,
+    "long_sma_period": 25,
+    "short_ema_period": 9,
+    "long_ema_period": 34,
+    "rsi_oversold": 24,
+    "rsi_overbought": 93,
+    "macd_fast_period": 24,
+    "macd_slow_period": 36,
+    "macd_signal_period": 20,
+    "atr_period": 28,
+    "atr_multiple": 3.6976602515245007,
+    "fixed_stop_loss_percentage": 0.016670283739766267,
+    "take_profit_multiple": 4.381287668065552
+  },
+  "n_trials": 5
+}

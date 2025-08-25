@@ -1,0 +1,29 @@
+{
+    "initial_capital": 100.0,
+    "final_capital": 96.06626615475439,
+    "total_profit_loss": -3.9337338452456123,
+    "num_trades": 2,
+    "win_trades": 0,
+    "lost_trades": 2,
+    "win_rate": 0.0,
+    "trade_history": [
+        {
+            "type": "SHORT",
+            "entry_price": 185.92378250152458,
+            "exit_price": 189.62062955028478,
+            "profit_loss": -1.9883669528560048,
+            "entry_time": "2025-08-16 17:14:43",
+            "exit_time": "2025-08-16 17:15:51",
+            "capital_after_trade": 98.01163304714399
+        },
+        {
+            "type": "SHORT",
+            "entry_price": 185.8288060129867,
+            "exit_price": 189.51719682569836,
+            "profit_loss": -1.9453668923896004,
+            "entry_time": "2025-08-16 17:16:21",
+            "exit_time": "2025-08-16 17:17:31",
+            "capital_after_trade": 96.06626615475439
+        }
+    ]
+}

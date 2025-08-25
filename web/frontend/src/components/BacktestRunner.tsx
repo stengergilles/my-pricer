@@ -37,7 +37,7 @@ const ResultBox = styled(Box)(({ theme }) => ({
 }))
 
 export const BacktestRunner = ({ selectedCrypto, onSetResult, initialResult }) => {
-  const { get, post, apiClient, isLoading: apiIsLoading } = useApiClient()
+  const { getCryptos, getStrategies, runBacktest, apiClient, isLoading: apiIsLoading } = useApiClient()
   const queryClient = useQueryClient()
   const [result, setResult] = useState<BacktestResponse | null>(initialResult);
 
@@ -48,19 +48,19 @@ export const BacktestRunner = ({ selectedCrypto, onSetResult, initialResult }) =
   // Fetch data
   const { data: cryptos, isLoading: cryptosLoading } = useQuery<{ cryptos: Crypto[] }>({
     queryKey: ['cryptos'],
-    queryFn: () => get('getCryptos'),
+    queryFn: getCryptos,
     enabled: !!apiClient, // Only enable query when apiClient is initialized
   })
 
   const { data: strategies, isLoading: strategiesLoading } = useQuery<{ strategies: Strategy[] }>({
     queryKey: ['strategies'],
-    queryFn: () => get('getStrategies'),
+    queryFn: getStrategies,
     enabled: !!apiClient, // Only enable query when apiClient is initialized
   })
 
   const { data: config, isLoading: configLoading } = useQuery({
     queryKey: ['config'],
-    queryFn: () => get('getConfig'),
+    queryFn: getConfig,
     enabled: !!apiClient, // Only enable query when apiClient is initialized
   });
 
@@ -100,7 +100,7 @@ export const BacktestRunner = ({ selectedCrypto, onSetResult, initialResult }) =
         timeframe: Number(data.timeframe),
         parameters: data.parameters
       }
-      return post('runBacktest', requestData)
+      return runBacktest(requestData)
     },
     onSuccess: (data) => {
       setResult(data)

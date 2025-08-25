@@ -1,0 +1,20 @@
+{
+    "initial_capital": 100.0,
+    "final_capital": 0.0,
+    "total_profit_loss": -100.0,
+    "num_trades": 2,
+    "win_trades": 1,
+    "lost_trades": 0,
+    "win_rate": 50.0,
+    "trade_history": [
+        {
+            "type": "LONG",
+            "entry_price": 4552.71147518973,
+            "exit_price": 4557.490710544908,
+            "profit_loss": 0.10497558172142682,
+            "entry_time": "2025-08-17 14:50:52",
+            "exit_time": "2025-08-17 16:18:42",
+            "capital_after_trade": 100.10497558172143
+        }
+    ]
+}
