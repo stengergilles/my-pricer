@@ -22,6 +22,8 @@ from .crypto_discovery import CryptoDiscovery
 from .optimizer import BayesianOptimizer
 from .backtester_wrapper import BacktesterWrapper
 import config # Import the top-level config.py
+from data import get_crypto_data_merged
+from lines import find_swing_points, find_support_resistance_lines, analyze_line_durations
 
 class TradingEngine:
     """
@@ -425,6 +427,63 @@ class TradingEngine:
                 analysis_result['current_signal'] = 'SHORT'
             else:
                 analysis_result['current_signal'] = 'HOLD'
+
+            # --- Support/Resistance Analysis ---
+            try:
+                timeframe_days_int = self._timeframe_to_days(timeframe)
+                df = get_crypto_data_merged(crypto_id, timeframe_days_int)
+                if df is not None and not df.empty:
+                    df['price'] = df['close'] # Add a 'price' column for swing point analysis
+                    first_timestamp = df.index[0].to_pydatetime()
+                    swing_highs_df, swing_lows_df = find_swing_points(df)
+                    
+                    resistance_lines = []
+                    if not swing_highs_df.empty:
+                        resistance_lines = find_support_resistance_lines(swing_highs_df, 'resistance', first_timestamp)
+                    
+                    support_lines = []
+                    if not swing_lows_df.empty:
+                        support_lines = find_support_resistance_lines(swing_lows_df, 'support', first_timestamp)
+
+                    # Analyze line durations to find active lines
+                    # This function returns a summary of durations, but also finds active lines internally
+                    # We need to extract the active lines from the last point of the analysis
+                    # For simplicity, we'll re-implement the active line finding based on the last price point
+                    
+                    active_resistance = []
+                    active_support = []
+
+                    if not df.empty:
+                        latest_price_point = df.iloc[-1]
+                        current_price = latest_price_point['price']
+                        current_relative_timestamp = (latest_price_point.name.timestamp() - first_timestamp.timestamp())
+
+                        # Find active resistance lines
+                        for r_line in resistance_lines:
+                            r_y_at_current_time = r_line['slope'] * current_relative_timestamp + r_line['intercept']
+                            if current_price <= r_y_at_current_time:
+                                active_resistance.append(r_line)
+                                break # Found the first resistance above
+
+                        # Find active support lines
+                        for s_line in support_lines:
+                            s_y_at_current_time = s_line['slope'] * current_relative_timestamp + s_line['intercept']
+                            if current_price >= s_y_at_current_time:
+                                active_support.append(s_line)
+                                break # Found the first support below
+
+                    analysis_result['active_resistance_lines'] = self._serialize_line_timestamps(active_resistance)
+                    analysis_result['active_support_lines'] = self._serialize_line_timestamps(active_support)
+                else:
+                    self.logger.warning(f"No data for support/resistance analysis for {crypto_id}")
+                    analysis_result['active_resistance_lines'] = []
+                    analysis_result['active_support_lines'] = []
+
+            except Exception as e:
+                self.logger.error(f"Error in support/resistance analysis for {crypto_id}: {e}")
+                analysis_result['active_resistance_lines'] = []
+                analysis_result['active_support_lines'] = []
+
             self.logger.info(f"Final analysis_result: {analysis_result}")
             
             self.logger.info(f"Analysis completed for {crypto_id}")
@@ -553,6 +612,19 @@ class TradingEngine:
             except ValueError:
                 self.logger.warning(f"Could not parse timeframe: {timeframe}. Defaulting to 0.")
                 return 0
+
+    def _serialize_line_timestamps(self, lines: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Converts Timestamp objects within line dictionaries to ISO format strings."""
+        serialized_lines = []
+        for line in lines:
+            serialized_line = line.copy()
+            if 'points' in serialized_line and isinstance(serialized_line['points'], list):
+                serialized_line['points'] = [
+                    p.isoformat() if isinstance(p, pd.Timestamp) else p
+                    for p in serialized_line['points']
+                ]
+            serialized_lines.append(serialized_line)
+        return serialized_lines
 
     def get_config(self) -> Dict[str, Any]:
         """Get system configuration for frontend."""

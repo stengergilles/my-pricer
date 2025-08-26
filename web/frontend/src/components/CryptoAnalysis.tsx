@@ -417,7 +417,7 @@ export const CryptoAnalysis = ({ setActiveTab, onRunBacktest }) => {
                         color: result.backtest_result.total_profit_loss > 0 ? 'success.main' : (result.backtest_result.total_profit_loss < 0 ? 'error.main' : 'text.secondary'),
                       }}
                     >
-                      ${(result.backtest_result?.total_profit_loss ?? 0).toFixed(2)}
+                      {(result.backtest_result?.total_profit_percentage ?? 0).toFixed(2)}%
                     </Typography>
                   </Box>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
