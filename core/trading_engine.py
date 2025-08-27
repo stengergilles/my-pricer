@@ -22,7 +22,7 @@ from .crypto_discovery import CryptoDiscovery
 from .optimizer import BayesianOptimizer
 from .backtester_wrapper import BacktesterWrapper
 import config # Import the top-level config.py
-from data import get_crypto_data_merged
+from .data_fetcher import get_crypto_data_merged
 from lines import find_swing_points, find_support_resistance_lines, analyze_line_durations, auto_discover_percentage_change, predict_next_move
 from chart import generate_chart
 

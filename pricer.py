@@ -26,7 +26,7 @@ from backtester import Backtester
 from indicators import Indicators
 from config import strategy_configs, DEFAULT_TIMEFRAME, DEFAULT_INTERVAL, indicator_defaults
 from pricer_compatibility_fix import find_best_result_file
-from data import get_crypto_data
+from core.data_fetcher import get_crypto_data_merged
 from lines import (
     auto_discover_percentage_change,
     find_swing_points,
@@ -186,15 +186,10 @@ def analyze_crypto_with_existing_system(crypto_id, timeframe=DEFAULT_TIMEFRAME, 
     
     try:
         # Get data - use the correct function signature
-        ohlc_data = get_crypto_data(crypto_id, timeframe)
-        if ohlc_data is None:
+        df = get_crypto_data_merged(crypto_id, timeframe)
+        if df is None or df.empty:
             logging.error(f"No data available for {crypto_id}")
             return None
-        
-        # Convert OHLC data to DataFrame (similar to original pricer.py logic)
-        df = pd.DataFrame(ohlc_data, columns=['timestamp', 'open', 'high', 'low', 'close'])
-        df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms')
-        df.set_index('timestamp', inplace=True)
         
         # Add 'price' column for compatibility with some functions that expect it
         df['price'] = df['close']
@@ -437,12 +432,8 @@ def main():
                 if args.generate_chart:
                     try:
                         # Get data for charting
-                        ohlc_data = get_crypto_data(args.crypto, args.timeframe)
-                        if ohlc_data is not None:
-                            # Convert to DataFrame for charting
-                            df = pd.DataFrame(ohlc_data, columns=['timestamp', 'open', 'high', 'low', 'close'])
-                            df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms')
-                            df.set_index('timestamp', inplace=True)
+                        df = get_crypto_data_merged(args.crypto, args.timeframe)
+                        if df is not None and not df.empty:
                             df['price'] = df['close']  # Add price column for compatibility
                             
                             chart_path = generate_chart(

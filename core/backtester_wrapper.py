@@ -18,30 +18,13 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 try:
     from backtester import Backtester
     from config import strategy_configs, DEFAULT_SPREAD_PERCENTAGE, DEFAULT_SLIPPAGE_PERCENTAGE
-    from data import get_crypto_data_merged
+    from core.data_fetcher import get_crypto_data_merged
     from strategy import Strategy
     BACKTESTER_AVAILABLE = True
     logging.info("Backtester modules imported successfully")
 except ImportError as e:
     logging.warning(f"Backtester modules not available: {e}")
     BACKTESTER_AVAILABLE = False
-    
-    # Mock classes for when backtester is not available
-    class Backtester:
-        def __init__(self, *args, **kwargs):
-            pass
-        def run_backtest(self, *args, **kwargs):
-            return None
-    
-    class Strategy:
-        def __init__(self, *args, **kwargs):
-            pass
-    
-    strategy_configs = {}
-    DEFAULT_SPREAD_PERCENTAGE = 0.01
-    DEFAULT_SLIPPAGE_PERCENTAGE = 0.001
-    def get_crypto_data_merged(*args, **kwargs):
-        return None
 
 class BacktestResult:
     """Standardized backtest result container."""
