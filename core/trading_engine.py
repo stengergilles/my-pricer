@@ -677,3 +677,13 @@ class TradingEngine:
             'supported_intervals': ['15m', '30m', '1h', '4h', '1d'],
             'version': '2.0.0'
         }
+
+    def _generate_backtest_id(self) -> str:
+        """Generate a unique ID for a backtest."""
+        import uuid
+        return str(uuid.uuid4())
+
+    def _generate_analysis_id(self) -> str:
+        """Generate a unique ID for an analysis."""
+        import uuid
+        return str(uuid.uuid4())

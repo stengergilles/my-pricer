@@ -88,6 +88,13 @@ export const BacktestRunner = () => {
 
   const strategyDetails = strategies?.strategies?.find((s: any) => s.name === selectedStrategy)
 
+  useEffect(() => {
+    if (strategyDetails) {
+      // Reset parameters to defaults when strategy changes
+      setValue('parameters', strategyDetails.defaults);
+    }
+  }, [selectedStrategy, strategyDetails, setValue]);
+
   const backtestMutation = useMutation({
     mutationFn: (data: BacktestFormData) => {
       const requestData = {
