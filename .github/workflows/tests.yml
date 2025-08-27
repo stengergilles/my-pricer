@@ -36,7 +36,7 @@ jobs:
     
     - name: Run unit tests
       run: |
-        python run_tests_v2.py --unit
+        python run_tests_v2.py --core
     
     - name: Run integration tests
       run: |
