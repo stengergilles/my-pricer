@@ -40,7 +40,7 @@ jobs:
     
     - name: Run integration tests
       run: |
-        python run_tests.py --integration
+        python run_tests_v2.py --integration
       continue-on-error: true  # API calls may fail in CI
     
     - name: Upload test results
