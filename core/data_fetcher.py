@@ -4,6 +4,7 @@ import pandas as pd
 from datetime import datetime, timedelta
 
 from core.logger_config import setup_logging
+from core.optimizer import CoinGeckoRateLimitError
 
 setup_logging()
 
@@ -19,7 +20,7 @@ def get_crypto_data(crypto_id, days):
         return data
     except requests.exceptions.HTTPError as errh:
         if errh.response.status_code == 429:
-            raise requests.exceptions.HTTPError(f"CoinGecko API rate limit exceeded for {crypto_id}. Please wait and try again later.", response=errh.response) from errh
+            raise CoinGeckoRateLimitError(f"CoinGecko API rate limit exceeded for {crypto_id}.") from errh
         else:
             raise # Re-raise other HTTP errors
     except requests.exceptions.ConnectionError as errc:

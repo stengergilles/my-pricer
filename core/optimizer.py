@@ -15,6 +15,10 @@ from typing import Dict, List, Optional, Any, Tuple
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
+class CoinGeckoRateLimitError(Exception):
+    """Custom exception for CoinGecko API rate limit errors."""
+    pass
+
 from .parameter_manager import ParameterManager
 from .crypto_discovery import CryptoDiscovery
 
@@ -93,6 +97,21 @@ class BayesianOptimizer:
             study.optimize(objective, n_trials=n_trials, timeout=timeout)
         except KeyboardInterrupt:
             self.logger.warning("Optimization interrupted by user")
+        except CoinGeckoRateLimitError as e:
+            self.logger.error(f"Optimization stopped due to rate limit: {e}")
+            # Return an empty result or a result indicating failure
+            return {
+                'crypto': crypto,
+                'strategy': strategy,
+                'error': str(e),
+                'timestamp': datetime.now().isoformat(),
+                'n_trials': 0,
+                'best_value': None,
+                'best_params': {},
+                'optimization_time': 0,
+                'study_name': study_name,
+                'all_trials': []
+            }
         except Exception as e:
             self.logger.error(f"Optimization failed: {e}")
             raise
@@ -254,38 +273,45 @@ class BayesianOptimizer:
             )
             
             if result.returncode != 0:
+                # Check if the error is due to CoinGecko rate limit
+                if "CoinGecko API rate limit exceeded" in result.stderr:
+                    raise CoinGeckoRateLimitError(f"CoinGecko API rate limit exceeded. Optimization stopped.")
+                
                 self.logger.warning(f"Backtester failed: {result.stderr}")
                 return -100.0  # Penalty for failed runs
             
-            # Parse output for profit percentage
+            # Parse output for profit percentage (JSON format)
             output = result.stdout
-            profit_match = None
             
-            # Look for profit percentage in output
-            import re
-            profit_patterns = [
-                r'Total Profit: ([-+]?\d*\.?\d+)%',
-                r'Profit: ([-+]?\d*\.?\d+)%',
-                r'Return: ([-+]?\d*\.?\d+)%'
-            ]
-            
-            for pattern in profit_patterns:
-                match = re.search(pattern, output)
-                if match:
-                    profit_match = match
-                    break
-            
-            if profit_match:
-                profit_percentage = float(profit_match.group(1))
-                return profit_percentage
-            else:
-                self.logger.warning(f"Could not parse profit from output: {output}")
+            try:
+                # Extract JSON part from output
+                json_start = output.find("OPTIMIZER_RESULTS:")
+                if json_start != -1:
+                    json_str = output[json_start + len("OPTIMIZER_RESULTS:"):]
+                    results_data = json.loads(json_str)
+                    
+                    if "total_profit_percentage" in results_data:
+                        profit_percentage = float(results_data["total_profit_percentage"])
+                        return profit_percentage
+                    else:
+                        self.logger.warning(f"JSON output missing 'total_profit_percentage': {output}")
+                        return -100.0
+                else:
+                    self.logger.warning(f"Could not find OPTIMIZER_RESULTS: prefix in output. Full stdout: {output}. Stderr: {result.stderr}")
+                    return -100.0
+            except json.JSONDecodeError as e:
+                self.logger.warning(f"Could not parse JSON from output: {output}. Error: {e}")
+                return -100.0
+            except Exception as e:
+                self.logger.warning(f"An unexpected error occurred while parsing output: {output}. Error: {e}")
                 return -100.0
                 
         except subprocess.TimeoutExpired:
             self.logger.warning(f"Backtester timeout for {crypto} {strategy}")
             return -100.0
         except Exception as e:
+            if isinstance(e, CoinGeckoRateLimitError):
+                raise e  # Re-raise CoinGeckoRateLimitError to stop optimization
             self.logger.error(f"Error running backtester: {e}")
             return -100.0
     

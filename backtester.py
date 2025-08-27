@@ -8,6 +8,7 @@ import os
 import multiprocessing
 from tqdm import tqdm
 import random
+import sys
 from config import strategy_configs, param_sets, DEFAULT_TIMEFRAME, DEFAULT_INTERVAL, DEFAULT_SPREAD_PERCENTAGE, DEFAULT_SLIPPAGE_PERCENTAGE, indicator_defaults
 from core.data_fetcher import get_crypto_data_merged
 from indicators import Indicators, calculate_atr
