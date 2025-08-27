@@ -32,11 +32,11 @@ jobs:
     
     - name: Run quick tests
       run: |
-        python run_tests.py --quick
+        python run_tests_v2.py
     
     - name: Run unit tests
       run: |
-        python run_tests.py --unit
+        python run_tests_v2.py --unit
     
     - name: Run integration tests
       run: |
