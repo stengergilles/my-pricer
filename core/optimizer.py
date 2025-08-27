@@ -4,6 +4,7 @@ Consolidates logic from optimize_bayesian.py and volatile_crypto_optimizer.py.
 """
 
 import optuna
+import optuna.exceptions
 import subprocess
 import json
 import logging
@@ -13,11 +14,22 @@ import random
 from datetime import datetime
 from typing import Dict, List, Optional, Any, Tuple
 from pathlib import Path
+import math
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 class CoinGeckoRateLimitError(Exception):
     """Custom exception for CoinGecko API rate limit errors."""
     pass
+
+class RateLimitStopper:
+    """Optuna callback to stop optimization on CoinGecko rate limit errors."""
+    def __init__(self, logger):
+        self.logger = logger
+
+    def __call__(self, study: optuna.study.Study, trial: optuna.trial.FrozenTrial) -> None:
+        if trial.state == optuna.trial.TrialState.FAIL and isinstance(trial.exception, CoinGeckoRateLimitError):
+            self.logger.error(f"Stopping optimization due to CoinGecko API rate limit: {trial.exception}")
+            raise optuna.exceptions.OptunaError("CoinGecko API rate limit encountered. Stopping optimization.")
 
 from .parameter_manager import ParameterManager
 from .crypto_discovery import CryptoDiscovery
@@ -94,7 +106,8 @@ class BayesianOptimizer:
         # Run optimization
         start_time = time.time()
         try:
-            study.optimize(objective, n_trials=n_trials, timeout=timeout)
+            stopper = RateLimitStopper(self.logger)
+            study.optimize(objective, n_trials=n_trials, timeout=timeout, callbacks=[stopper])
         except KeyboardInterrupt:
             self.logger.warning("Optimization interrupted by user")
         except CoinGeckoRateLimitError as e:
@@ -117,6 +130,29 @@ class BayesianOptimizer:
             raise
         
         end_time = time.time()
+
+        # Check if optimization stopped due to rate limit
+        consecutive_rate_limit_failures = 0
+        for t in reversed(study.trials):
+            if t.state == optuna.trial.TrialState.FAIL and math.isnan(t.value) and t.user_attrs.get("rate_limit_hit"):
+                consecutive_rate_limit_failures += 1
+            else:
+                break
+
+        if consecutive_rate_limit_failures >= 3: # Stop after 3 consecutive rate limit failures
+            self.logger.error("Optimization stopped due to persistent CoinGecko API rate limit.")
+            return {
+                'crypto': crypto,
+                'strategy': strategy,
+                'error': "Optimization stopped due to persistent CoinGecko API rate limit.",
+                'timestamp': datetime.now().isoformat(),
+                'n_trials': len(study.trials),
+                'best_value': None,
+                'best_params': {},
+                'optimization_time': end_time - start_time,
+                'study_name': study_name,
+                'all_trials': []
+            }
         
         # Compile results
         results = {
@@ -307,13 +343,13 @@ class BayesianOptimizer:
                 return -100.0
                 
         except subprocess.TimeoutExpired:
-            self.logger.warning(f"Backtester timeout for {crypto} {strategy}")
-            return -100.0
-        except Exception as e:
-            if isinstance(e, CoinGeckoRateLimitError):
-                raise e  # Re-raise CoinGeckoRateLimitError to stop optimization
-            self.logger.error(f"Error running backtester: {e}")
-            return -100.0
+                self.logger.warning(f"Backtester timeout for {crypto} {strategy}")
+                return -100.0
+            # No generic except Exception here, let it propagate if not handled above
+
+        # If we reach here, it means backtester ran successfully but profit was not parsed
+        self.logger.warning(f"Could not parse profit from output. Full stdout: {output}. Stderr: {result.stderr}")
+        return -100.0
     
     def _find_best_result(self, results: List[Dict]) -> Optional[Dict]:
         """Find the best result from a list of optimization results."""

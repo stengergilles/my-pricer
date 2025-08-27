@@ -36,7 +36,7 @@ def get_crypto_data_merged(crypto_id, days):
     """Fetches OHLC data from CoinGecko and returns it as a Pandas DataFrame."""
     # Ensure we fetch enough data for indicator calculations
     # Use the days parameter or default to 30 days minimum for sufficient history
-    fetch_days = max(int(days), 30) if days else 30
+    fetch_days = int(days) if days else 1 # Ensure it's an integer, default to 1 if None
     ohlc_data = get_crypto_data(crypto_id, fetch_days)
 
     if ohlc_data is None:

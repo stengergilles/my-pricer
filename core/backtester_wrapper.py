@@ -272,8 +272,10 @@ class BacktesterWrapper:
                 return int(timeframe[:-1])
             elif timeframe.endswith('w'):
                 return int(timeframe[:-1]) * 7
+            elif timeframe.endswith('h'):
+                return int(timeframe[:-1]) / 24
             elif timeframe.endswith('m'):
-                return int(timeframe[:-1]) * 30
+                return int(timeframe[:-1]) / (24 * 60)
             else:
                 # Default to 7 days if format is unknown
                 self.logger.warning(f"Unknown timeframe format: {timeframe}. Defaulting to 7 days.")

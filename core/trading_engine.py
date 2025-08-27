@@ -652,39 +652,6 @@ class TradingEngine:
             except ValueError:
                 self.logger.warning(f"Could not parse timeframe: {timeframe}. Defaulting to 0.")
                 return 0
-    
-    def _generate_analysis_id(self) -> str:
-        """Generate unique analysis ID."""
-        return f"analysis_{datetime.now().strftime('%Y%m%d_%H%M%S_%f')}"
-    
-    def _generate_backtest_id(self) -> str:
-        """Generate unique backtest ID."""
-        return f"backtest_{datetime.now().strftime('%Y%m%d_%H%M%S_%f')}"
-    
-    def _timeframe_to_days(self, timeframe: str) -> int:
-        """Convert timeframe string to number of days."""
-        if isinstance(timeframe, int):
-            return timeframe
-        if not isinstance(timeframe, str):
-            return 0
-        
-        timeframe = timeframe.lower()
-        
-        if timeframe.endswith('d'):
-            return int(timeframe[:-1])
-        elif timeframe.endswith('h'):
-            # Return as a fraction of a day
-            return int(timeframe[:-1]) / 24
-        elif timeframe.endswith('m'):
-            # Return as a fraction of a day
-            return int(timeframe[:-1]) / (24 * 60)
-        else:
-            try:
-                # Assume it's already in days if no suffix
-                return int(timeframe)
-            except ValueError:
-                self.logger.warning(f"Could not parse timeframe: {timeframe}. Defaulting to 0.")
-                return 0
 
     def _serialize_line_timestamps(self, lines: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """Converts Timestamp objects within line dictionaries to ISO format strings."""
