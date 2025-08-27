@@ -51,6 +51,10 @@ export const useApiClient = () => {
     return callApi('getCrypto', cryptoId);
   }, [callApi]);
 
+  const getCryptoStatus = useCallback(async (cryptoId: string) => {
+    return callApi('getCryptoStatus', cryptoId);
+  }, [callApi]);
+
   const getStrategies = useCallback(async () => {
     return callApi('getStrategies');
   }, [callApi]);
@@ -95,6 +99,7 @@ export const useApiClient = () => {
     apiClient, 
     getCryptos,
     getCrypto,
+    getCryptoStatus, // New method
     getStrategies,
     getStrategy,
     runAnalysis,

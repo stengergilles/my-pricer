@@ -30,7 +30,10 @@ def run_command(cmd, description):
     
     return result.returncode == 0
 
+from core.logger_config import setup_logging
+
 def main():
+    setup_logging()
     print("🧪 Testing Framework Regression Detection Demo")
     print("=" * 60)
     

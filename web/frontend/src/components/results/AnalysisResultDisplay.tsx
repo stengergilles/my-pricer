@@ -1,0 +1,141 @@
+// web/frontend/src/components/results/AnalysisResultDisplay.tsx
+import {
+  Box,
+  Typography,
+  Grid,
+  Card,
+  CardContent,
+  List,
+  ListItem,
+  ListItemText,
+} from '@mui/material'
+import { styled } from '@mui/system'
+import { AnalysisResult, Line } from '../../utils/types'
+
+const StyledCard = styled(Card)(({ theme }) => ({
+  marginTop: theme.spacing(2),
+  background: theme.palette.background.paper,
+}))
+
+const MetricItem = ({ label, value }: { label: string; value: string | number | undefined }) => (
+  <ListItem>
+    <ListItemText
+      primary={label}
+      secondary={value || 'N/A'}
+      secondaryTypographyProps={{
+        color:
+          label === 'Current Signal'
+            ? value === 'BUY'
+              ? 'success.main'
+              : value === 'SELL'
+              ? 'error.main'
+              : 'text.secondary'
+            : 'text.secondary',
+      }}
+    />
+  </ListItem>
+)
+
+const LineList = ({ title, lines }: { title: string; lines: Line[] | undefined }) => (
+  <Box>
+    <Typography variant="subtitle1" gutterBottom>
+      {title}
+    </Typography>
+    {lines && lines.length > 0 ? (
+      <List dense>
+        {lines.map((line, index) => (
+          <ListItem key={index}>
+            <ListItemText
+              primary={`$${line.price?.toFixed(2)}`}
+              secondary={`Strength: ${line.strength}, Type: ${line.type}`}
+            />
+          </ListItem>
+        ))}
+      </List>
+    ) : (
+      <Typography variant="body2" color="text.secondary">
+        None Found
+      </Typography>
+    )}
+  </Box>
+)
+
+export const AnalysisResultDisplay = ({ result }: { result: AnalysisResult }) => {
+  if (!result) return null
+
+  const {
+    crypto,
+    current_price,
+    current_signal,
+    strategy_used,
+    active_resistance_lines,
+    active_support_lines,
+    total_profit_percentage,
+    total_trades,
+    win_rate,
+  } = result
+
+  return (
+    <Box>
+      <Grid container spacing={3}>
+        <Grid item xs={12} md={6}>
+          <StyledCard>
+            <CardContent>
+              <Typography variant="h6" gutterBottom>
+                Crypto Analysis
+              </Typography>
+              <List dense>
+                <MetricItem label="Cryptocurrency" value={crypto.toUpperCase()} />
+                <MetricItem
+                  label="Current Price"
+                  value={`$${current_price.toLocaleString()}`}
+                />
+                <MetricItem label="Current Signal" value={current_signal} />
+                <MetricItem
+                  label="Strategy Used"
+                  value={strategy_used.replace(/_/g, ' ')}
+                />
+              </List>
+            </CardContent>
+          </StyledCard>
+        </Grid>
+        <Grid item xs={12} md={6}>
+          <StyledCard>
+            <CardContent>
+              <Typography variant="h6" gutterBottom>
+                Backtest Performance
+              </Typography>
+              <List dense>
+                <MetricItem
+                  label="Total Profit"
+                  value={`${total_profit_percentage?.toFixed(2)}%`}
+                />
+                <MetricItem label="Total Trades" value={total_trades} />
+                <MetricItem label="Win Rate" value={`${win_rate?.toFixed(1)}%`} />
+              </List>
+            </CardContent>
+          </StyledCard>
+        </Grid>
+      </Grid>
+
+      <StyledCard>
+        <CardContent>
+          <Typography variant="h6" gutterBottom>
+            Support & Resistance Levels
+          </Typography>
+          <Grid container spacing={2}>
+            <Grid item xs={12} md={6}>
+              <LineList
+                title="Active Resistance"
+                lines={active_resistance_lines}
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <LineList title="Active Support" lines={active_support_lines} />
+            </Grid>
+          </Grid>
+        </CardContent>
+      </StyledCard>
+    </Box>
+  )
+}

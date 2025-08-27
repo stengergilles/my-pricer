@@ -7,24 +7,58 @@ import os
 import glob
 from datetime import datetime
 from typing import Dict, List, Optional, Any
+import logging
+
+from core.app_config import Config
+
+logger = logging.getLogger(__name__)
 
 class ResultManager:
     """Manages storage and retrieval of analysis and backtest results."""
     
-    def __init__(self, results_dir: str):
-        self.results_dir = results_dir
-        os.makedirs(results_dir, exist_ok=True)
+    def __init__(self, config: Config):
+        self.config = config
+        self.results_dir = self.config.RESULTS_DIR
+        os.makedirs(self.results_dir, exist_ok=True)
+        logger.info(f"ResultManager initialized. Results directory: {self.results_dir}")
     
-    def save_analysis_result(self, crypto_id: str, result: Dict[str, Any]) -> str:
-        """Save analysis result to file."""
+    def save_analysis_result(self, crypto_id: str, result_data: Dict[str, Any]) -> str:
+        logger.info(f"Attempting to save analysis result for crypto_id: {crypto_id}")
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         filename = f"analysis_{crypto_id}_{timestamp}.json"
         filepath = os.path.join(self.results_dir, filename)
         
-        with open(filepath, 'w') as f:
-            json.dump(result, f, indent=2, default=str)
+        logger.info(f"Generated filepath for analysis result: {filepath}")
         
-        return filepath
+        try:
+            with open(filepath, 'w') as f:
+                json.dump(result_data, f, indent=2, default=str)
+            logger.info(f"Successfully saved analysis result to {filepath}")
+            return filepath
+        except Exception as e:
+            logger.error(f"Failed to save analysis result to {filepath}: {e}")
+            raise # Re-raise to propagate the error
+    
+    
+    
+    def get_crypto_status(self, crypto_id: str) -> Dict[str, Any]:
+        """
+        Checks if a cryptocurrency has existing optimization results.
+        This is a placeholder and needs proper implementation based on actual optimization results.
+        """
+        has_optimization_results = False
+        # Check if any analysis result files exist for the crypto_id
+        pattern = f"analysis_{crypto_id}_*.json"
+        files = glob.glob(os.path.join(self.results_dir, pattern))
+        if files:
+            has_optimization_results = True
+
+        return {
+            'crypto_id': crypto_id,
+            'has_config_params': False,  # Placeholder: needs actual check for config params
+            'has_optimization_results': has_optimization_results
+        }
+
     
     def save_backtest_result(self, crypto_id: str, strategy_name: str, result: Dict[str, Any]) -> str:
         """Save backtest result to file."""

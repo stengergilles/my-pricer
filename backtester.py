@@ -14,13 +14,10 @@ from indicators import Indicators, calculate_atr
 from strategy import Strategy
 import requests # Added this import
 
+from core.logger_config import setup_logging
+
 # Configure logging
-logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)s - %(levelname)s - %(message)s',
-                    handlers=[
-                        logging.FileHandler("backtester_debug.log"),
-                        logging.StreamHandler()
-                    ])
+setup_logging()
 
 try:
     from backtester_cython import run_backtest_cython

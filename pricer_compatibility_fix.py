@@ -291,7 +291,10 @@ def run_analysis_updated(crypto_id, param_set):
         return None
 
 # Example usage and testing
+from core.logger_config import setup_logging
+
 if __name__ == "__main__":
+    setup_logging()
     # Test the compatibility functions
     print("Testing compatibility functions...")
     

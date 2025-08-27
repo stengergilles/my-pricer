@@ -3,6 +3,7 @@ Strategies API endpoints using unified trading engine.
 """
 
 import logging
+from core.logger_config import setup_logging
 from flask import request
 from flask_restful import Resource
 from datetime import datetime
@@ -16,6 +17,7 @@ from core.trading_engine import TradingEngine
 from core.app_config import Config
 from auth.decorators import auth_required
 
+setup_logging()
 logger = logging.getLogger(__name__)
 
 class StrategiesAPI(Resource):

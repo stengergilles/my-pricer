@@ -19,6 +19,8 @@ import logging
 from pathlib import Path
 
 from core.logger_config import setup_logging
+from core.app_config import Config
+from core.result_manager import ResultManager
 from strategy import Strategy
 from backtester import Backtester
 from indicators import Indicators
@@ -33,9 +35,7 @@ from lines import (
 )
 from chart import generate_chart
 
-PROJECT_ROOT = Path(__file__).resolve().parent
 
-SAVE_INTERVAL_MINUTES = 60  # Save results every 60 minutes
 
 def get_current_price(crypto_id):
     """Fetches the current price of a crypto from CoinGecko."""
@@ -303,27 +303,9 @@ def analyze_crypto_with_existing_system(crypto_id, timeframe=DEFAULT_TIMEFRAME, 
         logging.error(f"Error analyzing {crypto_id}: {e}")
         return None
 
-def save_analysis_result(result, output_dir_name="live_results"):
-    """Save analysis result to file."""
-    try:
-        # Resolve the output directory relative to PROJECT_ROOT
-        output_dir = PROJECT_ROOT / "data" / output_dir_name
-        os.makedirs(output_dir, exist_ok=True)
-        
-        filename = f"{result['crypto_id']}_analysis_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
-        filepath = output_dir / filename # Use Path object for joining
-        
-        with open(filepath, 'w') as f:
-            json.dump(result, f, indent=2, default=str)
-        
-        logging.info(f"Analysis result saved to {filepath}")
-        return filepath
-        
-    except Exception as e:
-        logging.error(f"Error saving analysis result: {e}")
-        return None
 
-def run_continuous_analysis(crypto_id, interval_minutes=60, strategy_name=None):
+
+def run_continuous_analysis(crypto_id, interval_minutes=60, strategy_name=None, result_manager=None):
     """Run continuous analysis using existing system components."""
     logging.info(f"Starting continuous analysis for {crypto_id} (interval: {interval_minutes} minutes)")
     
@@ -334,7 +316,7 @@ def run_continuous_analysis(crypto_id, interval_minutes=60, strategy_name=None):
             
             if result:
                 # Save result
-                save_analysis_result(result)
+                result_manager.save_analysis_result(result['crypto_id'], result)
                 
                 # Log key information
                 logging.info(f"Analysis complete for {crypto_id}:")
@@ -386,6 +368,10 @@ def main():
     
     args = parser.parse_args()
     
+    # Initialize Config and ResultManager
+    config = Config()
+    result_manager = ResultManager(config)
+
     logging.info("=== Refactored Crypto Pricer Started ===")
     logging.info(f"Using existing backtester components to eliminate code duplication")
     logging.info(f"Analyzing: {args.crypto}")
@@ -399,7 +385,8 @@ def main():
             run_continuous_analysis(
                 args.crypto, 
                 args.interval_minutes, 
-                args.strategy
+                args.strategy,
+                result_manager # Pass result_manager
             )
         else:
             # Run single analysis
@@ -412,8 +399,8 @@ def main():
             )
             
             if result:
-                # Save result
-                filepath = save_analysis_result(result, output_dir_name=args.output_dir)
+                # Save result using ResultManager
+                filepath = result_manager.save_analysis_result(result['crypto_id'], result)
                 
                 # Display results
                 print(f"\n=== Analysis Results for {args.crypto.upper()} ===")
@@ -465,7 +452,7 @@ def main():
                                 result['active_resistance_lines'], # Pass active_resistance
                                 result['active_support_lines'], # Pass active_support
                                 args.crypto,
-                                PROJECT_ROOT / "data" / "charts" / f"{args.crypto}_chart_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png" # Construct absolute filename
+                                os.path.join(config.DATA_DIR, "charts", f"{args.crypto}_chart_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png") # Use centralized config
                             )
                             print(f"Chart saved to: {chart_path}")
                     except Exception as e:

@@ -1,6 +1,9 @@
 import requests
 import logging
+from core.logger_config import setup_logging
 import pandas as pd
+
+setup_logging()
 
 def get_crypto_data(crypto_id, days):
     """Fetches OHLC data from CoinGecko."""

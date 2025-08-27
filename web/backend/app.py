@@ -21,7 +21,7 @@ from core.trading_engine import TradingEngine
 from core.app_config import Config
 from auth.middleware import AuthError, requires_auth
 from auth.decorators import auth_required
-from api.crypto import CryptoAPI
+from api.crypto import CryptoAPI, CryptoStatusAPI # Added CryptoStatusAPI
 from api.analysis import AnalysisAPI
 from api.backtest import BacktestAPI
 from api.strategies import StrategiesAPI
@@ -42,15 +42,10 @@ api = Api(app)
 config = Config()
 trading_engine = TradingEngine(config)
 
+from core.logger_config import setup_logging
+
 # Set up logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler(os.path.join(config.LOGS_DIR, 'backend.log')),
-        logging.StreamHandler()
-    ]
-)
+setup_logging()
 logger = logging.getLogger(__name__)
 
 # Register error handlers
@@ -115,6 +110,7 @@ def receive_log():
 
 # Register API resources with Auth0 protection
 api.add_resource(CryptoAPI, '/api/cryptos', '/api/cryptos/<string:crypto_id>')
+api.add_resource(CryptoStatusAPI, '/api/crypto_status/<string:crypto_id>') # New endpoint
 api.add_resource(AnalysisAPI, '/api/analysis', '/api/analysis/<string:analysis_id>')
 api.add_resource(BacktestAPI, '/api/backtest', '/api/backtest/<string:backtest_id>')
 api.add_resource(StrategiesAPI, '/api/strategies', '/api/strategies/<string:strategy_name>')

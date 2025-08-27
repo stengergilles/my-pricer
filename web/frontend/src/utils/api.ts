@@ -10,6 +10,7 @@ export class ApiClient {
     // Bind methods to the instance to preserve 'this' context
     this.getCryptos = this.getCryptos.bind(this);
     this.getCrypto = this.getCrypto.bind(this);
+    this.getCryptoStatus = this.getCryptoStatus.bind(this); // New method
     this.getStrategies = this.getStrategies.bind(this);
     this.getStrategy = this.getStrategy.bind(this);
     this.runAnalysis = this.runAnalysis.bind(this);
@@ -85,6 +86,10 @@ export class ApiClient {
 
   async getCrypto(cryptoId: string) {
     return this.request('GET', `/api/cryptos/${cryptoId}`);
+  }
+
+  async getCryptoStatus(cryptoId: string) {
+    return this.request('GET', `/api/crypto_status/${cryptoId}`);
   }
 
   // Strategy endpoints

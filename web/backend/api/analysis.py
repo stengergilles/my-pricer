@@ -3,6 +3,7 @@ Analysis API endpoints using unified trading engine.
 """
 
 import logging
+from core.logger_config import setup_logging
 from flask import request
 from flask_restful import Resource
 from datetime import datetime
@@ -16,6 +17,7 @@ from core.trading_engine import TradingEngine
 from core.app_config import Config
 from auth.decorators import auth_required
 
+setup_logging()
 logger = logging.getLogger(__name__)
 
 class AnalysisAPI(Resource):
@@ -80,12 +82,15 @@ class AnalysisAPI(Resource):
                 # Get analysis history
                 crypto_id = request.args.get('crypto_id')
                 limit = int(request.args.get('limit', 50))
-                
-                # This would need to be implemented in the trading engine
-                # For now, return empty list
+
+                history = self.engine.get_analysis_history(
+                    crypto_id=crypto_id,
+                    limit=limit
+                )
+
                 return {
-                    'analyses': [],
-                    'count': 0,
+                    'analyses': history,
+                    'count': len(history),
                     'timestamp': datetime.now().isoformat()
                 }
                 

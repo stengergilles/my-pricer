@@ -9,7 +9,10 @@ import json
 import sys
 from core.trading_engine import TradingEngine
 
+from core.logger_config import setup_logging
+
 def main():
+    setup_logging()
     parser = argparse.ArgumentParser(description='Discover volatile cryptocurrencies')
     parser.add_argument('--limit', type=int, default=50, help='Maximum number of cryptos to fetch')
     parser.add_argument('--min-volatility', type=float, default=5.0, help='Minimum volatility threshold (percent)')

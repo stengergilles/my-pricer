@@ -34,7 +34,7 @@ class TradingEngine:
     def __init__(self, config: Optional[Config] = None):
         """Initialize trading engine with configuration."""
         self.config = config or Config()
-        self.result_manager = ResultManager(self.config.RESULTS_DIR)
+        self.result_manager = ResultManager(self.config)
         self.data_manager = DataManager(self.config.CACHE_DIR)
         self.logger = logging.getLogger(__name__)
         
@@ -348,7 +348,28 @@ class TradingEngine:
                            limit: int = 50) -> List[Dict[str, Any]]:
         """Get backtest history."""
         return self.result_manager.get_backtest_history(crypto_id, strategy_name, limit)
-    
+
+    def get_analysis_history(self,
+                           crypto_id: Optional[str] = None,
+                           limit: int = 50) -> List[Dict[str, Any]]:
+        """Get analysis history."""
+        return self.result_manager.get_analysis_history(crypto_id, limit)
+
+    def get_crypto_status(self, crypto_id: str) -> Dict[str, bool]:
+        """
+        Get status indicators for a specific cryptocurrency.
+        """
+        has_optimization_results = bool(self.result_manager.get_backtest_history(crypto_id=crypto_id)) or \
+                                   bool(self.result_manager.get_analysis_history(crypto_id=crypto_id))
+        # For now, has_config_params is always False.
+        # A more robust implementation would check for saved custom configurations.
+        has_config_params = False
+        
+        return {
+            "has_optimization_results": has_optimization_results,
+            "has_config_params": has_config_params
+        }
+
     # ========== Analysis ==========
     
     def analyze_crypto(self, 
@@ -486,6 +507,9 @@ class TradingEngine:
 
             self.logger.info(f"Final analysis_result: {analysis_result}")
             
+            # Save the analysis result
+            self.result_manager.save_analysis_result(crypto_id, analysis_result)
+
             self.logger.info(f"Analysis completed for {crypto_id}")
             return analysis_result
             

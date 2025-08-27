@@ -237,8 +237,11 @@ def run_performance_tests():
     
     return success
 
+from core.logger_config import setup_logging
+
 def main():
     """Main test runner."""
+    setup_logging()
     parser = argparse.ArgumentParser(description='Run tests for unified crypto trading system')
     parser.add_argument('--core', action='store_true', help='Run core component tests')
     parser.add_argument('--api', action='store_true', help='Run API integration tests')
