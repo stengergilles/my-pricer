@@ -15,6 +15,7 @@ import { useApiClient } from './hooks/useApiClient.ts';
 import { setupRemoteLogger } from './utils/remoteLogger.ts';
 import { ApiLoadingProvider } from './contexts/ApiLoadingContext.tsx';
 import { ConfigProvider } from './contexts/ConfigContext.tsx';
+import { APP_TITLE } from './utils/constants.ts';
 
 import LogoutIcon from '@mui/icons-material/Logout';
 
@@ -47,6 +48,10 @@ function AppContent() {
 
   useEffect(() => {
     setupRemoteLogger();
+  }, []);
+
+  useEffect(() => {
+    document.title = APP_TITLE;
   }, []);
 
   const handleTabChange = (event, newValue) => {
@@ -87,7 +92,7 @@ function AppContent() {
         <Container maxWidth="sm">
           <Paper elevation={3} sx={{ padding: 4, textAlign: 'center', borderRadius: 2 }}>
             <Typography variant="h4" component="h1" gutterBottom sx={{ fontWeight: 'bold', color: 'text.primary' }}>
-              Crypto Trading System
+              {APP_TITLE}
             </Typography>
             <Typography variant="body1" color="text.secondary" paragraph sx={{ marginBottom: 4 }}>
               Advanced cryptocurrency trading analysis and backtesting platform
@@ -108,7 +113,7 @@ function AppContent() {
             <Container maxWidth="xl" sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 2 }}>
               <Box>
                 <Typography variant="h5" component="h1" sx={{ fontWeight: 'bold', color: 'text.primary' }}>
-                  Crypto Trading System
+                  {APP_TITLE}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
                   Welcome back, {user.name}

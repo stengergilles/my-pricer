@@ -6,6 +6,9 @@ import { useForm } from 'react-hook-form'
 import { useApiClient } from '../hooks/useApiClient.ts'
 import { useConfig } from '../contexts/ConfigContext.tsx'
 import { BacktestFormData, BacktestResponse } from '../utils/types.ts'
+import { useCryptoStatus } from '../hooks/useCryptoStatus.ts'
+import { Chip } from '@mui/material'
+import CheckCircle from '@mui/icons-material/CheckCircle'
 import {
   Box,
   Typography,
@@ -71,6 +74,9 @@ export const BacktestRunner = () => {
       parameters: {},
     },
   })
+
+  const watchedCryptoId = watch('cryptoId');
+  const { data: cryptoStatus } = useCryptoStatus(watchedCryptoId);
 
   useEffect(() => {
     if (config?.default_timeframe) {
@@ -164,6 +170,16 @@ export const BacktestRunner = () => {
                     </MenuItem>
                   ))}
                 </Select>
+                {cryptoStatus?.has_optimization_results && (
+                  <Chip
+                    icon={<CheckCircle />}
+                    label="Optimized"
+                    size="small"
+                    color="success"
+                    variant="outlined"
+                    sx={{ mt: 1 }}
+                  />
+                )}
               </FormControl>
             </Grid>
             <Grid xs={12} md={4}>

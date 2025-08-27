@@ -15,6 +15,7 @@ import { AnalysisResult, Line } from '../../utils/types'
 const StyledCard = styled(Card)(({ theme }) => ({
   marginTop: theme.spacing(2),
   background: theme.palette.background.paper,
+  width: '300px',
 }))
 
 const MetricItem = ({ label, value }: { label: string; value: string | number | undefined }) => (
