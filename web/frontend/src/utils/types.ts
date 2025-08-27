@@ -54,6 +54,7 @@ export interface AnalysisResult {
   timeframe_days: number
   engine_version: string
   result_path?: string
+  chart_data?: string
 }
 
 // Backtest Types
@@ -83,6 +84,7 @@ export interface BacktestResponse {
   result: BacktestResult
   engine_version: string
   result_path?: string
+  chart_data?: string
 }
 
 // Health Check Types

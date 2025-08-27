@@ -4,10 +4,12 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import os
 from pathlib import Path
+import io
+import base64
 
 PROJECT_ROOT = Path(__file__).resolve().parent
 
-def generate_chart(df, resistance_lines, support_lines, active_resistance, active_support, crypto_id, filename):
+def generate_chart(df, resistance_lines, support_lines, active_resistance, active_support, crypto_id, filename=None):
     plt.figure(figsize=(12, 7))
     plt.plot(df.index, df['price'], label='Price', color='blue')
 
@@ -46,7 +48,20 @@ def generate_chart(df, resistance_lines, support_lines, active_resistance, activ
     plt.ylabel('Price (USD)')
     plt.legend()
     plt.grid(True)
-    os.makedirs(filename.parent, exist_ok=True) # Ensure directory exists
-    plt.savefig(filename)
-    plt.close()
-    print(f"Chart saved as {filename}")
+
+    if filename:
+        # Convert filename to a Path object to handle path operations
+        filepath = Path(filename)
+        os.makedirs(filepath.parent, exist_ok=True) # Ensure directory exists
+        plt.savefig(filepath)
+        plt.close()
+        print(f"Chart saved as {filepath}")
+        return str(filepath)
+    else:
+        # Save to a buffer and encode as base64
+        buf = io.BytesIO()
+        plt.savefig(buf, format='png')
+        buf.seek(0)
+        chart_data = base64.b64encode(buf.read()).decode('utf-8')
+        plt.close()
+        return f"data:image/png;base64,{chart_data}"

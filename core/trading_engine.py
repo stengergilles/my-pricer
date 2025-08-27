@@ -24,6 +24,7 @@ from .backtester_wrapper import BacktesterWrapper
 import config # Import the top-level config.py
 from data import get_crypto_data_merged
 from lines import find_swing_points, find_support_resistance_lines, analyze_line_durations
+from chart import generate_chart
 
 class TradingEngine:
     """
@@ -504,6 +505,25 @@ class TradingEngine:
                 self.logger.error(f"Error in support/resistance analysis for {crypto_id}: {e}")
                 analysis_result['active_resistance_lines'] = []
                 analysis_result['active_support_lines'] = []
+
+            # --- Chart Generation ---
+            try:
+                if df is not None and not df.empty:
+                    chart_data = generate_chart(
+                        df,
+                        resistance_lines,
+                        support_lines,
+                        active_resistance,
+                        active_support,
+                        crypto_id
+                    )
+                    analysis_result['chart_data'] = chart_data
+                    self.logger.info(f"Chart generated for {crypto_id}")
+                else:
+                    analysis_result['chart_data'] = None
+            except Exception as e:
+                self.logger.error(f"Error generating chart for {crypto_id}: {e}")
+                analysis_result['chart_data'] = None
 
             self.logger.info(f"Final analysis_result: {analysis_result}")
             

@@ -1,5 +1,5 @@
 export class ApiClient {
-  private baseUrl: string;
+  public baseUrl: string;
   private getAccessToken?: () => Promise<string | undefined>;
 
   constructor(getAccessToken?: () => Promise<string | undefined>) {

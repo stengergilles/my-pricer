@@ -74,6 +74,7 @@ export const AnalysisResultDisplay = ({ result }: { result: AnalysisResult }) =>
     total_profit_percentage,
     total_trades,
     win_rate,
+    chart_data,
   } = result
 
   return (
@@ -89,7 +90,7 @@ export const AnalysisResultDisplay = ({ result }: { result: AnalysisResult }) =>
                 <MetricItem label="Cryptocurrency" value={crypto.toUpperCase()} />
                 <MetricItem
                   label="Current Price"
-                  value={`$${current_price.toLocaleString()}`}
+                  value={`${current_price.toLocaleString()}`}
                 />
                 <MetricItem label="Current Signal" value={current_signal} />
                 <MetricItem
@@ -137,6 +138,17 @@ export const AnalysisResultDisplay = ({ result }: { result: AnalysisResult }) =>
           </Grid>
         </CardContent>
       </StyledCard>
+
+      {chart_data && (
+        <StyledCard>
+          <CardContent>
+            <Typography variant="h6" gutterBottom>
+              Chart
+            </Typography>
+            <img src={chart_data} alt={`${crypto} chart`} style={{ maxWidth: '100%' }} />
+          </CardContent>
+        </StyledCard>
+      )}
     </Box>
   )
 }
