@@ -120,6 +120,31 @@ export const AnalysisResultDisplay = ({ result }: { result: AnalysisResult }) =>
         </Grid>
       </Grid>
 
+      {result.next_move_prediction && (
+        <StyledCard>
+          <CardContent>
+            <Typography variant="h6" gutterBottom>
+              Next Move Prediction
+            </Typography>
+            <List dense>
+              <MetricItem label="Prediction Score" value={result.next_move_prediction.prediction_score} />
+              <ListItem>
+                <ListItemText primary="Reasons" />
+              </ListItem>
+              <List dense disablePadding>
+                {result.next_move_prediction.reasons?.map((reason, index) => (
+                  <ListItem key={index}>
+                    <ListItemText primary={`- ${reason}`} />
+                  </ListItem>
+                ))}
+              </List>
+              <MetricItem label="Prediction" value={result.next_move_prediction.direction} />
+              <MetricItem label="Confidence" value={`${result.next_move_prediction.confidence?.toFixed(1)}%`} />
+            </List>
+          </CardContent>
+        </StyledCard>
+      )}
+
       <StyledCard>
         <CardContent>
           <Typography variant="h6" gutterBottom>

@@ -23,7 +23,7 @@ from .optimizer import BayesianOptimizer
 from .backtester_wrapper import BacktesterWrapper
 import config # Import the top-level config.py
 from data import get_crypto_data_merged
-from lines import find_swing_points, find_support_resistance_lines, analyze_line_durations
+from lines import find_swing_points, find_support_resistance_lines, analyze_line_durations, auto_discover_percentage_change, predict_next_move
 from chart import generate_chart
 
 class TradingEngine:
@@ -455,17 +455,30 @@ class TradingEngine:
                 timeframe_days_int = self._timeframe_to_days(timeframe)
                 df = get_crypto_data_merged(crypto_id, timeframe_days_int)
                 if df is not None and not df.empty:
+                    self.logger.debug(f"DataFrame for S/R analysis: {df.head()}")
                     df['price'] = df['close'] # Add a 'price' column for swing point analysis
                     first_timestamp = df.index[0].to_pydatetime()
-                    swing_highs_df, swing_lows_df = find_swing_points(df)
+
+                    # Discover optimal percentage change
+                    optimal_percentage_change = auto_discover_percentage_change(df, first_timestamp)
+                    if optimal_percentage_change is None:
+                        self.logger.warning("Optimal percentage change could not be determined. Using default 0.005.")
+                        optimal_percentage_change = 0.005
+
+                    swing_highs_df, swing_lows_df = find_swing_points(df, percentage_change=optimal_percentage_change)
+                    self.logger.debug(f"Swing highs: {swing_highs_df.head()}")
+                    self.logger.debug(f"Swing lows: {swing_lows_df.head()}")
                     
                     resistance_lines = []
+                    support_lines = []
+
                     if not swing_highs_df.empty:
                         resistance_lines = find_support_resistance_lines(swing_highs_df, 'resistance', first_timestamp)
+                        self.logger.debug(f"Resistance lines generated: {resistance_lines}")
                     
-                    support_lines = []
                     if not swing_lows_df.empty:
                         support_lines = find_support_resistance_lines(swing_lows_df, 'support', first_timestamp)
+                        self.logger.debug(f"Support lines generated: {support_lines}")
 
                     # Analyze line durations to find active lines
                     # This function returns a summary of durations, but also finds active lines internally
@@ -484,6 +497,8 @@ class TradingEngine:
                         for r_line in resistance_lines:
                             r_y_at_current_time = r_line['slope'] * current_relative_timestamp + r_line['intercept']
                             if current_price <= r_y_at_current_time:
+                                r_line['price'] = r_y_at_current_time
+                                r_line['strength'] = round(abs(r_line['r_value']) * 10, 2)
                                 active_resistance.append(r_line)
                                 break # Found the first resistance above
 
@@ -491,6 +506,8 @@ class TradingEngine:
                         for s_line in support_lines:
                             s_y_at_current_time = s_line['slope'] * current_relative_timestamp + s_line['intercept']
                             if current_price >= s_y_at_current_time:
+                                s_line['price'] = s_y_at_current_time
+                                s_line['strength'] = round(abs(s_line['r_value']) * 10, 2)
                                 active_support.append(s_line)
                                 break # Found the first support below
 
@@ -525,7 +542,19 @@ class TradingEngine:
                 self.logger.error(f"Error generating chart for {crypto_id}: {e}")
                 analysis_result['chart_data'] = None
 
-            self.logger.info(f"Final analysis_result: {analysis_result}")
+            # Predict next move using existing function
+            try:
+                next_move_prediction = predict_next_move(df, latest_price_point, active_resistance, active_support, first_timestamp)
+                self.logger.debug(f"Next move prediction: {next_move_prediction}")
+                analysis_result['next_move_prediction'] = next_move_prediction
+            except Exception as e:
+                self.logger.error(f"Error in next move prediction: {e}")
+                analysis_result['next_move_prediction'] = None
+
+            # Make a copy for logging, without the chart data
+            log_result = analysis_result.copy()
+            log_result.pop('chart_data', None)
+            self.logger.info(f"Final analysis_result: {log_result}")
             
             # Save the analysis result
             self.result_manager.save_analysis_result(crypto_id, analysis_result)
