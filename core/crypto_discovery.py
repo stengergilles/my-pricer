@@ -31,7 +31,8 @@ class CryptoDiscovery:
     def get_volatile_cryptos(self, 
                            limit: int = 100, 
                            min_volatility: float = 5.0,
-                           cache_hours: int = 1) -> List[Dict]:
+                           cache_hours: int = 24,
+                           force_refresh: bool = False) -> List[Dict]:
         """
         Fetch volatile cryptocurrencies based on 24h price change.
         
@@ -46,8 +47,8 @@ class CryptoDiscovery:
         cache_file = os.path.join(self.cache_dir, "volatile_cryptos.json")
         
         # Check cache first
-        if self._is_cache_valid(cache_file, cache_hours):
-            self.logger.info("Using cached volatile crypto data")
+        if not force_refresh and self._is_cache_valid(cache_file, cache_hours):
+            self.logger.info("`force_refresh` is false and cache is valid. Using cached volatile crypto data.")
             return self._load_cache(cache_file)
         
         self.logger.info(f"Fetching volatile cryptos from CoinGecko (limit: {limit})")
@@ -57,10 +58,11 @@ class CryptoDiscovery:
         params = {
             'vs_currency': 'usd',
             'order': 'market_cap_desc',
-            'per_page': min(limit, 250),  # CoinGecko limit
+            'per_page': 250,  # CoinGecko limit
             'page': 1,
             'sparkline': False,
-            'price_change_percentage': '24h'
+            'price_change_percentage': '24h',
+            'order': 'volume_desc'
         }
         
         try:

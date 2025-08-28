@@ -80,8 +80,15 @@ export class ApiClient {
   }
 
   // Crypto endpoints
-  async getCryptos() {
-    return this.request('GET', '/api/cryptos');
+  async getCryptos(params?: { volatile?: boolean; min_volatility?: number; limit?: number; force_refresh?: boolean }) {
+    const queryParams = new URLSearchParams();
+    if (params?.volatile) queryParams.append('volatile', 'true');
+    if (params?.min_volatility) queryParams.append('min_volatility', params.min_volatility.toString());
+    if (params?.limit) queryParams.append('limit', params.limit.toString());
+    if (params?.force_refresh) queryParams.append('force_refresh', 'true');
+
+    const queryString = queryParams.toString();
+    return this.request('GET', `/api/cryptos${queryString ? `?${queryString}` : ''}`);
   }
 
   async getCrypto(cryptoId: string) {

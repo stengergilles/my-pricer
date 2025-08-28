@@ -61,17 +61,6 @@ class TradingEngine:
             # Use crypto discovery to get crypto list
             cryptos = self.crypto_discovery.get_volatile_cryptos(limit=limit, min_volatility=0.1)
             
-            if not cryptos:
-                # Fallback to a basic list if discovery fails
-                basic_cryptos = [
-                    {'id': 'bitcoin', 'symbol': 'BTC', 'name': 'Bitcoin'},
-                    {'id': 'ethereum', 'symbol': 'ETH', 'name': 'Ethereum'},
-                    {'id': 'binancecoin', 'symbol': 'BNB', 'name': 'BNB'},
-                    {'id': 'cardano', 'symbol': 'ADA', 'name': 'Cardano'},
-                    {'id': 'solana', 'symbol': 'SOL', 'name': 'Solana'}
-                ]
-                return basic_cryptos[:limit]
-            
             return cryptos
         
         except Exception as e:
@@ -80,11 +69,13 @@ class TradingEngine:
     
     def get_volatile_cryptos(self, 
                            min_volatility: float = 5.0, 
-                           limit: int = 50) -> List[Dict[str, Any]]:
+                           limit: int = 50,
+                           force_refresh: bool = False) -> List[Dict[str, Any]]:
         """Get volatile cryptocurrencies for optimization."""
         return self.crypto_discovery.get_volatile_cryptos(
             limit=limit, 
-            min_volatility=min_volatility
+            min_volatility=min_volatility,
+            force_refresh=force_refresh
         )
     
     def get_top_movers(self, count: int = 10) -> Dict[str, List[Dict]]:

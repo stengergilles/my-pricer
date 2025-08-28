@@ -52,14 +52,20 @@ class CryptoAPI(Resource):
                 # Get list of cryptos
                 limit = int(request.args.get('limit', 100))
                 volatile_only = request.args.get('volatile', 'false').lower() == 'true'
-                min_volatility = float(request.args.get('min_volatility', 5.0))
+                min_volatility = float(request.args.get('min_volatility', 20.0))
+                force_refresh = request.args.get('force_refresh', 'false').lower() == 'true'
+
+                logger.info(f"CryptoAPI GET request: volatile_only={volatile_only}, force_refresh={force_refresh}, limit={limit}, min_volatility={min_volatility}")
 
                 if volatile_only:
+                    logger.info("Calling engine.get_volatile_cryptos")
                     cryptos = self.engine.get_volatile_cryptos(
                         min_volatility=min_volatility,
-                        limit=limit
+                        limit=limit,
+                        force_refresh=force_refresh
                     )
                 else:
+                    logger.info("Calling engine.get_cryptos")
                     cryptos = self.engine.get_cryptos(limit=limit)
 
                 logger.info(f"Cryptos from engine: {cryptos}")

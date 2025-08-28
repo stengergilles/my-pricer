@@ -43,8 +43,8 @@ export const useApiClient = () => {
   }, [apiClient, startOperation, endOperation]);
 
   // Direct method calls that map to ApiClient methods
-  const getCryptos = useCallback(async () => {
-    return callApi('getCryptos');
+  const getCryptos = useCallback(async (params?: { volatile?: boolean; min_volatility?: number; limit?: number; force_refresh?: boolean }) => {
+    return callApi('getCryptos', params);
   }, [callApi]);
 
   const getCrypto = useCallback(async (cryptoId: string) => {
