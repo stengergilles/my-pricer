@@ -29,3 +29,6 @@ data/results/
 # Python cache files
 __pycache__/
 *.py[cod]
+
+# Data, cache, and log folders
+/data/
