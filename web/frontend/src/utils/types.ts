@@ -31,6 +31,19 @@ export interface ParameterDefinition {
   description: string
 }
 
+// Line Types (Added)
+export interface Line {
+  price?: number;
+  strength: number;
+  type: string; // "resistance" or "support"
+  points?: string[]; // Assuming points are ISO strings
+  equation?: string;
+  slope?: number;
+  intercept?: number;
+  r_value?: number;
+  std_err?: number;
+}
+
 // Analysis Types
 export interface AnalysisRequest {
   crypto_id: string
@@ -46,8 +59,8 @@ export interface AnalysisResult {
   current_signal: 'LONG' | 'SHORT' | 'HOLD'
   current_price: number
   analysis_timestamp: string
-  active_resistance_lines: any[]
-  active_support_lines: any[]
+  active_resistance_lines: Line[] // Changed from any[]
+  active_support_lines: Line[] // Changed from any[]
   backtest_result?: BacktestResult
   next_move_prediction?: any
   parameters_used: Record<string, any> | string

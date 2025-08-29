@@ -1,7 +1,6 @@
 import logging
-from core.logger_config import setup_logging
 from flask import request, jsonify
-from flask_restful import Resource # This import was missing
+from flask_restful import Resource
 from datetime import datetime
 import sys
 import os
@@ -9,20 +8,16 @@ import os
 # Add core module to path
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
 
-from core.trading_engine import TradingEngine
-from core.app_config import Config
 from auth.decorators import auth_required
 
-setup_logging()
 logger = logging.getLogger(__name__)
 
 class CryptoAPI(Resource):
     """API endpoints for cryptocurrency operations."""
 
-    def __init__(self):
+    def __init__(self, engine):
         """Initialize crypto API with trading engine."""
-        self.config = Config()
-        self.engine = TradingEngine(self.config)
+        self.engine = engine
 
     # @auth_required  # Commented out for now to avoid auth issues during testing
     def get(self, crypto_id=None):
@@ -189,9 +184,8 @@ class CryptoAPI(Resource):
 class CryptoStatusAPI(Resource):
     """API endpoint for cryptocurrency status (e.g., has optimization results)."""
 
-    def __init__(self):
-        self.config = Config()
-        self.engine = TradingEngine(self.config)
+    def __init__(self, engine):
+        self.engine = engine
 
     def get(self, crypto_id):
         """Get status for a specific cryptocurrency."""

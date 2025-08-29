@@ -84,11 +84,11 @@ export const CryptoAnalysis = () => {
       return runAnalysis(requestData)
     },
     onSuccess: (data, variables) => {
-      if (data.analysis && data.analysis.success === false) {
-        setError(data.analysis.error || 'Analysis failed')
+      if (data.result && data.result.success === false) {
+        setError(data.result.error || 'Analysis failed')
         setResult(null)
       } else {
-        setResult(data.analysis)
+        setResult(data.result)
       }
       queryClient.invalidateQueries({ queryKey: ['analysis-history'] })
       queryClient.invalidateQueries({ queryKey: ['cryptoStatus', variables.cryptoId] })

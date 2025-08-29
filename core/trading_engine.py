@@ -10,6 +10,7 @@ import logging
 from datetime import datetime
 from typing import Dict, List, Optional, Any
 import pandas as pd
+import traceback # ADD THIS IMPORT
 
 # Add CLI directory to path so we can import existing code
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
@@ -43,7 +44,7 @@ class TradingEngine:
         self.param_manager = ParameterManager()
         self.crypto_discovery = CryptoDiscovery(self.config.RESULTS_DIR)
         self.optimizer = BayesianOptimizer(self.config.RESULTS_DIR)
-        self.backtester = BacktesterWrapper()
+        self.backtester = BacktesterWrapper(self.config)
     
     # ========== Crypto Management ==========
     
@@ -92,6 +93,7 @@ class TradingEngine:
         """Get list of available trading strategies with configurations."""
         strategies = []
         strategy_names = self.param_manager.get_available_strategies()
+        print(f"DEBUG: TradingEngine.get_strategies() - param_manager returned: {strategy_names}") # ADD THIS
         
         for name in strategy_names:
             parameters = self.param_manager.get_strategy_parameters(name)
@@ -444,7 +446,7 @@ class TradingEngine:
             # --- Support/Resistance Analysis ---
             try:
                 timeframe_days_int = self._timeframe_to_days(timeframe)
-                df = get_crypto_data_merged(crypto_id, timeframe_days_int)
+                df = get_crypto_data_merged(crypto_id, timeframe_days_int, self.config)
                 if df is not None and not df.empty:
                     self.logger.debug(f"DataFrame for S/R analysis: {df.head()}")
                     df['price'] = df['close'] # Add a 'price' column for swing point analysis
@@ -561,6 +563,7 @@ class TradingEngine:
     
     def health_check(self) -> Dict[str, Any]:
         """Perform comprehensive system health check."""
+        print("DEBUG: Entering health_check method.") # ADD THIS
         health = {
             'timestamp': datetime.now().isoformat(),
             'status': 'healthy',
@@ -568,6 +571,7 @@ class TradingEngine:
         }
         
         # Check backtester availability
+        print("DEBUG: Checking backtester availability.") # ADD THIS
         strategies = self.backtester.get_available_strategies()
         health['checks']['backtester'] = {
             'status': 'ok' if strategies else 'warning',
@@ -576,6 +580,7 @@ class TradingEngine:
         }
         
         # Check crypto discovery
+        print("DEBUG: Checking crypto discovery.") # ADD THIS
         try:
             cryptos = self.crypto_discovery.get_volatile_cryptos(limit=5, min_volatility=0.1)
             health['checks']['crypto_discovery'] = {
@@ -589,6 +594,7 @@ class TradingEngine:
             }
         
         # Check data directories
+        print("DEBUG: Checking data directories.") # ADD THIS
         for dir_name, dir_path in [
             ('results', self.config.RESULTS_DIR),
             ('cache', self.config.CACHE_DIR),
@@ -601,6 +607,7 @@ class TradingEngine:
             }
         
         # Check parameter manager
+        print("DEBUG: Checking parameter manager.") # ADD THIS
         param_strategies = self.param_manager.get_available_strategies()
         health['checks']['parameter_manager'] = {
             'status': 'ok' if param_strategies else 'error',
@@ -609,12 +616,14 @@ class TradingEngine:
         }
         
         # Overall status
+        print("DEBUG: Determining overall status.") # ADD THIS
         error_checks = [check for check in health['checks'].values() if check['status'] == 'error']
         if error_checks:
             health['status'] = 'error'
         elif any(check['status'] == 'warning' for check in health['checks'].values()):
             health['status'] = 'warning'
         
+        print("DEBUG: Exiting health_check method.") # ADD THIS
         return health
     
     # ========== Utility Methods ==========

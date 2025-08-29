@@ -62,7 +62,11 @@ const LineList = ({ title, lines }: { title: string; lines: Line[] | undefined }
 )
 
 export const AnalysisResultDisplay = ({ result }: { result: AnalysisResult }) => {
-  if (!result) return null
+  console.log("AnalysisResultDisplay: result prop received:", result);
+  if (!result) {
+    console.log("AnalysisResultDisplay: result is null or undefined, returning null.");
+    return null;
+  }
 
   const {
     crypto,
@@ -75,7 +79,10 @@ export const AnalysisResultDisplay = ({ result }: { result: AnalysisResult }) =>
     total_trades,
     win_rate,
     chart_data,
-  } = result
+  } = result;
+
+  console.log("AnalysisResultDisplay: active_resistance_lines:", active_resistance_lines);
+  console.log("AnalysisResultDisplay: active_support_lines:", active_support_lines);
 
   return (
     <Box>

@@ -69,7 +69,7 @@ def get_trade_signal_for_latest(df: pd.DataFrame, strategy: Strategy, params: di
         logging.error(f"Error generating trade signal: {e}")
         return "HOLD"
 
-def run_backtest_using_existing_system(df: pd.DataFrame, strategy_name: str, params: dict, initial_capital: float = 10000.0):
+def run_backtest_using_existing_system(df: pd.DataFrame, strategy_name: str, params: dict, config: Config, initial_capital: float = 10000.0):
     """
     Run backtest using the existing Backtester class instead of duplicated code.
     """
@@ -84,7 +84,7 @@ def run_backtest_using_existing_system(df: pd.DataFrame, strategy_name: str, par
         # Create strategy and backtester instances
         indicators = Indicators()
         strategy = Strategy(indicators, strategy_config)
-        backtester = Backtester(df, strategy, strategy_config)
+        backtester = Backtester(df, strategy, config)
         backtester.initial_capital = initial_capital
         
         # Ensure required parameters exist
@@ -176,7 +176,7 @@ def _convert_to_json_serializable(obj):
         return [_convert_to_json_serializable(item) for item in obj]
     return obj
 
-def analyze_crypto_with_existing_system(crypto_id, timeframe=DEFAULT_TIMEFRAME, interval=DEFAULT_INTERVAL, 
+def analyze_crypto_with_existing_system(crypto_id, config, timeframe=DEFAULT_TIMEFRAME, interval=DEFAULT_INTERVAL, 
                                       use_best_params=True, strategy_name=None):
     """
     Analyze cryptocurrency using existing backtester system components.
@@ -186,7 +186,7 @@ def analyze_crypto_with_existing_system(crypto_id, timeframe=DEFAULT_TIMEFRAME, 
     
     try:
         # Get data - use the correct function signature
-        df = get_crypto_data_merged(crypto_id, timeframe)
+        df = get_crypto_data_merged(crypto_id, timeframe, config)
         if df is None or df.empty:
             logging.error(f"No data available for {crypto_id}")
             return None
@@ -221,7 +221,7 @@ def analyze_crypto_with_existing_system(crypto_id, timeframe=DEFAULT_TIMEFRAME, 
         current_signal = get_trade_signal_for_latest(df, strategy, params)
         
         # Run backtest to get performance metrics
-        backtest_result = run_backtest_using_existing_system(df, strategy_name, params)
+        backtest_result = run_backtest_using_existing_system(df, strategy_name, params, config)
         
         # Get current price
         current_price = get_current_price(crypto_id)
@@ -299,15 +299,14 @@ def analyze_crypto_with_existing_system(crypto_id, timeframe=DEFAULT_TIMEFRAME, 
         return None
 
 
-
-def run_continuous_analysis(crypto_id, interval_minutes=60, strategy_name=None, result_manager=None):
+def run_continuous_analysis(crypto_id, config, interval_minutes=60, strategy_name=None, result_manager=None):
     """Run continuous analysis using existing system components."""
     logging.info(f"Starting continuous analysis for {crypto_id} (interval: {interval_minutes} minutes)")
     
     while True:
         try:
             # Run analysis
-            result = analyze_crypto_with_existing_system(crypto_id, strategy_name=strategy_name)
+            result = analyze_crypto_with_existing_system(crypto_id, config, strategy_name=strategy_name)
             
             if result:
                 # Save result
@@ -347,7 +346,8 @@ def run_continuous_analysis(crypto_id, interval_minutes=60, strategy_name=None, 
 
 def main():
     """Main function with refactored logic using existing components."""
-    setup_logging()
+    config = Config()
+    setup_logging(config)
     pd.set_option('display.float_format', '{:f}'.format)
     parser = argparse.ArgumentParser(description='Refactored Crypto Pricer - Uses existing backtester components')
     
@@ -364,7 +364,6 @@ def main():
     args = parser.parse_args()
     
     # Initialize Config and ResultManager
-    config = Config()
     result_manager = ResultManager(config)
 
     logging.info("=== Refactored Crypto Pricer Started ===")
@@ -379,6 +378,7 @@ def main():
             # Run continuous analysis
             run_continuous_analysis(
                 args.crypto, 
+                config,
                 args.interval_minutes, 
                 args.strategy,
                 result_manager # Pass result_manager
@@ -387,6 +387,7 @@ def main():
             # Run single analysis
             result = analyze_crypto_with_existing_system(
                 args.crypto,
+                config,
                 args.timeframe,
                 args.interval,
                 use_best_params=not args.use_default_params,
@@ -432,7 +433,7 @@ def main():
                 if args.generate_chart:
                     try:
                         # Get data for charting
-                        df = get_crypto_data_merged(args.crypto, args.timeframe)
+                        df = get_crypto_data_merged(args.crypto, args.timeframe, config)
                         if df is not None and not df.empty:
                             df['price'] = df['close']  # Add price column for compatibility
                             
@@ -465,3 +466,9 @@ def main():
 
 if __name__ == "__main__":
     exit(main())
+
+
+# Example usage:
+# python pricer.py --crypto bitcoin --strategy EMA_Only --use-default-params
+# python pricer.py --crypto ethereum --continuous --interval-minutes 30
+# python pricer.py --crypto solana --generate-chart

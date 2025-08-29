@@ -1,13 +1,16 @@
 import logging
 import os
-from core.app_config import config
 
-LOG_DIR = config.LOGS_DIR
-LOG_FILE = os.path.join(LOG_DIR, 'app.log')
+def LOG_DIR(config):
+    return config.LOGS_DIR
 
-def setup_logging():
+def LOG_FILE(config):
+    return os.path.join(LOG_DIR(config), 'app.log')
+
+def setup_logging(config):
     """Configures logging to write to a file in data/logs."""
-    os.makedirs(LOG_DIR, exist_ok=True)
+    log_dir = LOG_DIR(config)
+    os.makedirs(log_dir, exist_ok=True)
     
     # Remove all handlers associated with the root logger
     for handler in logging.root.handlers[:]:
@@ -17,7 +20,7 @@ def setup_logging():
         level=logging.DEBUG,
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
         handlers=[
-            logging.FileHandler(LOG_FILE),
+            logging.FileHandler(LOG_FILE(config)),
             logging.StreamHandler() # Also log to console
         ]
     )

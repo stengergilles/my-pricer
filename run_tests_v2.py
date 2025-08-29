@@ -43,6 +43,11 @@ def run_api_tests():
         os.environ['FLASK_ENV'] = 'testing'
         os.environ['SKIP_AUTH'] = 'true'
         
+        import sys # Import sys
+        # Add web/backend to sys.path for imports like 'auth'
+        backend_path = os.path.abspath(os.path.join(os.path.dirname(__file__), 'web', 'backend'))
+        sys.path.insert(0, backend_path)
+
         from tests.test_api_integration import run_api_tests
         success = run_api_tests()
         return success
@@ -169,7 +174,12 @@ def run_system_integration_tests():
         import os
         os.environ['FLASK_ENV'] = 'testing'
         os.environ['SKIP_AUTH'] = 'true'
-        
+
+        # Add web/backend to sys.path for imports like 'auth'
+        import sys # Import sys
+        backend_path = os.path.abspath(os.path.join(os.path.dirname(__file__), 'web', 'backend'))
+        sys.path.insert(0, backend_path)
+
         from web.backend.app import app
         with app.test_client() as client:
             response = client.get('/api/health')
@@ -238,10 +248,12 @@ def run_performance_tests():
     return success
 
 from core.logger_config import setup_logging
+from core.app_config import Config
 
 def main():
     """Main test runner."""
-    setup_logging()
+    config = Config()
+    setup_logging(config)
     parser = argparse.ArgumentParser(description='Run tests for unified crypto trading system')
     parser.add_argument('--core', action='store_true', help='Run core component tests')
     parser.add_argument('--api', action='store_true', help='Run API integration tests')

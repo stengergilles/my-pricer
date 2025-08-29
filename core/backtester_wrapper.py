@@ -15,6 +15,8 @@ import pandas as pd
 # Add parent directory to path for imports
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
+from core.app_config import Config
+
 try:
     from backtester import Backtester
     from config import strategy_configs, DEFAULT_SPREAD_PERCENTAGE, DEFAULT_SLIPPAGE_PERCENTAGE
@@ -56,8 +58,9 @@ class BacktesterWrapper:
     Eliminates subprocess calls and provides better error handling.
     """
     
-    def __init__(self):
+    def __init__(self, config: Config):
         """Initialize backtester wrapper."""
+        self.config = config
         self.logger = logging.getLogger(__name__)
         
         if not BACKTESTER_AVAILABLE:
@@ -88,7 +91,7 @@ class BacktesterWrapper:
         try:
             # Get crypto data - convert timeframe to days
             timeframe_days = self._timeframe_to_days(timeframe)
-            data = get_crypto_data_merged(crypto, timeframe_days)
+            data = get_crypto_data_merged(crypto, timeframe_days, self.config)
             if data is None or len(data) == 0:
                 self.logger.error(f"No data available for {crypto}")
                 return {
@@ -257,7 +260,7 @@ class BacktesterWrapper:
             return True  # Mock availability
         
         try:
-            data = get_crypto_data_merged(crypto, self._timeframe_to_days(timeframe))
+            data = get_crypto_data_merged(crypto, self._timeframe_to_days(timeframe), self.config)
             return data is not None and len(data) > 0
         except Exception as e:
             self.logger.warning(f"Data not available for {crypto}: {e}")

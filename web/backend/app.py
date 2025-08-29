@@ -45,7 +45,7 @@ trading_engine = TradingEngine(config)
 from core.logger_config import setup_logging
 
 # Set up logging
-setup_logging()
+setup_logging(config)
 logger = logging.getLogger(__name__)
 
 # Register error handlers
@@ -109,12 +109,12 @@ def receive_log():
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
 # Register API resources with Auth0 protection
-api.add_resource(CryptoAPI, '/api/cryptos', '/api/cryptos/<string:crypto_id>')
-api.add_resource(CryptoStatusAPI, '/api/crypto_status/<string:crypto_id>') # New endpoint
-api.add_resource(AnalysisAPI, '/api/analysis', '/api/analysis/<string:analysis_id>')
-api.add_resource(BacktestAPI, '/api/backtest', '/api/backtest/<string:backtest_id>')
-api.add_resource(StrategiesAPI, '/api/strategies', '/api/strategies/<string:strategy_name>')
-api.add_resource(ResultsAPI, '/api/results', '/api/results/<string:result_type>')
+api.add_resource(CryptoAPI, '/api/cryptos', '/api/cryptos/<string:crypto_id>', resource_class_kwargs={'engine': trading_engine})
+api.add_resource(CryptoStatusAPI, '/api/crypto_status/<string:crypto_id>', resource_class_kwargs={'engine': trading_engine}) # New endpoint
+api.add_resource(AnalysisAPI, '/api/analysis', '/api/analysis/<string:analysis_id>', resource_class_kwargs={'engine': trading_engine})
+api.add_resource(BacktestAPI, '/api/backtest', '/api/backtest/<string:backtest_id>', resource_class_kwargs={'engine': trading_engine})
+api.add_resource(StrategiesAPI, '/api/strategies', '/api/strategies/<string:strategy_name>', resource_class_kwargs={'engine': trading_engine})
+api.add_resource(ResultsAPI, '/api/results', '/api/results/<string:result_type>', resource_class_kwargs={'engine': trading_engine})
 
 # Serve frontend static files (for production)
 @app.route('/', defaults={'path': ''})

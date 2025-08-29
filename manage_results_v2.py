@@ -10,9 +10,11 @@ import sys
 from core.trading_engine import TradingEngine
 
 from core.logger_config import setup_logging
+from core.app_config import Config
 
 def main():
-    setup_logging()
+    config = Config()
+    setup_logging(config)
     parser = argparse.ArgumentParser(description='Manage optimization and backtest results')
     parser.add_argument('--top', type=int, default=10, help='Show top N results')
     parser.add_argument('--crypto', help='Filter by specific crypto')

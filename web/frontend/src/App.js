@@ -9,6 +9,7 @@ import { LoginButton } from './components/auth/LoginButton.tsx';
 import { CryptoAnalysis } from './components/CryptoAnalysis.tsx';
 import { BacktestRunner } from './components/BacktestRunner.tsx';
 import { HealthStatus } from './components/HealthStatus.tsx';
+import { VolatileCryptoList } from './components/VolatileCryptoList.tsx';
 
 import { useAuth0 } from '@auth0/auth0-react';
 import { useApiClient } from './hooks/useApiClient.ts';
@@ -42,7 +43,7 @@ const StyledTab = styled(Tab)(({ theme }) => ({
 function AppContent() {
   const { user, isLoading: auth0Loading, logout } = useAuth0();
   const { isLoading: apiIsLoading } = useApiClient();
-  const [activeTab, setActiveTab] = useState('analysis');
+  const [activeTab, setActiveTab] = useState('volatile');
   const [selectedCryptoForBacktest, setSelectedCryptoForBacktest] = useState(null);
   const [backtestResult, setBacktestResult] = useState(null);
 
@@ -146,6 +147,7 @@ function AppContent() {
           <Toolbar>
             <Container maxWidth="xl">
               <Tabs value={activeTab} onChange={handleTabChange} aria-label="navigation tabs">
+                <StyledTab label="Volatile Cryptos" value="volatile" />
                 <StyledTab label="Analysis" value="analysis" />
                 <StyledTab label="Backtest" value="backtest" />
               </Tabs>
@@ -158,7 +160,9 @@ function AppContent() {
           <Box sx={{ p: 2 }}>
             <Routes>
               <Route path="/" element={
-                activeTab === 'analysis' ? (
+                activeTab === 'volatile' ? (
+                  <VolatileCryptoList />
+                ) : activeTab === 'analysis' ? (
                   <CryptoAnalysis setActiveTab={setActiveTab} onRunBacktest={handleRunBacktest} />
                 ) : (
                   <BacktestRunner

@@ -2,11 +2,10 @@ import pandas as pd
 from functools import reduce
 import operator
 import logging
-from core.logger_config import setup_logging
 from indicators import calculate_sma, calculate_ema, calculate_rsi, calculate_macd, calculate_bbands, calculate_atr
 from config import indicator_defaults # Added this import
 
-setup_logging()
+
 
 def _get_required_indicators(strategy_config):
     """

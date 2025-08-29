@@ -15,11 +15,6 @@ from indicators import Indicators, calculate_atr
 from strategy import Strategy
 import requests # Added this import
 
-from core.logger_config import setup_logging
-
-# Configure logging
-setup_logging()
-
 try:
     from backtester_cython import run_backtest_cython
     CYTHON_AVAILABLE = True
@@ -154,7 +149,7 @@ def convert_numpy_types(obj):
         return [convert_numpy_types(i) for i in obj]
     return obj
 
-def run_single_backtest(args):
+def run_single_backtest(args, config):
     """
     Runs a single backtest with the given parameters.
     """
@@ -162,7 +157,7 @@ def run_single_backtest(args):
     # Load data
     try:
         logging.info(f"Attempting to fetch data for {args.crypto}...")
-        data = get_crypto_data_merged(args.crypto, DEFAULT_TIMEFRAME)
+        data = get_crypto_data_merged(args.crypto, DEFAULT_TIMEFRAME, config)
         logging.info(f"Successfully fetched data for {args.crypto}. Data points: {len(data)}")
     except requests.exceptions.RequestException as e:
         logging.error(f"Failed to fetch data for {args.crypto}: {e}")
@@ -216,6 +211,11 @@ def run_single_backtest(args):
 
 
 if __name__ == "__main__":
+    from core.app_config import Config
+    from core.logger_config import setup_logging
+    config = Config()
+    setup_logging(config)
+
     available_strategies = list(strategy_configs.keys())
     available_param_sets = set(param_sets['default_sets'].keys())
     for crypto in param_sets:
@@ -260,10 +260,10 @@ if __name__ == "__main__":
         exit()
 
     if args.single_run:
-        run_single_backtest(args)
+        run_single_backtest(args, config)
     else: # Search mode
         # Load data
-        data = get_crypto_data_merged(args.crypto, DEFAULT_TIMEFRAME)
+        data = get_crypto_data_merged(args.crypto, DEFAULT_TIMEFRAME, config)
         if data is None:
             logging.error(f"Could not fetch data for {args.crypto}. Exiting.")
             exit()

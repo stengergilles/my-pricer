@@ -6,14 +6,9 @@ import os
 import json
 import time
 
-from core.app_config import config
-from core.logger_config import setup_logging
 from core.optimizer import CoinGeckoRateLimitError
 
-setup_logging()
-
-
-def get_crypto_data(crypto_id, days):
+def get_crypto_data(crypto_id, days, config):
     """Fetches OHLC data from CoinGecko, with caching based on implicit granularity."""
     days = int(days)
 
@@ -84,11 +79,10 @@ def get_crypto_data(crypto_id, days):
                 return json.load(f)
         raise
 
-
-def get_crypto_data_merged(crypto_id, days):
+def get_crypto_data_merged(crypto_id, days, config):
     """Fetches OHLC data from CoinGecko and returns it as a Pandas DataFrame."""
     fetch_days = int(days) if days else 1
-    ohlc_data = get_crypto_data(crypto_id, fetch_days)
+    ohlc_data = get_crypto_data(crypto_id, fetch_days, config)
 
     if ohlc_data is None or not ohlc_data:
         logging.warning(f"No OHLC data returned for {crypto_id} after fetching.")

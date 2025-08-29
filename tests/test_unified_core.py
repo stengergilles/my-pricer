@@ -208,7 +208,12 @@ class TestBacktesterWrapper(unittest.TestCase):
     """Test backtester wrapper functionality."""
     
     def setUp(self):
-        self.backtester = BacktesterWrapper()
+        self.temp_dir = tempfile.mkdtemp()
+        config = Config()
+        config.RESULTS_DIR = self.temp_dir
+        config.CACHE_DIR = self.temp_dir
+        config.LOGS_DIR = self.temp_dir
+        self.backtester = BacktesterWrapper(config)
     
     def test_get_available_strategies(self):
         """Test getting available strategies."""
@@ -266,7 +271,7 @@ class TestBayesianOptimizer(unittest.TestCase):
         # Mock subprocess result
         mock_result = MagicMock()
         mock_result.returncode = 0
-        mock_result.stdout = "Total Profit: 15.5%"
+        mock_result.stdout = "OPTIMIZER_RESULTS:{\"total_profit_percentage\": 15.5}"
         mock_run.return_value = mock_result
         
         # Create mock trial with enough return values
