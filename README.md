@@ -35,7 +35,7 @@ python optimize_bayesian.py --crypto <best_crypto> --strategy <best_strategy> --
 | [README.md](README.md) | Main project overview and daily workflow |
 | [Backend API Documentation](docs/api.md) | Detailed documentation for the backend REST API |
 | [TESTING.md](TESTING.md) | Comprehensive testing framework documentation |
-| [docs/](docs/) | Detailed technical documentation for all components |
+| [docs/README.md](docs/README.md) | Detailed technical documentation for all components |
 
 ## 📁 File Organization
 
