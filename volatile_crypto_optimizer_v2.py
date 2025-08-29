@@ -9,6 +9,7 @@ import logging
 import sys
 from core.trading_engine import TradingEngine
 from core.logger_config import setup_logging
+from core.app_config import Config
 
 def main():
     parser = argparse.ArgumentParser(description='Batch optimization for volatile cryptocurrencies')
@@ -20,40 +21,43 @@ def main():
     
     args = parser.parse_args()
     
+    # Initialize configuration
+    config = Config()
+
     # Set up logging
-    setup_logging()
-    
-    # Initialize trading engine
-    engine = TradingEngine()
-    
-    # Validate strategy
-    available_strategies = [s['name'] for s in engine.get_strategies()]
-    if args.strategy not in available_strategies:
-        print(f"Error: Unknown strategy '{args.strategy}'")
-        print(f"Available strategies: {', '.join(available_strategies)}")
-        sys.exit(1)
-    
-    # Get volatile cryptos first
-    print(f"Discovering volatile cryptocurrencies (min volatility: {args.min_volatility}%)")
-    volatile_cryptos = engine.get_volatile_cryptos(
-        min_volatility=args.min_volatility,
-        limit=100
-    )
-    
-    if not volatile_cryptos:
-        print("No volatile cryptocurrencies found!")
-        sys.exit(1)
-    
-    selected_cryptos = volatile_cryptos[:args.top_count]
-    print(f"\nSelected {len(selected_cryptos)} cryptos for optimization:")
-    for crypto in selected_cryptos:
-        print(f"  {crypto['symbol']}: {crypto['price_change_percentage_24h']:.2f}%")
-    
-    # Run batch optimization
-    print(f"\nStarting batch optimization with {args.strategy}")
-    print(f"Trials per crypto: {args.n_trials}")
-    
+    setup_logging(config)
+
     try:
+        # Initialize trading engine
+        engine = TradingEngine()
+        
+        # Validate strategy
+        available_strategies = [s['name'] for s in engine.get_strategies()]
+        if args.strategy not in available_strategies:
+            print(f"Error: Unknown strategy '{args.strategy}'")
+            print(f"Available strategies: {', '.join(available_strategies)}")
+            raise SystemExit(1)
+        
+        # Get volatile cryptos first
+        print(f"\nDiscovering volatile cryptocurrencies (min volatility: {args.min_volatility}%)")
+        volatile_cryptos = engine.get_volatile_cryptos(
+            min_volatility=args.min_volatility,
+            limit=100
+        )
+        
+        if not volatile_cryptos:
+            print("No volatile cryptocurrencies found!")
+            raise SystemExit(1)
+        
+        selected_cryptos = volatile_cryptos[:args.top_count]
+        print(f"\nSelected {len(selected_cryptos)} cryptos for optimization:")
+        for crypto in selected_cryptos:
+            print(f"  {crypto['symbol']}: {crypto['price_change_percentage_24h']:.2f}%")
+        
+        # Run batch optimization
+        print(f"\nStarting batch optimization with {args.strategy}")
+        print(f"Trials per crypto: {args.n_trials}")
+        
         result = engine.run_volatile_optimization(
             strategy_name=args.strategy,
             n_trials=args.n_trials,
@@ -78,14 +82,14 @@ def main():
                 print(f"  Parameters: {best_overall.get('best_params', {})}")
         else:
             print(f"Batch optimization failed: {result.get('error', 'Unknown error')}")
-            sys.exit(1)
+            raise SystemExit(1)
             
     except KeyboardInterrupt:
         print("\nBatch optimization interrupted by user")
         sys.exit(1)
     except Exception as e:
         print(f"Batch optimization failed: {e}")
-        sys.exit(1)
+        raise SystemExit(1)
 
 if __name__ == '__main__':
     main()
