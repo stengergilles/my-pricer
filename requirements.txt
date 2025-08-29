@@ -16,3 +16,4 @@ six==1.16.0
 werkzeug==2.3.7
 gunicorn==21.2.0
 matplotlib
+scipy
