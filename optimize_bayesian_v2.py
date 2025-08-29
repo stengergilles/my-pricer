@@ -9,6 +9,7 @@ import logging
 import sys
 from core.trading_engine import TradingEngine
 from core.logger_config import setup_logging
+from core.app_config import Config
 
 def main():
     parser = argparse.ArgumentParser(description='Bayesian optimization for crypto trading strategies')
@@ -21,7 +22,8 @@ def main():
     args = parser.parse_args()
     
     # Set up logging
-    setup_logging()
+    config_obj = Config()
+    setup_logging(config_obj)
     
     # Initialize trading engine
     engine = TradingEngine()
