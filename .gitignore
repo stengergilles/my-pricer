@@ -9,6 +9,7 @@ web/backend/backtester_debug.log
 
 # Ignore Python cache directories
 __pycache__/
+*.py[cod]
 
 # Ignore compiled Cython/C files
 *.so
@@ -26,9 +27,10 @@ data/results/
 # Ignore all PNG files except those in web/frontend/public/
 *.png
 !/web/frontend/public/*.png
-# Python cache files
-__pycache__/
-*.py[cod]
 
 # Data, cache, and log folders
 /data/
+
+# Python venv
+
+.venv
