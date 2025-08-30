@@ -1,6 +1,3 @@
-# distutils: extra_compile_args=-fopenmp
-# distutils: extra_link_args=-fopenmp
-
 import numpy as np
 cimport numpy as np
 from libc.math cimport fmax, fmin, fabs

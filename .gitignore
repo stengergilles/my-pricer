@@ -11,9 +11,13 @@ web/backend/backtester_debug.log
 __pycache__/
 *.py[cod]
 
+# Ignore build directory
+build/
+
 # Ignore compiled Cython/C files
 *.so
 *.o
+*.c
 
 # Ignore swap files
 *.swp
