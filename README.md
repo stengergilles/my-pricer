@@ -1,6 +1,6 @@
 # Crypto Trading System with Hybrid Position Sizing
 
-A sophisticated cryptocurrency trading system designed for high-spread environments, featuring adaptive position sizing, volatile crypto discovery, and Bayesian parameter optimization.
+A cryptocurrency trading system designed for high-spread environments, featuring adaptive position sizing, volatile crypto discovery, and Bayesian parameter optimization.
 
 ## 📈 Daily Workflow
 
