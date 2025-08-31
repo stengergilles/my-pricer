@@ -8,7 +8,7 @@ data/logs/*.log
 web/backend/backtester_debug.log
 
 # Ignore Python cache directories
-__pycache__/
+**/__pycache__/
 *.py[cod]
 
 # Ignore build directory
