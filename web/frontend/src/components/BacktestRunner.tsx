@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useForm } from 'react-hook-form'
+import { useForm, Controller } from 'react-hook-form'
 import { useApiClient } from '../hooks/useApiClient.ts'
 import { useConfig } from '../contexts/ConfigContext.tsx'
 import { BacktestFormData, BacktestResponse } from '../utils/types.ts'
@@ -30,7 +30,7 @@ import { BacktestResultDisplay } from './results/BacktestResultDisplay.tsx'
 const StyledPaper = styled(Paper)(({ theme }) => ({
   padding: theme.spacing(3),
   borderRadius: theme.shape.borderRadius,
-  boxShadow: theme.shadows[1],
+  boxShadow: (theme.shadows as any)[1],
   marginTop: theme.spacing(3),
 }))
 
@@ -45,7 +45,7 @@ export const BacktestRunner = () => {
   const { data: cryptos, isLoading: cryptosLoading } = useQuery(
     {
       queryKey: ['cryptos'],
-      queryFn: getCryptos,
+      queryFn: () => getCryptos(),
       enabled: !!apiClient,
     }
   )
@@ -53,7 +53,7 @@ export const BacktestRunner = () => {
   const { data: strategies, isLoading: strategiesLoading } = useQuery(
     {
       queryKey: ['strategies'],
-      queryFn: getStrategies,
+      queryFn: () => getStrategies(),
       enabled: !!apiClient,
     }
   )
@@ -66,10 +66,11 @@ export const BacktestRunner = () => {
     watch,
     setValue,
     formState: { isSubmitting },
+    control,
   } = useForm<BacktestFormData>({
     defaultValues: {
-      cryptoId: 'bitcoin',
-      strategyName: 'EMA_Only',
+      cryptoId: '',
+      strategyName: '',
       timeframe: 1,
       parameters: {},
     },
@@ -77,6 +78,18 @@ export const BacktestRunner = () => {
 
   const watchedCryptoId = watch('cryptoId');
   const { data: cryptoStatus } = useCryptoStatus(watchedCryptoId);
+
+  useEffect(() => {
+    if (cryptos?.cryptos?.length > 0) {
+      setValue('cryptoId', cryptos.cryptos[0].id);
+    }
+  }, [cryptos, setValue]);
+
+  useEffect(() => {
+    if (strategies?.strategies?.length > 0) {
+      setValue('strategyName', strategies.strategies[0].name);
+    }
+  }, [strategies, setValue]);
 
   useEffect(() => {
     if (config?.default_timeframe) {
@@ -107,11 +120,12 @@ export const BacktestRunner = () => {
       return runBacktest(requestData)
     },
     onSuccess: (data) => {
+      console.log("BacktestRunner onSuccess data:", data);
       if (data.result && data.result.success === false) {
         setError(data.result.error || 'Backtest failed')
         setResult(null)
       } else {
-        setResult(data)
+        setResult(data.result)
       }
       queryClient.invalidateQueries({ queryKey: ['backtest-history'] })
     },
@@ -160,24 +174,30 @@ export const BacktestRunner = () => {
           Strategy Backtesting
         </Typography>
 
-        <form onSubmit={handleSubmit(onSubmit)}>
-          <Grid container spacing={3} mb={3}>
-            <Grid xs={12} md={4}>
-              <FormControl fullWidth>
-                <InputLabel id="crypto-select-label">Cryptocurrency</InputLabel>
-                <Select
-                  labelId="crypto-select-label"
-                  label="Cryptocurrency"
-                  {...register('cryptoId', { required: true })}
-                  defaultValue="bitcoin"
-                >
-                  {cryptos?.cryptos?.map((crypto: any) => (
-                    <MenuItem key={crypto.id} value={crypto.id}>
-                      {crypto.name} ({crypto.symbol.toUpperCase()})
-                    </MenuItem>
-                  ))}
-                </Select>
-                {cryptoStatus?.has_optimization_results && (
+        {cryptos?.cryptos && strategies?.strategies && (
+          <form onSubmit={handleSubmit(onSubmit)}>
+            <Grid container spacing={3} mb={3}>
+              <Grid item xs={12} md={4}>
+                <FormControl fullWidth>
+                  <InputLabel id="crypto-select-label">Cryptocurrency</InputLabel>
+                  <Controller
+                    name="cryptoId"
+                    control={control}
+                    render={({ field }) => (
+                      <Select
+                        {...field}
+                        labelId="crypto-select-label"
+                        label="Cryptocurrency"
+                      >
+                        {cryptos.cryptos.map((crypto: any) => (
+                          <MenuItem key={crypto.id} value={crypto.id}>
+                            {crypto.name} ({crypto.symbol.toUpperCase()})
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    )}
+                  />
+                  {cryptoStatus?.has_optimization_results && (
                   <Chip
                     icon={<CheckCircle />}
                     label="Optimized"
@@ -187,26 +207,31 @@ export const BacktestRunner = () => {
                     sx={{ mt: 1 }}
                   />
                 )}
-              </FormControl>
-            </Grid>
-            <Grid xs={12} md={4}>
-              <FormControl fullWidth>
-                <InputLabel id="strategy-select-label">Strategy</InputLabel>
-                <Select
-                  labelId="strategy-select-label"
-                  label="Strategy"
-                  {...register('strategyName', { required: true })}
-                  defaultValue="EMA_Only"
-                >
-                  {strategies?.strategies?.map((strategy: any) => (
-                    <MenuItem key={strategy.name} value={strategy.name}>
-                      {strategy.display_name}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid xs={12} md={4}>
+                </FormControl>
+              </Grid>
+              <Grid item xs={12} md={4}>
+                <FormControl fullWidth>
+                  <InputLabel id="strategy-select-label">Strategy</InputLabel>
+                  <Controller
+                    name="strategyName"
+                    control={control}
+                    render={({ field }) => (
+                      <Select
+                        {...field}
+                        labelId="strategy-select-label"
+                        label="Strategy"
+                      >
+                        {strategies.strategies.map((strategy: any) => (
+                          <MenuItem key={strategy.name} value={strategy.name}>
+                            {strategy.display_name}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    )}
+                  />
+                </FormControl>
+              </Grid>
+              <Grid item xs={12} md={4}>
               <TextField
                 fullWidth
                 label="Timeframe (days)"
@@ -234,13 +259,14 @@ export const BacktestRunner = () => {
               </Typography>
               <Grid container spacing={2}>
                 {Object.keys(strategyDetails.parameters).map((paramKey) => (
-                  <Grid xs={12} sm={6} key={paramKey}>
+                  <Grid item xs={12} sm={6} key={paramKey}>
                     <TextField
                       fullWidth
                       label={paramKey.replace(/_/g, ' ')}
                       type="number"
                       defaultValue={strategyDetails.defaults[paramKey]}
                       {...register(`parameters.${paramKey}` as any)}
+                      sx={{ mt: 2 }}
                     />
                   </Grid>
                 ))}
@@ -260,6 +286,7 @@ export const BacktestRunner = () => {
               : 'Run Backtest'}
           </Button>
         </form>
+        )}
       </StyledPaper>
 
       {(isSubmitting || backtestMutation.isPending) && (

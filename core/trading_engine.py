@@ -392,7 +392,7 @@ class TradingEngine:
                 crypto_results = [r for r in results if r.get('crypto') == crypto_id]
                 if crypto_results:
                     best_result = max(crypto_results, key=lambda x: x.get('best_value', -999))
-                    strategy_name = best_result.get('strategy', 'EMA_Only')
+                    strategy_name = best_result.get('strategy') or 'EMA_Only'
                 else:
                     strategy_name = 'EMA_Only'  # Default strategy
             
@@ -400,6 +400,9 @@ class TradingEngine:
             if custom_params:
                 parameters = custom_params
             else:
+                if not strategy_name:
+                    # This path should not be taken given the logic above, but it satisfies the type checker
+                    raise ValueError("Strategy name could not be determined.")
                 opt_result = self.get_optimization_results(crypto_id, strategy_name)
                 if opt_result and opt_result.get('best_params'):
                     parameters = opt_result['best_params']
@@ -418,13 +421,18 @@ class TradingEngine:
             
             # Enhance with analysis metadata
             analysis_result = {
-                **result,
                 'analysis_id': self._generate_analysis_id(),
+                'crypto_id': crypto_id,  # Explicitly add crypto_id
                 'analysis_type': 'backtest_analysis',
                 'strategy_used': strategy_name,
                 'parameters_source': 'custom' if custom_params else 'optimized',
-                'timeframe_days': self._timeframe_to_days(timeframe), # Add timeframe in days
-                'analysis_timestamp': datetime.now().isoformat() # Add analysis timestamp
+                'timeframe_days': self._timeframe_to_days(timeframe),
+                'analysis_timestamp': datetime.now().isoformat(),
+                'backtest_result': {
+                    'total_profit_percentage': result.get('total_profit_loss'),
+                    'num_trades': result.get('total_trades'),
+                    'win_rate': result.get('win_rate')
+                }
             }
 
             # Add current price
@@ -444,9 +452,16 @@ class TradingEngine:
                 analysis_result['current_signal'] = 'HOLD'
 
             # --- Support/Resistance Analysis ---
+            df: Optional[pd.DataFrame] = None
+            resistance_lines: List[Dict[str, Any]] = []
+            support_lines: List[Dict[str, Any]] = []
+            active_resistance: List[Dict[str, Any]] = []
+            active_support: List[Dict[str, Any]] = []
+            latest_price_point: Optional[pd.Series] = None
+            first_timestamp: Optional[datetime] = None
             try:
-                timeframe_days_int = self._timeframe_to_days(timeframe)
-                df = get_crypto_data_merged(crypto_id, timeframe_days_int, self.config)
+                timeframe_days = self._timeframe_to_days(timeframe)
+                df = get_crypto_data_merged(crypto_id, int(timeframe_days), self.config)
                 if df is not None and not df.empty:
                     self.logger.debug(f"DataFrame for S/R analysis: {df.head()}")
                     df['price'] = df['close'] # Add a 'price' column for swing point analysis
@@ -465,11 +480,11 @@ class TradingEngine:
                     resistance_lines = []
                     support_lines = []
 
-                    if not swing_highs_df.empty:
+                    if not swing_highs_df.empty and first_timestamp:
                         resistance_lines = find_support_resistance_lines(swing_highs_df, 'resistance', first_timestamp)
                         self.logger.debug(f"Resistance lines generated: {resistance_lines}")
                     
-                    if not swing_lows_df.empty:
+                    if not swing_lows_df.empty and first_timestamp:
                         support_lines = find_support_resistance_lines(swing_lows_df, 'support', first_timestamp)
                         self.logger.debug(f"Support lines generated: {support_lines}")
 
@@ -484,7 +499,10 @@ class TradingEngine:
                     if not df.empty:
                         latest_price_point = df.iloc[-1]
                         current_price = latest_price_point['price']
-                        current_relative_timestamp = (latest_price_point.name.timestamp() - first_timestamp.timestamp())
+                        if first_timestamp and isinstance(latest_price_point.name, pd.Timestamp):
+                            current_relative_timestamp = (latest_price_point.name.timestamp() - first_timestamp.timestamp())
+                        else:
+                            current_relative_timestamp = 0.0
 
                         # Find active resistance lines
                         for r_line in resistance_lines:
@@ -537,9 +555,12 @@ class TradingEngine:
 
             # Predict next move using existing function
             try:
-                next_move_prediction = predict_next_move(df, latest_price_point, active_resistance, active_support, first_timestamp)
-                self.logger.debug(f"Next move prediction: {next_move_prediction}")
-                analysis_result['next_move_prediction'] = next_move_prediction
+                if df is not None and latest_price_point is not None and first_timestamp is not None:
+                    next_move_prediction = predict_next_move(df, latest_price_point, active_resistance, active_support, first_timestamp)
+                    self.logger.debug(f"Next move prediction: {next_move_prediction}")
+                    analysis_result['next_move_prediction'] = next_move_prediction
+                else:
+                    analysis_result['next_move_prediction'] = None
             except Exception as e:
                 self.logger.error(f"Error in next move prediction: {e}")
                 analysis_result['next_move_prediction'] = None
@@ -628,30 +649,30 @@ class TradingEngine:
     
     # ========== Utility Methods ==========
     
-    def _timeframe_to_days(self, timeframe: str) -> int:
+    def _timeframe_to_days(self, timeframe: str) -> float:
         """Convert timeframe string to number of days."""
         if isinstance(timeframe, int):
-            return timeframe
+            return float(timeframe)
         if not isinstance(timeframe, str):
-            return 0
+            return 0.0
         
         timeframe = timeframe.lower()
         
         if timeframe.endswith('d'):
-            return int(timeframe[:-1])
+            return float(timeframe[:-1])
         elif timeframe.endswith('h'):
             # Return as a fraction of a day
-            return int(timeframe[:-1]) / 24
+            return float(timeframe[:-1]) / 24
         elif timeframe.endswith('m'):
             # Return as a fraction of a day
-            return int(timeframe[:-1]) / (24 * 60)
+            return float(timeframe[:-1]) / (24 * 60)
         else:
             try:
                 # Assume it's already in days if no suffix
-                return int(timeframe)
+                return float(timeframe)
             except ValueError:
                 self.logger.warning(f"Could not parse timeframe: {timeframe}. Defaulting to 0.")
-                return 0
+                return 0.0
 
     def _serialize_line_timestamps(self, lines: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """Converts Timestamp objects within line dictionaries to ISO format strings."""

@@ -22,6 +22,7 @@ try:
 except ImportError as e:
     logging.error(f"--- cython import error: {e} ---")
     CYTHON_AVAILABLE = False
+    run_backtest_cython = None
 
 class Backtester:
     def __init__(self, data, strategy, config):
@@ -81,7 +82,11 @@ class Backtester:
         )
         logging.info("Cython backtest module returned.")
 
-        results = cython_results_json
+        # The Cython module might return a JSON string or a dict (on error)
+        if isinstance(cython_results_json, str):
+            results = json.loads(cython_results_json)
+        else:
+            results = cython_results_json
         return results
 
 def display_results(results, params, initial_capital=100.0):

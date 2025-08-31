@@ -59,15 +59,15 @@ export interface AnalysisResult {
   current_signal: 'LONG' | 'SHORT' | 'HOLD'
   current_price: number
   analysis_timestamp: string
-  active_resistance_lines: Line[] // Changed from any[]
-  active_support_lines: Line[] // Changed from any[]
-  backtest_result?: BacktestResult
+  active_resistance_lines: Line[]
+  active_support_lines: Line[]
   next_move_prediction?: any
   parameters_used: Record<string, any> | string
   timeframe_days: number
   engine_version: string
   result_path?: string
   chart_data?: string
+  backtest_result?: BacktestResult
 }
 
 // Backtest Types
@@ -82,22 +82,22 @@ export interface BacktestResult {
   total_profit_percentage: number
   num_trades: number
   win_rate: number
-  sharpe_ratio: number
-  max_drawdown: number
+  sharpe_ratio?: number
+  max_drawdown?: number
   note?: string
 }
 
 export interface BacktestResponse {
   backtest_id: string
-  crypto_id: string
-  strategy_name: string
+  crypto: string
+  strategy: string
   parameters: Record<string, any>
-  timeframe_days: number
+  timeframe: string
   timestamp: string
-  result: BacktestResult
   engine_version: string
   result_path?: string
   chart_data?: string
+  backtest_result: BacktestResult
 }
 
 // Health Check Types

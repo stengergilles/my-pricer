@@ -54,8 +54,8 @@ def get_trade_signal(df: pd.DataFrame, strategy_config: dict, params: dict):
 
     # Moving Averages (SMA)
     if 'sma' in required_indicators:
-        short_sma_period = params.get('short_sma_period', indicator_defaults['short_sma'])
-        long_sma_period = params.get('long_sma_period', indicator_defaults['long_sma'])
+        short_sma_period = params.get('short_sma_period', indicator_defaults['short_sma_period'])
+        long_sma_period = params.get('long_sma_period', indicator_defaults['long_sma_period'])
         short_sma = calculate_sma(df_copy, short_sma_period)
         long_sma = calculate_sma(df_copy, long_sma_period)
         base_signals['sma_crossover'] = (short_sma.shift(1) < long_sma.shift(1)) & (short_sma > long_sma)

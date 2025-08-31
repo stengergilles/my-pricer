@@ -15,7 +15,7 @@ import { AnalysisResult, Line } from '../../utils/types'
 const StyledCard = styled(Card)(({ theme }) => ({
   marginTop: theme.spacing(2),
   background: theme.palette.background.paper,
-  width: '300px',
+  width: '100%', // Make width flexible
 }))
 
 const MetricItem = ({ label, value }: { label: string; value: string | number | undefined }) => (
@@ -69,24 +69,28 @@ export const AnalysisResultDisplay = ({ result }: { result: AnalysisResult }) =>
   }
 
   const {
-    crypto,
+    crypto_id,
     current_price,
     current_signal,
     strategy_used,
     active_resistance_lines,
     active_support_lines,
-    total_profit_percentage,
-    total_trades,
-    win_rate,
     chart_data,
+    backtest_result,
   } = result;
+
+  const {
+    total_profit_percentage,
+    num_trades: total_trades,
+    win_rate,
+  } = backtest_result || {};
 
   console.log("AnalysisResultDisplay: active_resistance_lines:", active_resistance_lines);
   console.log("AnalysisResultDisplay: active_support_lines:", active_support_lines);
 
   return (
     <Box>
-      <Grid container spacing={3}>
+      <Grid container spacing={3} sx={{ flexDirection: { xs: 'column', md: 'row' } }}>
         <Grid item xs={12} md={6}>
           <StyledCard>
             <CardContent>
@@ -94,7 +98,7 @@ export const AnalysisResultDisplay = ({ result }: { result: AnalysisResult }) =>
                 Crypto Analysis
               </Typography>
               <List dense>
-                <MetricItem label="Cryptocurrency" value={crypto.toUpperCase()} />
+                <MetricItem label="Cryptocurrency" value={crypto_id?.toUpperCase()} />
                 <MetricItem
                   label="Current Price"
                   value={`${current_price.toLocaleString()}`}
@@ -177,7 +181,7 @@ export const AnalysisResultDisplay = ({ result }: { result: AnalysisResult }) =>
             <Typography variant="h6" gutterBottom>
               Chart
             </Typography>
-            <img src={chart_data} alt={`${crypto} chart`} style={{ maxWidth: '100%' }} />
+            <img src={chart_data} alt={`${crypto_id} chart`} style={{ maxWidth: '100%' }} />
           </CardContent>
         </StyledCard>
       )}

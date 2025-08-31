@@ -4,7 +4,7 @@
 
 import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useForm } from 'react-hook-form'
+import { useForm, Controller } from 'react-hook-form'
 import { useCryptoStatus } from '../hooks/useCryptoStatus.ts'
 import { Chip } from '@mui/material'
 import CheckCircle from '@mui/icons-material/CheckCircle'
@@ -31,7 +31,7 @@ import { AnalysisResultDisplay } from './results/AnalysisResultDisplay.tsx'
 const StyledPaper = styled(Paper)(({ theme }) => ({
   padding: theme.spacing(3),
   borderRadius: theme.shape.borderRadius,
-  boxShadow: theme.shadows[1],
+  boxShadow: theme.shadows?.[1],
   marginTop: theme.spacing(3),
 }))
 
@@ -43,13 +43,13 @@ export const CryptoAnalysis = () => {
   const [result, setResult] = useState<AnalysisResult | null>(null)
   const [error, setError] = useState<string | null>(null)
 
-  const { data: cryptos, isLoading: cryptosLoading } = useQuery<{ cryptos: Crypto[] }>(
-    {
-      queryKey: ['cryptos'],
-      queryFn: getCryptos,
-      enabled: !!apiClient,
-    }
-  )
+  const { data: cryptos, isLoading: cryptosLoading } = useQuery<{
+    cryptos: Crypto[]
+  }>({
+    queryKey: ['cryptos'],
+    queryFn: () => getCryptos(),
+    enabled: !!apiClient,
+  })
 
   const { config, isLoading: configLoading } = useConfig()
 
@@ -58,16 +58,23 @@ export const CryptoAnalysis = () => {
     handleSubmit,
     setValue,
     watch,
+    control,
     formState: { isSubmitting },
   } = useForm<AnalysisFormData>({
     defaultValues: {
-      cryptoId: 'bitcoin',
+      cryptoId: '',
       timeframe: 1,
     },
   })
 
   const watchedCryptoId = watch('cryptoId');
   const { data: cryptoStatus } = useCryptoStatus(watchedCryptoId);
+
+  useEffect(() => {
+    if (cryptos && cryptos.cryptos && cryptos.cryptos.length > 0) {
+      setValue('cryptoId', cryptos.cryptos[0].id);
+    }
+  }, [cryptos, setValue]);
 
   useEffect(() => {
     if (config?.default_timeframe) {
@@ -133,23 +140,28 @@ export const CryptoAnalysis = () => {
 
         <form onSubmit={handleSubmit(onSubmit)}>
           <Grid container spacing={3} mb={3} alignItems="center">
-            <Grid xs={12} md={6}>
+            <Grid item xs={12} md={6}>
               <FormControl fullWidth>
                 <InputLabel id="crypto-select-label">
                   Cryptocurrency
                 </InputLabel>
-                <Select
-                  labelId="crypto-select-label"
-                  label="Cryptocurrency"
-                  {...register('cryptoId', { required: true })}
-                  defaultValue="bitcoin"
-                >
-                  {cryptos?.cryptos?.map((crypto) => (
-                    <MenuItem key={crypto.id} value={crypto.id}>
-                      {crypto.name} ({crypto.symbol.toUpperCase()})
-                    </MenuItem>
-                  ))}
-                </Select>
+                <Controller
+                  name="cryptoId"
+                  control={control}
+                  render={({ field }) => (
+                    <Select
+                      {...field}
+                      labelId="crypto-select-label"
+                      label="Cryptocurrency"
+                    >
+                      {cryptos?.cryptos?.map((crypto) => (
+                        <MenuItem key={crypto.id} value={crypto.id}>
+                          {crypto.name} ({crypto.symbol.toUpperCase()})
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  )}
+                />
                               {cryptoStatus?.has_optimization_results && (
                   <Chip
                     icon={<CheckCircle />}
@@ -162,7 +174,7 @@ export const CryptoAnalysis = () => {
                 )}
               </FormControl>
             </Grid>
-            <Grid xs={12} md={2}>
+            <Grid item xs={12} md={2}>
               <TextField
                 fullWidth
                 label="Timeframe (days)"
@@ -170,7 +182,7 @@ export const CryptoAnalysis = () => {
                 {...register('timeframe', { required: true, valueAsNumber: true })}
               />
             </Grid>
-            <Grid xs={12} md={4}>
+            <Grid item xs={12} md={4}>
               <Button
                 type="submit"
                 variant="contained"

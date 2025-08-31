@@ -16,7 +16,7 @@ import { BacktestResponse } from '../../utils/types'
 const StyledCard = styled(Card)(({ theme }) => ({
   marginTop: theme.spacing(2),
   background: theme.palette.background.paper,
-  width: '300px',
+  width: '100%', // Make width flexible
 }))
 
 const MetricItem = ({ label, value }: { label: string; value: string | number | undefined }) => (
@@ -26,22 +26,26 @@ const MetricItem = ({ label, value }: { label: string; value: string | number | 
 )
 
 export const BacktestResultDisplay = ({ result }: { result: BacktestResponse }) => {
-  if (!result || !result.result) return null
+  if (!result) return null
 
   const {
-    crypto,
     strategy,
     timeframe,
-    total_profit_percentage,
+    parameters,
+    crypto,
+    backtest_result,
+  } = result
+
+  const {
+    total_profit_loss,
     total_trades,
     win_rate,
     max_drawdown,
-    parameters,
-  } = result.result
+  } = backtest_result || {}
 
   return (
     <Box>
-      <Grid container spacing={3}>
+      <Grid container spacing={3} sx={{ flexDirection: { xs: 'column', md: 'row' } }}>
         <Grid item xs={12} md={6}>
           <StyledCard>
             <CardContent>
@@ -49,8 +53,8 @@ export const BacktestResultDisplay = ({ result }: { result: BacktestResponse }) 
                 Backtest Summary
               </Typography>
               <List dense>
-                <MetricItem label="Cryptocurrency" value={crypto.toUpperCase()} />
-                <MetricItem label="Strategy" value={strategy.replace(/_/g, ' ')} />
+                <MetricItem label="Cryptocurrency" value={crypto?.toUpperCase()} />
+                <MetricItem label="Strategy" value={strategy?.replace(/_/g, ' ')} />
                 <MetricItem label="Timeframe" value={`${timeframe} days`} />
               </List>
             </CardContent>
@@ -65,7 +69,7 @@ export const BacktestResultDisplay = ({ result }: { result: BacktestResponse }) 
               <List dense>
                 <MetricItem
                   label="Total Profit"
-                  value={`${total_profit_percentage?.toFixed(2)}%`}
+                  value={`${total_profit_loss?.toFixed(2)}%`}
                 />
                 <MetricItem label="Total Trades" value={total_trades} />
                 <MetricItem label="Win Rate" value={`${win_rate?.toFixed(1)}%`} />
