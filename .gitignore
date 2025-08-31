@@ -41,3 +41,6 @@ data/results/
 
 # Backend virtual environment
 web/backend/venv/
+
+# Backend environment variables
+web/backend/.env
