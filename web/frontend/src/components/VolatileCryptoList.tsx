@@ -16,9 +16,8 @@ export const VolatileCryptoList = () => {
   const { data, isLoading, isError, error, refetch } = useQuery<Crypto[], Error>({
     queryKey: ['volatileCryptos', { forceRefresh: false }], // Initial queryKey
     queryFn: async ({ queryKey }) => {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const [_, queryParams] = queryKey; // queryParams will be { forceRefresh: true }
-      const response = await apiClient.getCryptos({ volatile: true, force_refresh: queryParams?.forceRefresh });
+      const [, queryParams] = queryKey as [string, { forceRefresh: boolean }];
+      const response = await apiClient.getCryptos({ volatile: true, force_refresh: queryParams.forceRefresh });
       return response.cryptos; // Assuming the API returns { cryptos: [...] }
     },
   });
@@ -27,9 +26,8 @@ export const VolatileCryptoList = () => {
     await queryClient.fetchQuery({
       queryKey: ['volatileCryptos', { forceRefresh: true }],
       queryFn: async ({ queryKey }) => {
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const [_, queryParams] = queryKey;
-        const response = await apiClient.getCryptos({ volatile: true, force_refresh: queryParams?.forceRefresh });
+        const [, queryParams] = queryKey as [string, { forceRefresh: boolean }];
+        const response = await apiClient.getCryptos({ volatile: true, force_refresh: queryParams.forceRefresh });
         return response.cryptos;
       },
     });
@@ -45,7 +43,7 @@ export const VolatileCryptoList = () => {
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center h-64">
+      <div className="flex justify-center items-center" style={{ minHeight: '300px' }}>
         <CircularProgress />
         <Typography variant="h6" className="ml-4">Loading volatile cryptocurrencies...</Typography>
       </div>

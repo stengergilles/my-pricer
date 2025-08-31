@@ -10,6 +10,7 @@ from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
 from flask_restful import Api
 from dotenv import load_dotenv
+from flask_compress import Compress
 
 # Load environment variables
 load_dotenv()
@@ -30,7 +31,8 @@ from utils.error_handlers import register_error_handlers
 
 # Initialize Flask app
 app = Flask(__name__)
-app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-secret-key-change-this')
+app.config['SECRET_key'] = os.getenv('SECRET_KEY', 'dev-secret-key-change-this')
+Compress(app)
 
 # Enable CORS for frontend
 CORS(app, origins="*", supports_credentials=True, allow_headers=["Authorization", "Content-Type"])
@@ -125,8 +127,12 @@ def serve_frontend(path):
     
     if os.path.exists(frontend_build_dir):
         if path and os.path.exists(os.path.join(frontend_build_dir, path)):
-            return send_from_directory(frontend_build_dir, path)
-        return send_from_directory(frontend_build_dir, 'index.html')
+            response = send_from_directory(frontend_build_dir, path)
+        else:
+            response = send_from_directory(frontend_build_dir, 'index.html')
+        
+        response.headers['Cache-Control'] = 'public, max-age=31536000'
+        return response
     else:
         return jsonify({
             'message': 'Frontend not built. Run in development mode.',

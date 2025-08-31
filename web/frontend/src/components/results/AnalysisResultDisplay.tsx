@@ -62,9 +62,9 @@ const LineList = ({ title, lines }: { title: string; lines: Line[] | undefined }
 )
 
 export const AnalysisResultDisplay = ({ result }: { result: AnalysisResult }) => {
-  console.log("AnalysisResultDisplay: result prop received:", result);
+  // console.log("AnalysisResultDisplay: result prop received:", result); // Removed for production
   if (!result) {
-    console.log("AnalysisResultDisplay: result is null or undefined, returning null.");
+    // console.log("AnalysisResultDisplay: result is null or undefined, returning null."); // Removed for production
     return null;
   }
 
@@ -85,8 +85,8 @@ export const AnalysisResultDisplay = ({ result }: { result: AnalysisResult }) =>
     win_rate,
   } = backtest_result || {};
 
-  console.log("AnalysisResultDisplay: active_resistance_lines:", active_resistance_lines);
-  console.log("AnalysisResultDisplay: active_support_lines:", active_support_lines);
+  // console.log("AnalysisResultDisplay: active_resistance_lines:", active_resistance_lines); // Removed for production
+  // console.log("AnalysisResultDisplay: active_support_lines:", active_support_lines); // Removed for production
 
   return (
     <Box>

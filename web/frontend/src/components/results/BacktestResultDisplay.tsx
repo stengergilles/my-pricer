@@ -17,6 +17,7 @@ const StyledCard = styled(Card)(({ theme }) => ({
   marginTop: theme.spacing(2),
   background: theme.palette.background.paper,
   width: '100%', // Make width flexible
+  contain: 'paint',
 }))
 
 const MetricItem = ({ label, value }: { label: string; value: string | number | undefined }) => (
@@ -37,8 +38,8 @@ export const BacktestResultDisplay = ({ result }: { result: BacktestResponse }) 
   } = result
 
   const {
-    total_profit_loss,
-    total_trades,
+    total_profit_percentage,
+    num_trades,
     win_rate,
     max_drawdown,
   } = backtest_result || {}
@@ -69,9 +70,9 @@ export const BacktestResultDisplay = ({ result }: { result: BacktestResponse }) 
               <List dense>
                 <MetricItem
                   label="Total Profit"
-                  value={`${total_profit_loss?.toFixed(2)}%`}
+                  value={`${total_profit_percentage?.toFixed(2)}%`}
                 />
-                <MetricItem label="Total Trades" value={total_trades} />
+                <MetricItem label="Total Trades" value={num_trades} />
                 <MetricItem label="Win Rate" value={`${win_rate?.toFixed(1)}%`} />
                 <MetricItem
                   label="Max Drawdown"

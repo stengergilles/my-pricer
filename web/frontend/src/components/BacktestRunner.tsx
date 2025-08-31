@@ -120,7 +120,7 @@ export const BacktestRunner = () => {
       return runBacktest(requestData)
     },
     onSuccess: (data) => {
-      console.log("BacktestRunner onSuccess data:", data);
+      // console.log("BacktestRunner onSuccess data:", data); // Removed for production
       if (data.result && data.result.success === false) {
         setError(data.result.error || 'Backtest failed')
         setResult(null)
@@ -130,7 +130,7 @@ export const BacktestRunner = () => {
       queryClient.invalidateQueries({ queryKey: ['backtest-history'] })
     },
     onError: (error: any) => {
-      console.error('Backtest mutation error:', error)
+      // console.error('Backtest mutation error:', error) // Removed for production
       setError(error.message || 'An unknown error occurred.')
     },
   })

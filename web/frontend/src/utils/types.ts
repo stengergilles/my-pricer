@@ -12,6 +12,7 @@ export interface Crypto {
   name: string
   symbol: string
   current_price?: number
+  price_change_percentage_24h?: number
 }
 
 // Strategy Types

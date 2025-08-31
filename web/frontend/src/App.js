@@ -1,24 +1,22 @@
-import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
+import { HashRouter as Router, Routes, Route } from 'react-router-dom';
 import { Box, CircularProgress, Typography, Container, Paper, AppBar, Toolbar, Tabs, Tab, IconButton } from '@mui/material';
 import { styled } from '@mui/system';
 
 // Import components that were in page.tsx
 import { LoginButton } from './components/auth/LoginButton.tsx';
-
-import { CryptoAnalysis } from './components/CryptoAnalysis.tsx';
-import { BacktestRunner } from './components/BacktestRunner.tsx';
-import { HealthStatus } from './components/HealthStatus.tsx';
-import { VolatileCryptoList } from './components/VolatileCryptoList.tsx';
-
 import { useAuth0 } from '@auth0/auth0-react';
 import { useApiClient } from './hooks/useApiClient.ts';
 import { setupRemoteLogger } from './utils/remoteLogger.ts';
 import { ApiLoadingProvider } from './contexts/ApiLoadingContext.tsx';
 import { ConfigProvider } from './contexts/ConfigContext.tsx';
 import { APP_TITLE } from './utils/constants.ts';
-
 import LogoutIcon from '@mui/icons-material/Logout';
+
+const CryptoAnalysis = lazy(() => import('./components/CryptoAnalysis.tsx').then(module => ({ default: module.CryptoAnalysis })));
+const BacktestRunner = lazy(() => import('./components/BacktestRunner.tsx').then(module => ({ default: module.BacktestRunner })));
+const HealthStatus = lazy(() => import('./components/HealthStatus.tsx').then(module => ({ default: module.HealthStatus })));
+const VolatileCryptoList = lazy(() => import('./components/VolatileCryptoList.tsx').then(module => ({ default: module.VolatileCryptoList })));
 
 
 // Styled components for navigation tabs
@@ -48,7 +46,10 @@ function AppContent() {
   const [backtestResult, setBacktestResult] = useState(null);
 
   useEffect(() => {
-    setupRemoteLogger();
+    const timer = setTimeout(() => {
+      setupRemoteLogger();
+    }, 1000);
+    return () => clearTimeout(timer);
   }, []);
 
   useEffect(() => {
@@ -158,21 +159,23 @@ function AppContent() {
         {/* Main Content */}
         <Container maxWidth="xl" sx={{ py: 3 }}>
           <Box sx={{ p: 2 }}>
-            <Routes>
-              <Route path="/" element={
-                activeTab === 'volatile' ? (
-                  <VolatileCryptoList />
-                ) : activeTab === 'analysis' ? (
-                  <CryptoAnalysis setActiveTab={setActiveTab} onRunBacktest={handleRunBacktest} />
-                ) : (
-                  <BacktestRunner
-                    selectedCrypto={selectedCryptoForBacktest}
-                    onSetResult={setBacktestResult}
-                    initialResult={backtestResult}
-                  />
-                )
-              } />
-            </Routes>
+            <Suspense fallback={<CircularProgress />}>
+              <Routes>
+                <Route path="/" element={
+                  activeTab === 'volatile' ? (
+                    <VolatileCryptoList />
+                  ) : activeTab === 'analysis' ? (
+                    <CryptoAnalysis setActiveTab={setActiveTab} onRunBacktest={handleRunBacktest} />
+                  ) : (
+                    <BacktestRunner
+                      selectedCrypto={selectedCryptoForBacktest}
+                      onSetResult={setBacktestResult}
+                      initialResult={backtestResult}
+                    />
+                  )
+                } />
+              </Routes>
+            </Suspense>
           </Box>
         </Container>
       </Box>

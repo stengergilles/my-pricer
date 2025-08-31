@@ -5,7 +5,7 @@ export class ApiClient {
   constructor(getAccessToken?: () => Promise<string | undefined>) {
     this.getAccessToken = getAccessToken;
 
-    this.baseUrl = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000';
+    this.baseUrl = 'http://localhost:5000';
 
     // Bind methods to the instance to preserve 'this' context
     this.getCryptos = this.getCryptos.bind(this);
@@ -44,7 +44,6 @@ export class ApiClient {
     }
 
     try {
-      await new Promise(resolve => setTimeout(resolve, 500)); // Artificial delay
       const response = await fetch(url, options);
 
       if (!response.ok) {
@@ -73,7 +72,7 @@ export class ApiClient {
         return {}; // Return empty object for non-JSON responses (e.g., 200 OK with no content)
       }
     } catch (error: any) {
-      console.error('ApiClient Fetch Error:', error);
+      // console.error('ApiClient Fetch Error:', error); // Removed for production
       throw error;
     } finally {
     }
@@ -161,4 +160,3 @@ export class ApiClient {
     return this.request('GET', '/api/config');
   }
 }
-

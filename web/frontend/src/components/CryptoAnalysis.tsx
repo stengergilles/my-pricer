@@ -101,7 +101,7 @@ export const CryptoAnalysis = () => {
       queryClient.invalidateQueries({ queryKey: ['cryptoStatus', variables.cryptoId] })
     },
     onError: (error: any) => {
-      console.error('Analysis mutation error:', error)
+      // console.error('Analysis mutation error:', error) // Removed for production
       setError(error.message || 'An unknown error occurred.')
     },
   })
@@ -210,7 +210,6 @@ export const CryptoAnalysis = () => {
               minHeight: '200px',
             }}
           >
-            <CircularProgress />
             <Typography sx={{ ml: 2 }}>Running analysis...</Typography>
           </Box>
         </StyledPaper>
