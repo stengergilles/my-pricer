@@ -11,6 +11,12 @@ from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Tuple
 import os
 
+class CoinGeckoAPIError(Exception):
+    """Custom exception for CoinGecko API errors."""
+    def __init__(self, message, status_code=None):
+        super().__init__(message)
+        self.status_code = status_code
+
 class CryptoDiscovery:
     """
     Handles cryptocurrency discovery, volatility analysis, and data caching.
@@ -45,49 +51,46 @@ class CryptoDiscovery:
             List of crypto dictionaries with volatility data
         """
         cache_file = os.path.join(self.cache_dir, "volatile_cryptos.json")
-        
-        # Check cache first
+        all_cryptos = []
+
         if not force_refresh and self._is_cache_valid(cache_file, cache_hours):
             self.logger.info("`force_refresh` is false and cache is valid. Using cached volatile crypto data.")
-            return self._load_cache(cache_file)
+            all_cryptos = self._load_cache(cache_file)
+        else:
+            self.logger.info("Fetching volatile cryptos from CoinGecko")
+            url = f"{self.base_url}/coins/markets"
+            params = {
+                'vs_currency': 'usd',
+                'order': 'market_cap_desc',
+                'per_page': 250,
+                'page': 1,
+                'sparkline': False,
+                'price_change_percentage': '24h',
+                'order': 'volume_desc'
+            }
+            
+            try:
+                response = requests.get(url, params=params, timeout=30)
+                response.raise_for_status()
+                data = response.json()
+                
+                all_cryptos = self._process_crypto_data(data)
+                
+                self._save_cache(cache_file, all_cryptos)
+                
+                self.logger.info(f"Found and cached {len(all_cryptos)} cryptos")
+                
+            except requests.exceptions.RequestException as e:
+                self.logger.error(f"Error fetching data from CoinGecko: {e}")
+                status_code = e.response.status_code if e.response else None
+                raise CoinGeckoAPIError(f"Failed to fetch data from CoinGecko: {e}", status_code=status_code)
+
+        volatile_cryptos = [
+            crypto for crypto in all_cryptos
+            if abs(crypto.get('price_change_percentage_24h', 0)) >= min_volatility
+        ]
         
-        self.logger.info(f"Fetching volatile cryptos from CoinGecko (limit: {limit})")
-        
-        # Fetch from CoinGecko
-        url = f"{self.base_url}/coins/markets"
-        params = {
-            'vs_currency': 'usd',
-            'order': 'market_cap_desc',
-            'per_page': 250,  # CoinGecko limit
-            'page': 1,
-            'sparkline': False,
-            'price_change_percentage': '24h',
-            'order': 'volume_desc'
-        }
-        
-        try:
-            response = requests.get(url, params=params, timeout=30)
-            response.raise_for_status()
-            data = response.json()
-            
-            # Filter and process data
-            volatile_cryptos = self._process_crypto_data(data, min_volatility)
-            
-            # Cache results
-            self._save_cache(cache_file, volatile_cryptos)
-            
-            self.logger.info(f"Found {len(volatile_cryptos)} volatile cryptos")
-            return volatile_cryptos
-            
-        except requests.exceptions.RequestException as e:
-            self.logger.error(f"Error fetching data from CoinGecko: {e}")
-            
-            # Try to return cached data even if expired
-            if os.path.exists(cache_file):
-                self.logger.warning("Using expired cache due to API error")
-                return self._load_cache(cache_file)
-            
-            return []
+        return volatile_cryptos[:limit]
     
     def get_top_movers(self, 
                       count: int = 10, 
@@ -213,7 +216,7 @@ class CryptoDiscovery:
             self.logger.error(f"Error searching for '{query}': {e}")
             return []
     
-    def _process_crypto_data(self, raw_data: List[Dict], min_volatility: float) -> List[Dict]:
+    def _process_crypto_data(self, raw_data: List[Dict]) -> List[Dict]:
         """Process and filter raw crypto data from API."""
         processed = []
         
@@ -222,10 +225,6 @@ class CryptoDiscovery:
             
             # Skip coins without price change data
             if price_change is None:
-                continue
-            
-            # Skip coins below volatility threshold
-            if abs(price_change) < min_volatility:
                 continue
             
             # Extract relevant data
@@ -273,7 +272,11 @@ class CryptoDiscovery:
                     os.remove(cache_file)
                     return []
                 return data
-        except (json.JSONDecodeError, OSError) as e:
+        except json.JSONDecodeError as e:
+            self.logger.error(f"Error loading cache due to corruption: {e}. Deleting cache file.")
+            os.remove(cache_file)
+            return []
+        except OSError as e:
             self.logger.error(f"Error loading cache: {e}")
             return []
     

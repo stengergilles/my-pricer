@@ -35,7 +35,6 @@ export const useApiClient = () => {
         throw new Error(`Method ${String(method)} is not a function on ApiClient.`);
       }
     } catch (error) {
-      console.error(`API call failed for method ${String(method)}:`, error);
       throw error;
     } finally {
       endOperation(operationId)

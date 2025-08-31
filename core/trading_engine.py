@@ -48,19 +48,20 @@ class TradingEngine:
     
     # ========== Crypto Management ==========
     
-    def get_cryptos(self, limit: int = 100) -> List[Dict[str, Any]]:
+    def get_cryptos(self, limit: int = 100, min_volatility: float = 0.1) -> List[Dict[str, Any]]:
         """
         Get list of available cryptocurrencies with market data.
         
         Args:
             limit: Maximum number of cryptos to return
+            min_volatility: Minimum volatility threshold
             
         Returns:
             List of cryptocurrency data dictionaries
         """
         try:
             # Use crypto discovery to get crypto list
-            cryptos = self.crypto_discovery.get_volatile_cryptos(limit=limit, min_volatility=0.1)
+            cryptos = self.crypto_discovery.get_volatile_cryptos(limit=limit, min_volatility=min_volatility)
             
             return cryptos
         
@@ -93,7 +94,6 @@ class TradingEngine:
         """Get list of available trading strategies with configurations."""
         strategies = []
         strategy_names = self.param_manager.get_available_strategies()
-        print(f"DEBUG: TradingEngine.get_strategies() - param_manager returned: {strategy_names}") # ADD THIS
         
         for name in strategy_names:
             parameters = self.param_manager.get_strategy_parameters(name)
@@ -584,7 +584,6 @@ class TradingEngine:
     
     def health_check(self) -> Dict[str, Any]:
         """Perform comprehensive system health check."""
-        print("DEBUG: Entering health_check method.") # ADD THIS
         health = {
             'timestamp': datetime.now().isoformat(),
             'status': 'healthy',
@@ -592,7 +591,6 @@ class TradingEngine:
         }
         
         # Check backtester availability
-        print("DEBUG: Checking backtester availability.") # ADD THIS
         strategies = self.backtester.get_available_strategies()
         health['checks']['backtester'] = {
             'status': 'ok' if strategies else 'warning',
@@ -601,12 +599,11 @@ class TradingEngine:
         }
         
         # Check crypto discovery
-        print("DEBUG: Checking crypto discovery.") # ADD THIS
         try:
             cryptos = self.crypto_discovery.get_volatile_cryptos(limit=5, min_volatility=0.1)
             health['checks']['crypto_discovery'] = {
-                'status': 'ok' if cryptos else 'warning',
-                'message': f'{len(cryptos)} cryptos discovered' if cryptos else 'Using fallback crypto list'
+                'status': 'ok' if cryptos else 'error',
+                'message': f'{len(cryptos)} cryptos discovered' if cryptos else 'Failed to discover cryptos'
             }
         except Exception as e:
             health['checks']['crypto_discovery'] = {
@@ -615,7 +612,6 @@ class TradingEngine:
             }
         
         # Check data directories
-        print("DEBUG: Checking data directories.") # ADD THIS
         for dir_name, dir_path in [
             ('results', self.config.RESULTS_DIR),
             ('cache', self.config.CACHE_DIR),
@@ -628,7 +624,6 @@ class TradingEngine:
             }
         
         # Check parameter manager
-        print("DEBUG: Checking parameter manager.") # ADD THIS
         param_strategies = self.param_manager.get_available_strategies()
         health['checks']['parameter_manager'] = {
             'status': 'ok' if param_strategies else 'error',
@@ -637,14 +632,12 @@ class TradingEngine:
         }
         
         # Overall status
-        print("DEBUG: Determining overall status.") # ADD THIS
         error_checks = [check for check in health['checks'].values() if check['status'] == 'error']
         if error_checks:
             health['status'] = 'error'
         elif any(check['status'] == 'warning' for check in health['checks'].values()):
             health['status'] = 'warning'
         
-        print("DEBUG: Exiting health_check method.") # ADD THIS
         return health
     
     # ========== Utility Methods ==========

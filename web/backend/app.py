@@ -119,6 +119,14 @@ api.add_resource(StrategiesAPI, '/api/strategies', '/api/strategies/<string:stra
 api.add_resource(ResultsAPI, '/api/results', '/api/results/<string:result_type>', resource_class_kwargs={'engine': trading_engine})
 
 # Serve frontend static files (for production)
+@app.route('/favicon-v2.ico')
+def favicon():
+    """Serve the favicon with the correct content type."""
+    frontend_build_dir = os.path.join(os.path.dirname(__file__), '..', 'frontend', 'out')
+    response = send_from_directory(frontend_build_dir, 'favicon-v2.ico', mimetype='image/vnd.microsoft.icon')
+    response.headers['Cache-Control'] = 'public, max-age=31536000'
+    return response
+
 @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')
 def serve_frontend(path):

@@ -8,6 +8,7 @@ import os
 # Add core module to path
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
 
+from core.crypto_discovery import CoinGeckoAPIError
 from auth.decorators import auth_required
 
 logger = logging.getLogger(__name__)
@@ -73,6 +74,9 @@ class CryptoAPI(Resource):
                 logger.info(f"Response to frontend: {response}")
                 return response
 
+        except CoinGeckoAPIError as e:
+            logger.error(f"CoinGecko API error in crypto request: {e}")
+            return {'error': str(e)}, e.status_code or 500
         except ValueError as e:
             logger.error(f"Invalid parameter in crypto request: {e}")
             return {'error': f'Invalid parameter: {str(e)}'}, 400
