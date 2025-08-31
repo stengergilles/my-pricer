@@ -22,7 +22,7 @@ const MetricItem = ({ label, value }: { label: string; value: string | number | 
   <ListItem>
     <ListItemText
       primary={label}
-      secondary={value || 'N/A'}
+      secondary={value ?? 'N/A'}
       secondaryTypographyProps={{
         color:
           label === 'Current Signal'
