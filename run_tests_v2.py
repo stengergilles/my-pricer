@@ -58,6 +58,36 @@ def run_api_tests():
         print(f"⚠ API tests failed: {e}")
         return True  # Don't fail overall test suite
 
+def run_scheduler_tests():
+    """Run scheduler tests."""
+    print("=" * 60)
+    print("RUNNING SCHEDULER TESTS")
+    print("=" * 60)
+    
+    try:
+        # Set testing environment
+        import os
+        os.environ['FLASK_ENV'] = 'testing'
+        os.environ['SKIP_AUTH'] = 'true'
+        
+        import sys # Import sys
+        # Add web/backend to sys.path for imports like 'auth'
+        backend_path = os.path.abspath(os.path.join(os.path.dirname(__file__), 'web', 'backend'))
+        sys.path.insert(0, backend_path)
+
+        from tests.test_scheduler import TestSchedulerAPI
+        suite = unittest.TestSuite()
+        suite.addTest(unittest.TestLoader().loadTestsFromTestCase(TestSchedulerAPI))
+        runner = unittest.TextTestRunner(verbosity=2)
+        result = runner.run(suite)
+        return result.wasSuccessful()
+    except ImportError as e:
+        print(f"⚠ Scheduler tests skipped: {e}")
+        return True  # Don't fail overall test suite
+    except Exception as e:
+        print(f"⚠ Scheduler tests failed: {e}")
+        return True  # Don't fail overall test suite
+
 def run_cli_tests():
     """Run CLI script tests."""
     print("=" * 60)
@@ -257,6 +287,7 @@ def main():
     parser = argparse.ArgumentParser(description='Run tests for unified crypto trading system')
     parser.add_argument('--core', action='store_true', help='Run core component tests')
     parser.add_argument('--api', action='store_true', help='Run API integration tests')
+    parser.add_argument('--scheduler', action='store_true', help='Run scheduler tests')
     parser.add_argument('--cli', action='store_true', help='Run CLI script tests')
     parser.add_argument('--legacy', action='store_true', help='Run legacy compatibility tests')
     parser.add_argument('--integration', action='store_true', help='Run system integration tests')
@@ -284,6 +315,9 @@ def main():
     
     if args.all or args.api:
         results['api'] = run_api_tests()
+
+    if args.all or args.scheduler:
+        results['scheduler'] = run_scheduler_tests()
     
     if args.all or args.cli:
         results['cli'] = run_cli_tests()

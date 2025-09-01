@@ -69,11 +69,13 @@ def get_trade_signal_for_latest(df: pd.DataFrame, strategy: Strategy, params: di
         logging.error(f"Error generating trade signal: {e}")
         return "HOLD"
 
-def run_backtest_using_existing_system(df: pd.DataFrame, strategy_name: str, params: dict, config: Config, initial_capital: float = 10000.0):
+def run_backtest_using_existing_system(df: pd.DataFrame, strategy_name: str, params: dict, config: dict, initial_capital: float = 10000.0):
     """
     Run backtest using the existing Backtester class instead of duplicated code.
     """
     try:
+        if isinstance(config, dict):
+            config = Config(**config)
         # Get strategy configuration
         if strategy_name not in strategy_configs:
             logging.error(f"Strategy {strategy_name} not found in configurations")
@@ -176,7 +178,7 @@ def _convert_to_json_serializable(obj):
         return [_convert_to_json_serializable(item) for item in obj]
     return obj
 
-def analyze_crypto_with_existing_system(crypto_id, config, timeframe=DEFAULT_TIMEFRAME, interval=DEFAULT_INTERVAL, 
+def analyze_crypto_with_existing_system(crypto_id, config: dict, timeframe=DEFAULT_TIMEFRAME, interval=DEFAULT_INTERVAL, 
                                       use_best_params=True, strategy_name=None):
     """
     Analyze cryptocurrency using existing backtester system components.
@@ -185,6 +187,8 @@ def analyze_crypto_with_existing_system(crypto_id, config, timeframe=DEFAULT_TIM
     logging.info(f"Analyzing {crypto_id} using existing system components...")
     
     try:
+        if isinstance(config, dict):
+            config = Config(**config)
         # Get data - use the correct function signature
         df = get_crypto_data_merged(crypto_id, timeframe, config)
         if df is None or df.empty:

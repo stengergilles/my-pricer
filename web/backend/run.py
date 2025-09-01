@@ -6,6 +6,9 @@ Development server runner for Crypto Trading Backend.
 import os
 import sys
 from dotenv import load_dotenv
+import warnings
+
+warnings.filterwarnings("ignore", category=UserWarning, module='apscheduler')
 
 # Load environment variables
 load_dotenv()

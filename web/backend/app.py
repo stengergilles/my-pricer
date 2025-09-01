@@ -27,7 +27,12 @@ from api.analysis import AnalysisAPI
 from api.backtest import BacktestAPI
 from api.strategies import StrategiesAPI
 from api.results import ResultsAPI
+from api.scheduler import scheduler_bp
 from utils.error_handlers import register_error_handlers
+
+# Initialize scheduler
+from core.scheduler import init_scheduler
+
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -42,6 +47,7 @@ api = Api(app)
 
 # Initialize core components
 config = Config()
+init_scheduler(config)
 trading_engine = TradingEngine(config)
 
 from core.logger_config import setup_logging
@@ -117,6 +123,10 @@ api.add_resource(AnalysisAPI, '/api/analysis', '/api/analysis/<string:analysis_i
 api.add_resource(BacktestAPI, '/api/backtest', '/api/backtest/<string:backtest_id>', resource_class_kwargs={'engine': trading_engine})
 api.add_resource(StrategiesAPI, '/api/strategies', '/api/strategies/<string:strategy_name>', resource_class_kwargs={'engine': trading_engine})
 api.add_resource(ResultsAPI, '/api/results', '/api/results/<string:result_type>', resource_class_kwargs={'engine': trading_engine})
+
+# Register scheduler blueprint
+app.register_blueprint(scheduler_bp, url_prefix='/api/scheduler')
+
 
 # Serve frontend static files (for production)
 @app.route('/favicon-v2.ico')
