@@ -1,13 +1,23 @@
 from flask import request, jsonify
 from flask_restful import Resource
-from core.scheduler import get_scheduler
+from core.scheduler import get_scheduler # Keep for now, might remove later if engine fully encapsulates
 from pricer import analyze_crypto_with_existing_system
+from web.backend.auth.middleware import requires_auth
+from core.trading_engine import TradingEngine # Import TradingEngine
 
+# Note: If analyze_crypto_with_existing_system needs to be part of the engine,
+# this mapping might need to be adjusted or moved.
 schedulable_functions = {
     'analyze_crypto': analyze_crypto_with_existing_system
 }
 
 class ScheduleJobAPI(Resource):
+    def __init__(self, engine):
+        super().__init__() # Call parent constructor without args/kwargs
+        self.engine = engine
+        self.scheduler = self.engine.get_scheduler() # Assuming engine provides scheduler access
+
+    @requires_auth('create:jobs')
     def post(self):
         data = request.get_json()
         func_path = data.get('function')
@@ -19,8 +29,7 @@ class ScheduleJobAPI(Resource):
         if func_path not in schedulable_functions:
             return jsonify({'error': 'Function not allowed'}), 400
 
-        scheduler = get_scheduler()
-        job = scheduler.add_job(
+        job = self.scheduler.add_job(
             func=schedulable_functions[func_path],
             trigger=trigger,
             **trigger_args,
@@ -31,9 +40,14 @@ class ScheduleJobAPI(Resource):
         return jsonify({'job_id': job.id})
 
 class JobsAPI(Resource):
+    def __init__(self, engine):
+        super().__init__() # Call parent constructor without args/kwargs
+        self.engine = engine
+        self.scheduler = self.engine.get_scheduler() # Assuming engine provides scheduler access
+
+    @requires_auth('read:jobs')
     def get(self):
-        scheduler = get_scheduler()
-        jobs = scheduler.get_jobs()
+        jobs = self.scheduler.get_jobs()
         job_list = []
         for job in jobs:
             job_list.append({
@@ -45,9 +59,14 @@ class JobsAPI(Resource):
         return jsonify(job_list)
 
 class JobAPI(Resource):
+    def __init__(self, engine):
+        super().__init__() # Call parent constructor without args/kwargs
+        self.engine = engine
+        self.scheduler = self.engine.get_scheduler() # Assuming engine provides scheduler access
+
+    @requires_auth('read:jobs')
     def get(self, job_id):
-        scheduler = get_scheduler()
-        job = scheduler.get_job(job_id)
+        job = self.scheduler.get_job(job_id)
         if job:
             return jsonify({
                 'id': job.id,
@@ -57,21 +76,21 @@ class JobAPI(Resource):
             })
         return jsonify({'error': 'Job not found'}), 404
 
+    @requires_auth('manage:jobs')
     def post(self, job_id):
-        scheduler = get_scheduler()
         data = request.get_json()
         action = data.get('action')
 
         if action == 'pause':
-            scheduler.pause_job(job_id)
+            self.scheduler.pause_job(job_id)
             return jsonify({'status': 'paused'})
         elif action == 'resume':
-            scheduler.resume_job(job_id)
+            self.scheduler.resume_job(job_id)
             return jsonify({'status': 'resumed'})
         else:
             return jsonify({'error': 'Invalid action'}), 400
 
+    @requires_auth('manage:jobs')
     def delete(self, job_id):
-        scheduler = get_scheduler()
-        scheduler.remove_job(job_id)
+        self.scheduler.remove_job(job_id)
         return jsonify({'status': 'removed'})

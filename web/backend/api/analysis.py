@@ -8,7 +8,8 @@ import os
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
 
-
+from web.backend.auth.middleware import requires_auth # Import requires_auth
+from core.trading_engine import TradingEngine # Import TradingEngine
 
 logger = logging.getLogger(__name__)
 
@@ -17,9 +18,10 @@ class AnalysisAPI(Resource):
 
     def __init__(self, engine):
         """Initialize analysis API with trading engine."""
+        super().__init__() # Call parent constructor without args/kwargs
         self.engine = engine
 
-    
+    @requires_auth('execute:analysis')
     def post(self):
         """
         Run analysis on a cryptocurrency.
@@ -51,10 +53,10 @@ class AnalysisAPI(Resource):
 
             result = self.engine.analyze_crypto(
                 crypto_id=crypto_id,
-                strategy_name=strategy,
-                timeframe=timeframe,
-                custom_params=parameters if parameters else None
-            )
+                    strategy_name=strategy,
+                    timeframe=timeframe,
+                    custom_params=parameters if parameters else None
+                )
             logger.debug(f"Analysis result before sending: {result}")
 
             return {

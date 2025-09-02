@@ -9,6 +9,8 @@ import os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
 
 from core.crypto_discovery import CoinGeckoAPIError
+from web.backend.auth.middleware import requires_auth
+from core.trading_engine import TradingEngine # Import TradingEngine
 
 logger = logging.getLogger(__name__)
 
@@ -17,8 +19,10 @@ class CryptoAPI(Resource):
 
     def __init__(self, engine):
         """Initialize crypto API with trading engine."""
+        super().__init__() # Call parent constructor without args/kwargs
         self.engine = engine
 
+    @requires_auth('read:cryptos')
     def get(self, crypto_id=None):
         """
         Get cryptocurrency data.
@@ -82,6 +86,7 @@ class CryptoAPI(Resource):
             logger.error(f"Error in crypto API: {e}")
             return {'error': 'Internal server error'}, 500
 
+    @requires_auth('write:cryptos')
     def post(self):
         """
         Perform crypto operations like analysis or discovery.
@@ -186,8 +191,11 @@ class CryptoStatusAPI(Resource):
     """API endpoint for cryptocurrency status (e.g., has optimization results)."""
 
     def __init__(self, engine):
+        """Initialize crypto API with trading engine."""
+        super().__init__() # Call parent constructor without args/kwargs
         self.engine = engine
 
+    @requires_auth('read:crypto_status')
     def get(self, crypto_id):
         """Get status for a specific cryptocurrency."""
         try:

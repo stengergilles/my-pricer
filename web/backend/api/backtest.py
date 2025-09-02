@@ -7,7 +7,8 @@ import os
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
 
-
+from web.backend.auth.middleware import requires_auth
+from core.trading_engine import TradingEngine # Import TradingEngine
 
 logger = logging.getLogger(__name__)
 
@@ -16,9 +17,10 @@ class BacktestAPI(Resource):
 
     def __init__(self, engine):
         """Initialize backtest API with trading engine."""
+        super().__init__() # Call parent constructor without args/kwargs
         self.engine = engine
 
-    
+    @requires_auth('execute:backtest')
     def post(self):
         """
         Run a backtest or optimization.

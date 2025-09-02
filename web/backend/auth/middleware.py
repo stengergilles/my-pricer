@@ -3,7 +3,7 @@ import json
 from functools import wraps
 from urllib.request import urlopen
 
-from flask import request
+from flask import request, g
 
 from jose import jwt
 
@@ -50,11 +50,37 @@ def get_token_auth_header():
     token = parts[1]
     return token
 
+def check_permissions(permission, payload):
+    if permission is None:
+        return True
+    if 'permissions' not in payload:
+        raise AuthError({
+            'code': 'invalid_claims',
+            'description': 'Permissions not included in JWT.'
+        }, 400)
+    if permission not in payload['permissions']:
+        raise AuthError({
+            'code': 'unauthorized',
+            'description': 'Permission not found.'
+        }, 403)
+    return True
+
 def requires_auth(permission=None):
     def requires_auth_decorator(f):
         @wraps(f)
         def wrapper(*args, **kwargs):
-            # This is the core authentication logic. No bypass here.
+            # Bypass authentication if SKIP_AUTH is explicitly set to 'true'
+            if os.getenv('SKIP_AUTH', 'false').lower() == 'true':
+                # Simulate a valid user for bypassed auth
+                g.current_user = {
+                    'iss': f'https://{AUTH0_DOMAIN}/',
+                    'aud': API_AUDIENCE,
+                    'sub': 'auth0|bypasseduser',
+                    'permissions': ['read:all', 'write:all'],
+                    'exp': 9999999999
+                }
+                return f(*args, **kwargs)
+
             token = get_token_auth_header()
             try:
                 jsonurl = urlopen(f"https://{AUTH0_DOMAIN}/.well-known/jwks.json")
@@ -69,7 +95,7 @@ def requires_auth(permission=None):
 
             rsa_key = {}
             for key in jwks['keys']:
-                if key['kid'] == unverified_header['kid']:
+                if key.get('kid') == unverified_header.get('kid'):
                     rsa_key = {
                         'kty': key['kty'],
                         'kid': key['kid'],
@@ -96,12 +122,13 @@ def requires_auth(permission=None):
                         'code': 'invalid_claims',
                         'description': 'Incorrect claims. Please, check the audience and issuer.'
                     }, 401)
-                except Exception:
+                except Exception as e:
                     raise AuthError({
                         'code': 'invalid_header',
-                        'description': 'Unable to parse authentication token.'
+                        'description': f'Unable to parse authentication token: {e}'
                     }, 400)
 
+                check_permissions(permission, payload)
                 g.current_user = payload
                 return f(*args, **kwargs)
             raise AuthError({
@@ -110,5 +137,3 @@ def requires_auth(permission=None):
             }, 400)
         return wrapper
     return requires_auth_decorator
-
-from flask import g

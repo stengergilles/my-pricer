@@ -38,6 +38,7 @@ data/results/
 # Python venv
 
 .venv
+venv
 
 # Backend virtual environment
 web/backend/venv/

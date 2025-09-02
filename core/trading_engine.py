@@ -26,6 +26,7 @@ import config # Import the top-level config.py
 from .data_fetcher import get_crypto_data_merged
 from lines import find_swing_points, find_support_resistance_lines, analyze_line_durations, auto_discover_percentage_change, predict_next_move
 from chart import generate_chart
+from .scheduler import get_scheduler # Import get_scheduler
 
 class TradingEngine:
     """
@@ -45,6 +46,18 @@ class TradingEngine:
         self.crypto_discovery = CryptoDiscovery(self.config.RESULTS_DIR)
         self.optimizer = BayesianOptimizer(self.config.RESULTS_DIR)
         self.backtester = BacktesterWrapper(self.config)
+        self._scheduler = None # Initialize scheduler attribute
+    
+    def set_scheduler(self, scheduler_instance):
+        """Set the scheduler instance for the engine."""
+        self._scheduler = scheduler_instance
+
+    def get_scheduler(self):
+        """Get the scheduler instance."""
+        if self._scheduler is None:
+            self.logger.warning("Scheduler accessed before being set. Returning global scheduler.")
+            return get_scheduler() # Fallback to global if not explicitly set
+        return self._scheduler
     
     # ========== Crypto Management ==========
     

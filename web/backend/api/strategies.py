@@ -7,7 +7,8 @@ import os
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
 
-
+from web.backend.auth.middleware import requires_auth
+from core.trading_engine import TradingEngine # Import TradingEngine
 
 logger = logging.getLogger(__name__)
 
@@ -16,9 +17,10 @@ class StrategiesAPI(Resource):
 
     def __init__(self, engine):
         """Initialize strategies API with trading engine."""
+        super().__init__() # Call parent constructor without args/kwargs
         self.engine = engine
 
-    
+    @requires_auth('read:strategies')
     def get(self, strategy_name=None):
         """Get available strategies or details of a specific strategy."""
         try:
@@ -35,7 +37,8 @@ class StrategiesAPI(Resource):
             logger.error(f"Error in strategies GET: {e}")
             return {'error': 'Internal server error'}, 500
 
-    
+    @requires_auth('manage:strategies')
+    def post(self):
         """
         Validate strategy parameters or get default parameters.
 

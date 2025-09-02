@@ -22,7 +22,6 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
 from core.trading_engine import TradingEngine
 from core.app_config import Config
 from auth.middleware import AuthError, requires_auth
-from auth.resource import AuthenticatedResource
 from api.crypto import CryptoAPI, CryptoStatusAPI
 from api.analysis import AnalysisAPI
 from api.backtest import BacktestAPI
@@ -32,7 +31,7 @@ from api.scheduler import ScheduleJobAPI, JobsAPI, JobAPI
 from utils.error_handlers import register_error_handlers
 
 # Initialize scheduler
-from core.scheduler import init_scheduler
+from core.scheduler import init_scheduler, get_scheduler
 
 # Initialize core components
 config = Config()
@@ -72,6 +71,7 @@ api = Api(app)
 
 init_scheduler(config, db_connection)
 trading_engine = TradingEngine(config)
+trading_engine.set_scheduler(get_scheduler()) # Link the scheduler to the engine
 
 # Register error handlers
 register_error_handlers(app)
@@ -83,8 +83,12 @@ def handle_auth_error(ex):
     response.status_code = ex.status_code
     return response
 
+# Register AuthError with Flask-RESTful's error handling
+api.handle_error = handle_auth_error
+
 # Config endpoint
 @app.route('/api/config')
+@requires_auth() # Protect the config endpoint
 def get_config():
     """Returns public configuration settings."""
     try:
@@ -122,6 +126,7 @@ def auth_test():
 
 # Log receiving endpoint
 @app.route('/api/log', methods=['POST'])
+@requires_auth() # Protect the log endpoint
 def receive_log():
     try:
         log_data = request.get_json()
@@ -141,15 +146,15 @@ def receive_log():
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
 # Register API resources with Auth0 protection
-api.add_resource(CryptoAPI, '/api/cryptos', '/api/cryptos/<string:crypto_id>', resource_class=AuthenticatedResource, resource_class_kwargs={'engine': trading_engine})
-api.add_resource(CryptoStatusAPI, '/api/crypto_status/<string:crypto_id>', resource_class=AuthenticatedResource, resource_class_kwargs={'engine': trading_engine})
-api.add_resource(AnalysisAPI, '/api/analysis', '/api/analysis/<string:analysis_id>', resource_class=AuthenticatedResource, resource_class_kwargs={'engine': trading_engine})
-api.add_resource(BacktestAPI, '/api/backtest', '/api/backtest/<string:backtest_id>', resource_class=AuthenticatedResource, resource_class_kwargs={'engine': trading_engine})
-api.add_resource(StrategiesAPI, '/api/strategies', '/api/strategies/<string:strategy_name>', resource_class=AuthenticatedResource, resource_class_kwargs={'engine': trading_engine})
-api.add_resource(ResultsAPI, '/api/results', '/api/results/<string:result_type>', resource_class=AuthenticatedResource, resource_class_kwargs={'engine': trading_engine})
-api.add_resource(ScheduleJobAPI, '/api/scheduler/schedule', resource_class=AuthenticatedResource)
-api.add_resource(JobsAPI, '/api/scheduler/jobs', resource_class=AuthenticatedResource)
-api.add_resource(JobAPI, '/api/scheduler/jobs/<string:job_id>', resource_class=AuthenticatedResource)
+api.add_resource(CryptoAPI, '/api/cryptos', '/api/cryptos/<string:crypto_id>', resource_class_kwargs={'engine': trading_engine})
+api.add_resource(CryptoStatusAPI, '/api/crypto_status/<string:crypto_id>', resource_class_kwargs={'engine': trading_engine})
+api.add_resource(AnalysisAPI, '/api/analysis', '/api/analysis/<string:analysis_id>', resource_class_kwargs={'engine': trading_engine})
+api.add_resource(BacktestAPI, '/api/backtest', '/api/backtest/<string:backtest_id>', resource_class_kwargs={'engine': trading_engine})
+api.add_resource(StrategiesAPI, '/api/strategies', '/api/strategies/<string:strategy_name>', resource_class_kwargs={'engine': trading_engine})
+api.add_resource(ResultsAPI, '/api/results', '/api/results/<string:result_type>', resource_class_kwargs={'engine': trading_engine})
+api.add_resource(ScheduleJobAPI, '/api/scheduler/schedule', resource_class_kwargs={'engine': trading_engine})
+api.add_resource(JobsAPI, '/api/scheduler/jobs', resource_class_kwargs={'engine': trading_engine})
+api.add_resource(JobAPI, '/api/scheduler/jobs/<string:job_id>', resource_class_kwargs={'engine': trading_engine})
 
 
 # Serve frontend static files (for production)
@@ -184,7 +189,6 @@ def serve_frontend(path):
 if __name__ == '__main__':
     import signal
     import sys
-    from core.scheduler import get_scheduler
 
     def signal_handler(sig, frame):
         logger.info("SIGINT received. Shutting down scheduler...")
