@@ -1,7 +1,7 @@
-
 import logging
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
+from sqlalchemy import create_engine
 from apscheduler.events import EVENT_JOB_EXECUTED, EVENT_JOB_ERROR
 
 from core.app_config import Config
@@ -11,13 +11,15 @@ logging.basicConfig()
 logging.getLogger('apscheduler').setLevel(logging.INFO)
 
 class Scheduler:
-    def __init__(self, app_config: Config):
+    def __init__(self, app_config: Config, db_connection):
         self.app_config = app_config
-        self.scheduler = BackgroundScheduler(jobstores=self._get_jobstores())
+        self.scheduler = BackgroundScheduler(jobstores=self._get_jobstores(db_connection))
 
-    def _get_jobstores(self):
+    def _get_jobstores(self, db_connection):
+        # Use a creator function to pass the pre-opened sqlite3.Connection
+        engine = create_engine('sqlite:///', creator=lambda: db_connection)
         return {
-            'default': SQLAlchemyJobStore(url=self.app_config.get_db_uri())
+            'default': SQLAlchemyJobStore(engine=engine)
         }
 
     def start(self):
@@ -56,10 +58,10 @@ def job_listener(event):
 # Initialize scheduler
 scheduler = None
 
-def init_scheduler(app_config: Config):
+def init_scheduler(app_config: Config, db_connection):
     global scheduler
     if scheduler is None:
-        scheduler = Scheduler(app_config)
+        scheduler = Scheduler(app_config, db_connection)
         scheduler.add_listener(job_listener, EVENT_JOB_EXECUTED | EVENT_JOB_ERROR)
         scheduler.start()
     return scheduler

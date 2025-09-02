@@ -7,7 +7,7 @@ import os
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
 
-from auth.decorators import auth_required
+
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +18,7 @@ class ResultsAPI(Resource):
         """Initialize results API with trading engine."""
         self.engine = engine
 
-    #@auth_required
+    
     def get(self, result_type):
         """
         Get optimization or backtest results.

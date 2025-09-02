@@ -7,7 +7,7 @@ import os
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
 
-from auth.decorators import auth_required
+
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +18,7 @@ class StrategiesAPI(Resource):
         """Initialize strategies API with trading engine."""
         self.engine = engine
 
-    #@auth_required
+    
     def get(self, strategy_name=None):
         """Get available strategies or details of a specific strategy."""
         try:
@@ -35,8 +35,7 @@ class StrategiesAPI(Resource):
             logger.error(f"Error in strategies GET: {e}")
             return {'error': 'Internal server error'}, 500
 
-    #@auth_required
-    def post(self):
+    
         """
         Validate strategy parameters or get default parameters.
 

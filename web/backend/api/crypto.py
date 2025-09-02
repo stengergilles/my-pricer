@@ -9,7 +9,6 @@ import os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
 
 from core.crypto_discovery import CoinGeckoAPIError
-from auth.decorators import auth_required
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +19,6 @@ class CryptoAPI(Resource):
         """Initialize crypto API with trading engine."""
         self.engine = engine
 
-    # @auth_required  # Commented out for now to avoid auth issues during testing
     def get(self, crypto_id=None):
         """
         Get cryptocurrency data.
@@ -84,7 +82,6 @@ class CryptoAPI(Resource):
             logger.error(f"Error in crypto API: {e}")
             return {'error': 'Internal server error'}, 500
 
-    # @auth_required  # Commented out for now to avoid auth issues during testing
     def post(self):
         """
         Perform crypto operations like analysis or discovery.

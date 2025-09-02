@@ -5,15 +5,16 @@ Complete Flask backend with Auth0 authentication for Crypto Trading System.
 import os
 import sys
 import logging
+import sqlite3
 from datetime import datetime
-from flask import Flask, jsonify, request, send_from_directory
+from flask import Flask, jsonify, request, send_from_directory, g
 from flask_cors import CORS
 from flask_restful import Api
 from dotenv import load_dotenv
 from flask_compress import Compress
 
-# Load environment variables
-load_dotenv()
+# Load environment variables from the current directory's .env file
+load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '.env'))
 
 # Add core module to path
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
@@ -21,18 +22,42 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
 from core.trading_engine import TradingEngine
 from core.app_config import Config
 from auth.middleware import AuthError, requires_auth
-from auth.decorators import auth_required
-from api.crypto import CryptoAPI, CryptoStatusAPI # Added CryptoStatusAPI
+from auth.resource import AuthenticatedResource
+from api.crypto import CryptoAPI, CryptoStatusAPI
 from api.analysis import AnalysisAPI
 from api.backtest import BacktestAPI
 from api.strategies import StrategiesAPI
 from api.results import ResultsAPI
-from api.scheduler import scheduler_bp
+from api.scheduler import ScheduleJobAPI, JobsAPI, JobAPI
 from utils.error_handlers import register_error_handlers
 
 # Initialize scheduler
 from core.scheduler import init_scheduler
 
+# Initialize core components
+config = Config()
+
+from core.logger_config import setup_logging
+
+# Set up logging
+setup_logging(config)
+logger = logging.getLogger(__name__)
+
+logger.info(f"Scheduler DB URI: {config.get_db_uri()}")
+
+# Ensure the database directory exists
+db_uri = config.get_db_uri()
+relative_db_path = db_uri.replace("sqlite:///", "")
+db_path = os.path.join(config.BASE_DIR, relative_db_path)
+os.makedirs(os.path.dirname(db_path), exist_ok=True)
+
+# Open the SQLite connection directly
+try:
+    db_connection = sqlite3.connect(db_path, check_same_thread=False)
+    logger.info(f"Successfully opened SQLite connection to: {db_path}")
+except Exception as e:
+    logger.error(f"Error opening SQLite connection to {db_path}: {e}")
+    raise
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -45,19 +70,18 @@ CORS(app, origins="*", supports_credentials=True, allow_headers=["Authorization"
 # Initialize Flask-RESTful
 api = Api(app)
 
-# Initialize core components
-config = Config()
-init_scheduler(config)
+init_scheduler(config, db_connection)
 trading_engine = TradingEngine(config)
-
-from core.logger_config import setup_logging
-
-# Set up logging
-setup_logging(config)
-logger = logging.getLogger(__name__)
 
 # Register error handlers
 register_error_handlers(app)
+
+@app.errorhandler(AuthError)
+def handle_auth_error(ex):
+    """Auth error handler"""
+    response = jsonify(ex.error)
+    response.status_code = ex.status_code
+    return response
 
 # Config endpoint
 @app.route('/api/config')
@@ -87,12 +111,12 @@ def health_check():
 
 # Auth test endpoint
 @app.route('/api/auth/test')
-@auth_required
+@requires_auth()
 def auth_test():
     """Test Auth0 authentication."""
     return jsonify({
         'message': 'Authentication successful',
-        'user': getattr(request, 'current_user', {}),
+        'user': getattr(g, 'current_user', {}),
         'timestamp': datetime.now().isoformat()
     })
 
@@ -117,15 +141,15 @@ def receive_log():
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
 # Register API resources with Auth0 protection
-api.add_resource(CryptoAPI, '/api/cryptos', '/api/cryptos/<string:crypto_id>', resource_class_kwargs={'engine': trading_engine})
-api.add_resource(CryptoStatusAPI, '/api/crypto_status/<string:crypto_id>', resource_class_kwargs={'engine': trading_engine}) # New endpoint
-api.add_resource(AnalysisAPI, '/api/analysis', '/api/analysis/<string:analysis_id>', resource_class_kwargs={'engine': trading_engine})
-api.add_resource(BacktestAPI, '/api/backtest', '/api/backtest/<string:backtest_id>', resource_class_kwargs={'engine': trading_engine})
-api.add_resource(StrategiesAPI, '/api/strategies', '/api/strategies/<string:strategy_name>', resource_class_kwargs={'engine': trading_engine})
-api.add_resource(ResultsAPI, '/api/results', '/api/results/<string:result_type>', resource_class_kwargs={'engine': trading_engine})
-
-# Register scheduler blueprint
-app.register_blueprint(scheduler_bp, url_prefix='/api/scheduler')
+api.add_resource(CryptoAPI, '/api/cryptos', '/api/cryptos/<string:crypto_id>', resource_class=AuthenticatedResource, resource_class_kwargs={'engine': trading_engine})
+api.add_resource(CryptoStatusAPI, '/api/crypto_status/<string:crypto_id>', resource_class=AuthenticatedResource, resource_class_kwargs={'engine': trading_engine})
+api.add_resource(AnalysisAPI, '/api/analysis', '/api/analysis/<string:analysis_id>', resource_class=AuthenticatedResource, resource_class_kwargs={'engine': trading_engine})
+api.add_resource(BacktestAPI, '/api/backtest', '/api/backtest/<string:backtest_id>', resource_class=AuthenticatedResource, resource_class_kwargs={'engine': trading_engine})
+api.add_resource(StrategiesAPI, '/api/strategies', '/api/strategies/<string:strategy_name>', resource_class=AuthenticatedResource, resource_class_kwargs={'engine': trading_engine})
+api.add_resource(ResultsAPI, '/api/results', '/api/results/<string:result_type>', resource_class=AuthenticatedResource, resource_class_kwargs={'engine': trading_engine})
+api.add_resource(ScheduleJobAPI, '/api/scheduler/schedule', resource_class=AuthenticatedResource)
+api.add_resource(JobsAPI, '/api/scheduler/jobs', resource_class=AuthenticatedResource)
+api.add_resource(JobAPI, '/api/scheduler/jobs/<string:job_id>', resource_class=AuthenticatedResource)
 
 
 # Serve frontend static files (for production)
@@ -158,6 +182,23 @@ def serve_frontend(path):
         })
 
 if __name__ == '__main__':
+    import signal
+    import sys
+    from core.scheduler import get_scheduler
+
+    def signal_handler(sig, frame):
+        logger.info("SIGINT received. Shutting down scheduler...")
+        try:
+            scheduler_instance = get_scheduler()
+            if scheduler_instance:
+                scheduler_instance.shutdown()
+                logger.info("Scheduler shut down gracefully.")
+        except Exception as e:
+            logger.error(f"Error during scheduler shutdown: {e}")
+        sys.exit(0)
+
+    signal.signal(signal.SIGINT, signal_handler)
+
     logger.info("Starting Crypto Trading Backend...")
     logger.info(f"Auth0 Domain: {os.getenv('AUTH0_DOMAIN')}")
     logger.info(f"API Audience: {os.getenv('AUTH0_API_AUDIENCE')}")

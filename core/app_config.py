@@ -46,7 +46,7 @@ class Config:
         self.FLASK_DEBUG = bool(kwargs.get('FLASK_DEBUG', os.getenv('FLASK_DEBUG', 'True').lower() == 'true'))
 
         # Database configuration
-        self.DB_URI = kwargs.get('DB_URI', os.getenv('DATABASE_URL', f'sqlite:///{os.path.join(self.DATA_DIR, 'scheduler.db')}'))
+        self.DB_URI = kwargs.get('DB_URI', os.getenv('DATABASE_URL', f'sqlite:////{os.path.join(self.BASE_DIR, 'data', 'scheduler.db')}'))
         
         # Ensure directories exist
         self._create_directories()

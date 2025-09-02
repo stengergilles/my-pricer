@@ -24,3 +24,6 @@ def setup_logging(config):
             logging.StreamHandler() # Also log to console
         ]
     )
+
+    # Explicitly set level for auth.middleware to DEBUG
+    logging.getLogger('auth.middleware').setLevel(logging.DEBUG)
