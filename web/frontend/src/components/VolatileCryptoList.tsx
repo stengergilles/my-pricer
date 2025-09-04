@@ -50,7 +50,7 @@ export const VolatileCryptoList = () => {
         setFetchError(error);
       }
     }
-  }, [data, isError, error]);
+  }, [data, isError, error, handleError]);
 
   if (isLoading) {
     return (
