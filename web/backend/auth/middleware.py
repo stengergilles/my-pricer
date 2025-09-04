@@ -64,19 +64,17 @@ def check_permissions(permission, payload):
     if permission is None:
         return True
     if 'permissions' not in payload:
-        error_description = 'Permissions not included in JWT.'
+        endpoint = request.endpoint or 'unknown'
+        method = request.method
+        error_description = f'Permissions not included in JWT. Required: "{permission}" for {method} {endpoint}'
         logger.error(f"Token rejection reason: {error_description}")
         raise AuthError({
             'code': 'insufficient_permissions',
             'description': error_description
         }, 403)
     if permission not in payload['permissions']:
-        endpoint = request.endpoint or 'unknown'
-        method = request.method
         error_description = f'Permission "{permission}" not found in token permissions: {payload["permissions"]}'
-        # Log with explicit logger name to ensure it appears
-        print(f"PERMISSION REJECTION: Endpoint: {method} {endpoint} | Required: '{permission}' | Token has: {payload['permissions']} | User: {payload.get('sub', 'unknown')}")
-        logger.error(f"Token permission rejection - Endpoint: {method} {endpoint} | Required: '{permission}' | Token has: {payload['permissions']} | User: {payload.get('sub', 'unknown')}")
+        logger.error(f"Token rejection reason: {error_description}")
         raise AuthError({
             'code': 'insufficient_permissions',
             'description': error_description
