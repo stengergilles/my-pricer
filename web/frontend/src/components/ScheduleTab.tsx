@@ -31,7 +31,7 @@ export const ScheduleTab = () => {
 
   const fetchJobs = useCallback(async () => {
     try {
-      const response = await apiCall('/api/jobs', 'GET');
+      const response = await apiCall('/api/scheduler/jobs', 'GET');
       setJobs(response);
     } catch (err) {
       setError('Failed to fetch jobs');
@@ -52,7 +52,7 @@ export const ScheduleTab = () => {
     setError('');
     
     try {
-      await apiCall('/api/schedule', 'POST', {
+      await apiCall('/api/scheduler/schedule', 'POST', {
         function: jobType,
         trigger: 'interval',
         trigger_args: { seconds: interval },
@@ -71,7 +71,7 @@ export const ScheduleTab = () => {
 
   const stopJob = async (jobId) => {
     try {
-      await apiCall(`/api/jobs/${jobId}`, 'DELETE');
+      await apiCall(`/api/scheduler/jobs/${jobId}`, 'DELETE');
       setSuccess('Job stopped');
       fetchJobs();
     } catch (err) {
