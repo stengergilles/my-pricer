@@ -217,9 +217,7 @@ def run_single_backtest(args, config):
 
 if __name__ == "__main__":
     from core.app_config import Config
-    from core.logger_config import setup_logging
-    config = Config()
-    setup_logging(config)
+    
 
     available_strategies = list(strategy_configs.keys())
     available_param_sets = set(param_sets['default_sets'].keys())

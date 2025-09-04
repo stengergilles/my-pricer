@@ -50,14 +50,6 @@ relative_db_path = db_uri.replace("sqlite:///", "")
 db_path = os.path.join(config.BASE_DIR, relative_db_path)
 os.makedirs(os.path.dirname(db_path), exist_ok=True)
 
-# Open the SQLite connection directly
-try:
-    db_connection = sqlite3.connect(db_path, check_same_thread=False)
-    logger.info(f"Successfully opened SQLite connection to: {db_path}")
-except Exception as e:
-    logger.error(f"Error opening SQLite connection to {db_path}: {e}")
-    raise
-
 # Initialize Flask app
 app = Flask(__name__)
 app.config['SECRET_key'] = os.getenv('SECRET_KEY', 'dev-secret-key-change-this')
@@ -69,26 +61,30 @@ CORS(app, origins="*", supports_credentials=True, allow_headers=["Authorization"
 # Initialize Flask-RESTful
 api = Api(app)
 
-init_scheduler(config, db_connection)
+init_scheduler(config)
 trading_engine = TradingEngine(config)
 trading_engine.set_scheduler(get_scheduler()) # Link the scheduler to the engine
 
 # Register error handlers
 register_error_handlers(app)
 
-@app.errorhandler(AuthError)
+@app.errorhandler(AuthError) # Keep this for clarity, though register_error_handler is more direct
 def handle_auth_error(ex):
     """Auth error handler"""
+    logger.error(f"Authentication Error: Code={ex.error.get('code')}, Description={ex.error.get('description')}, Status={ex.status_code}")
     response = jsonify(ex.error)
     response.status_code = ex.status_code
     return response
+
+# Explicitly register AuthError handler
+app.register_error_handler(AuthError, handle_auth_error)
 
 # Register AuthError with Flask-RESTful's error handling
 api.handle_error = handle_auth_error
 
 # Config endpoint
 @app.route('/api/config')
-@requires_auth() # Protect the config endpoint
+@requires_auth('read:config') # Protect the config endpoint
 def get_config():
     """Returns public configuration settings."""
     try:
@@ -115,7 +111,7 @@ def health_check():
 
 # Auth test endpoint
 @app.route('/api/auth/test')
-@requires_auth()
+@requires_auth('read:auth_test')
 def auth_test():
     """Test Auth0 authentication."""
     return jsonify({
@@ -126,7 +122,7 @@ def auth_test():
 
 # Log receiving endpoint
 @app.route('/api/log', methods=['POST'])
-@requires_auth() # Protect the log endpoint
+@requires_auth('write:log') # Protect the log endpoint
 def receive_log():
     try:
         log_data = request.get_json()
@@ -169,15 +165,18 @@ def favicon():
 @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')
 def serve_frontend(path):
-    """Serve Next.js frontend files."""
+    """Serve Next.js frontend files, ignoring API routes."""
+    if path.startswith('api/'):
+        return jsonify({'code': 'not_found', 'description': 'The requested API endpoint was not found.'}), 404
+
     frontend_build_dir = os.path.join(os.path.dirname(__file__), '..', 'frontend', 'out')
-    
+
     if os.path.exists(frontend_build_dir):
         if path and os.path.exists(os.path.join(frontend_build_dir, path)):
             response = send_from_directory(frontend_build_dir, path)
         else:
             response = send_from_directory(frontend_build_dir, 'index.html')
-        
+
         response.headers['Cache-Control'] = 'public, max-age=31536000'
         return response
     else:
@@ -210,5 +209,6 @@ if __name__ == '__main__':
     app.run(
         host=os.getenv('API_HOST', 'localhost'),
         port=int(os.getenv('API_PORT', 5000)),
-        debug=os.getenv('FLASK_DEBUG', 'True').lower() == 'true'
+        debug=os.getenv('FLASK_DEBUG', 'True').lower() == 'true',
+        use_reloader=False
     )
