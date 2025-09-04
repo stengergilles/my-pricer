@@ -63,10 +63,9 @@ def get_token_auth_header():
 def check_permissions(permission, payload):
     if permission is None:
         return True
-    scope = payload.get('scope', '')
-    scopes = scope.split() if scope else []
-    if permission not in scopes:
-        error_description = f'Scope "{permission}" not found in token scopes: {scopes}'
+    permissions = payload.get('permissions', [])
+    if permission not in permissions:
+        error_description = f'Permission "{permission}" not found in token permissions: {permissions}'
         logger.error(f"Token rejection reason: {error_description}")
         raise AuthError({
             'code': 'insufficient_permissions',
