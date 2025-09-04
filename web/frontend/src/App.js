@@ -17,6 +17,7 @@ const CryptoAnalysis = lazy(() => import('./components/CryptoAnalysis.tsx').then
 const BacktestRunner = lazy(() => import('./components/BacktestRunner.tsx').then(module => ({ default: module.BacktestRunner })));
 const HealthStatus = lazy(() => import('./components/HealthStatus.tsx').then(module => ({ default: module.HealthStatus })));
 const VolatileCryptoList = lazy(() => import('./components/VolatileCryptoList.tsx').then(module => ({ default: module.VolatileCryptoList })));
+const ScheduleTab = lazy(() => import('./components/ScheduleTab.tsx').then(module => ({ default: module.ScheduleTab })));
 
 
 // Styled components for navigation tabs
@@ -151,6 +152,7 @@ function AppContent() {
                 <StyledTab label="Volatile Cryptos" value="volatile" />
                 <StyledTab label="Analysis" value="analysis" />
                 <StyledTab label="Backtest" value="backtest" />
+                <StyledTab label="Schedule" value="schedule" />
               </Tabs>
             </Container>
           </Toolbar>
@@ -166,12 +168,14 @@ function AppContent() {
                     <VolatileCryptoList />
                   ) : activeTab === 'analysis' ? (
                     <CryptoAnalysis setActiveTab={setActiveTab} onRunBacktest={handleRunBacktest} />
-                  ) : (
+                  ) : activeTab === 'backtest' ? (
                     <BacktestRunner
                       selectedCrypto={selectedCryptoForBacktest}
                       onSetResult={setBacktestResult}
                       initialResult={backtestResult}
                     />
+                  ) : (
+                    <ScheduleTab />
                   )
                 } />
               </Routes>
