@@ -12,9 +12,11 @@ const StyledPaper = styled(Paper)(({ theme }) => ({
 interface ErrorDisplayProps {
   error: string | null;
   onDismiss: () => void;
+  onRetry?: () => void;
+  is403?: boolean;
 }
 
-export const ErrorDisplay: React.FC<ErrorDisplayProps> = ({ error, onDismiss }) => {
+export const ErrorDisplay: React.FC<ErrorDisplayProps> = ({ error, onDismiss, onRetry, is403 }) => {
   if (!error) {
     return null;
   }
@@ -22,12 +24,16 @@ export const ErrorDisplay: React.FC<ErrorDisplayProps> = ({ error, onDismiss }) 
   return (
     <StyledPaper>
       <Alert severity="error" action={
-        <Button color="inherit" size="small" onClick={onDismiss}>
-          DISMISS
+        <Button color="inherit" size="small" onClick={is403 && onRetry ? onRetry : onDismiss}>
+          {is403 && onRetry ? 'RETRY' : 'DISMISS'}
         </Button>
       }>
-        <Typography variant="h6">An Error Occurred</Typography>
-        <Typography>{error}</Typography>
+        <Typography variant="h6">
+          {is403 ? 'Access Forbidden' : 'An Error Occurred'}
+        </Typography>
+        <Typography>
+          {is403 ? "You don't have permission to access this resource." : error}
+        </Typography>
       </Alert>
     </StyledPaper>
   );

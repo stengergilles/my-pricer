@@ -3,13 +3,16 @@
 import React, { useEffect, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useApiClient } from '../hooks/useApiClient.ts';
+import { useErrorHandler } from '../hooks/useErrorHandler.ts';
 import { Crypto } from '../utils/types.ts'; // Assuming Crypto type is defined here
 import { CircularProgress, Button, Typography, Paper, TableContainer, Table, TableHead, TableRow, TableCell, TableBody } from '@mui/material';
 import RefreshIcon from '@mui/icons-material/Refresh';
+import { ErrorDisplay } from './ErrorDisplay.tsx';
 
 export const VolatileCryptoList = () => {
   const apiClient = useApiClient();
   const queryClient = useQueryClient();
+  const { is403Error, handleError, reset403Error } = useErrorHandler();
   const [volatileCryptos, setVolatileCryptos] = useState<Crypto[]>([]);
   const [fetchError, setFetchError] = useState<Error | null>(null);
 
@@ -23,6 +26,7 @@ export const VolatileCryptoList = () => {
   });
 
   const handleRefreshClick = async () => {
+    reset403Error();
     await queryClient.fetchQuery({
       queryKey: ['volatileCryptos', { forceRefresh: true }],
       queryFn: async ({ queryKey }) => {
@@ -33,11 +37,18 @@ export const VolatileCryptoList = () => {
     });
   };
 
+  const handleRetry = () => {
+    reset403Error();
+    refetch();
+  };
+
   useEffect(() => {
     if (data) {
       setVolatileCryptos(data);
     } else if (isError) {
-      setFetchError(error);
+      if (!handleError(error)) {
+        setFetchError(error);
+      }
     }
   }, [data, isError, error]);
 
@@ -50,15 +61,12 @@ export const VolatileCryptoList = () => {
     );
   }
 
+  if (is403Error) {
+    return <ErrorDisplay error="403 Forbidden" onRetry={handleRetry} is403={true} onDismiss={() => {}} />;
+  }
+
   if (fetchError) {
-    return (
-      <div className="text-center p-4 text-red-600">
-        <Typography variant="h6">Error: {fetchError?.message || 'Failed to fetch volatile cryptocurrencies.'}</Typography>
-        <Button onClick={() => refetch()} startIcon={<RefreshIcon />} className="mt-4">
-          Try Again
-        </Button>
-      </div>
-    );
+    return <ErrorDisplay error={fetchError.message} onDismiss={() => setFetchError(null)} onRetry={handleRetry} />;
   }
 
   return (
