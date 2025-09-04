@@ -66,7 +66,7 @@ def check_permissions(permission, payload):
     if 'permissions' not in payload:
         endpoint = request.endpoint or 'unknown'
         method = request.method
-        error_description = f'Permissions not included in JWT. Required: "{permission}" for {method} {endpoint}'
+        error_description = f'Permissions not included in JWT. Required: "{permission}" for {method} {endpoint}. Token contains: {list(payload.keys())}'
         logger.error(f"Token rejection reason: {error_description}")
         raise AuthError({
             'code': 'insufficient_permissions',
