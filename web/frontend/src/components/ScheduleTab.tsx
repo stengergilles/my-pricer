@@ -33,8 +33,10 @@ export const ScheduleTab = () => {
     try {
       const response = await getJobs();
       setJobs(response);
+      setError('');
     } catch (err) {
       setError('Failed to fetch jobs');
+      setJobs([]);
     }
   }, [getJobs]);
 
@@ -50,6 +52,7 @@ export const ScheduleTab = () => {
 
     setLoading(true);
     setError('');
+    setSuccess('');
     
     try {
       await scheduleJob({
@@ -61,7 +64,7 @@ export const ScheduleTab = () => {
       
       setSuccess('Job scheduled successfully');
       setCrypto('');
-      fetchJobs();
+      await fetchJobs();
     } catch (err) {
       setError('Failed to schedule job');
     } finally {
@@ -70,10 +73,12 @@ export const ScheduleTab = () => {
   };
 
   const stopJob = async (jobId) => {
+    setError('');
+    setSuccess('');
     try {
       await deleteJob(jobId);
       setSuccess('Job stopped');
-      fetchJobs();
+      await fetchJobs();
     } catch (err) {
       setError('Failed to stop job');
     }
