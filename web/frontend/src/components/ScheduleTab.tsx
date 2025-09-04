@@ -38,11 +38,11 @@ export const ScheduleTab = () => {
       setError('Failed to fetch jobs');
       setJobs([]);
     }
-  }, []);
+  }, [getJobs]);
 
   useEffect(() => {
     fetchJobs();
-  }, []);
+  }, [fetchJobs]);
 
   const submitJob = async () => {
     if (!crypto.trim()) {
