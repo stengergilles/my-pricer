@@ -25,5 +25,6 @@ def setup_logging(config):
         ]
     )
 
-    # Explicitly set level for auth.middleware to DEBUG
+    # Explicitly set level for auth middleware loggers
     logging.getLogger('auth.middleware').setLevel(logging.DEBUG)
+    logging.getLogger('web.backend.auth.middleware').setLevel(logging.DEBUG)
