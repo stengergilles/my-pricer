@@ -1,5 +1,6 @@
 import os
 import json
+import time
 from functools import wraps
 from urllib.request import urlopen
 
@@ -14,6 +15,31 @@ logger = logging.getLogger(__name__)
 AUTH0_DOMAIN = os.getenv('AUTH0_DOMAIN')
 API_AUDIENCE = os.getenv('AUTH0_API_AUDIENCE')
 ALGORITHMS = ["RS256"]
+
+# JWKS cache
+_jwks_cache = None
+_jwks_cache_time = 0
+JWKS_CACHE_DURATION = 3600  # 1 hour in seconds
+
+def get_jwks():
+    """Get JWKS with caching"""
+    global _jwks_cache, _jwks_cache_time
+    
+    current_time = time.time()
+    if _jwks_cache is None or (current_time - _jwks_cache_time) > JWKS_CACHE_DURATION:
+        try:
+            jsonurl = urlopen(f"https://{AUTH0_DOMAIN}/.well-known/jwks.json")
+            _jwks_cache = json.loads(jsonurl.read())
+            _jwks_cache_time = current_time
+            logger.info("JWKS cache refreshed")
+        except Exception as e:
+            if _jwks_cache is not None:
+                logger.warning(f"Failed to refresh JWKS, using cached version: {e}")
+            else:
+                logger.error(f"Failed to fetch JWKS and no cache available: {e}")
+                raise
+    
+    return _jwks_cache
 
 # Error handler
 class AuthError(Exception):
@@ -91,10 +117,7 @@ def requires_auth(permission=None):
 
             token = get_token_auth_header() # Moved this line here
 
-            
-
-            jsonurl = urlopen(f"https://{AUTH0_DOMAIN}/.well-known/jwks.json")
-            jwks = json.loads(jsonurl.read())
+            jwks = get_jwks()
 
             if not token:
                 error_description = "Authorization header is expected"
