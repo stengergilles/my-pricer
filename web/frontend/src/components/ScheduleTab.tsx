@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Card,
@@ -11,12 +11,11 @@ import {
   FormControl,
   InputLabel,
   Alert,
-  Chip,
   IconButton,
   Grid
 } from '@mui/material';
-import { Stop, PlayArrow, Delete } from '@mui/icons-material';
-import { useApiClient } from '../hooks/useApiClient';
+import { Stop } from '@mui/icons-material';
+import { useApiClient } from '../hooks/useApiClient.ts';
 
 export const ScheduleTab = () => {
   const { apiCall } = useApiClient();
@@ -30,18 +29,18 @@ export const ScheduleTab = () => {
   const [crypto, setCrypto] = useState('');
   const [interval, setInterval] = useState(60);
 
-  const fetchJobs = async () => {
+  const fetchJobs = useCallback(async () => {
     try {
       const response = await apiCall('/api/jobs', 'GET');
       setJobs(response);
     } catch (err) {
       setError('Failed to fetch jobs');
     }
-  };
+  }, [apiCall]);
 
   useEffect(() => {
     fetchJobs();
-  }, []);
+  }, [fetchJobs]);
 
   const submitJob = async () => {
     if (!crypto.trim()) {
