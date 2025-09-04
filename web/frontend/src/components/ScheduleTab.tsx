@@ -18,7 +18,7 @@ import { Stop } from '@mui/icons-material';
 import { useApiClient } from '../hooks/useApiClient.ts';
 
 export const ScheduleTab = () => {
-  const { apiCall } = useApiClient();
+  const { getJobs, scheduleJob, deleteJob } = useApiClient();
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -31,12 +31,12 @@ export const ScheduleTab = () => {
 
   const fetchJobs = useCallback(async () => {
     try {
-      const response = await apiCall('/api/scheduler/jobs', 'GET');
+      const response = await getJobs();
       setJobs(response);
     } catch (err) {
       setError('Failed to fetch jobs');
     }
-  }, [apiCall]);
+  }, [getJobs]);
 
   useEffect(() => {
     fetchJobs();
@@ -52,7 +52,7 @@ export const ScheduleTab = () => {
     setError('');
     
     try {
-      await apiCall('/api/scheduler/schedule', 'POST', {
+      await scheduleJob({
         function: jobType,
         trigger: 'interval',
         trigger_args: { seconds: interval },
@@ -71,7 +71,7 @@ export const ScheduleTab = () => {
 
   const stopJob = async (jobId) => {
     try {
-      await apiCall(`/api/scheduler/jobs/${jobId}`, 'DELETE');
+      await deleteJob(jobId);
       setSuccess('Job stopped');
       fetchJobs();
     } catch (err) {

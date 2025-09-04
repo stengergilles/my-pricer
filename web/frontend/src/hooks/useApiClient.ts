@@ -94,11 +94,23 @@ export const useApiClient = () => {
     return callApi('getConfig');
   }, [callApi]);
 
+  const getJobs = useCallback(async () => {
+    return callApi('getJobs');
+  }, [callApi]);
+
+  const scheduleJob = useCallback(async (data: any) => {
+    return callApi('scheduleJob', data);
+  }, [callApi]);
+
+  const deleteJob = useCallback(async (jobId: string) => {
+    return callApi('deleteJob', jobId);
+  }, [callApi]);
+
   return { 
     apiClient, 
     getCryptos,
     getCrypto,
-    getCryptoStatus, // New method
+    getCryptoStatus,
     getStrategies,
     getStrategy,
     runAnalysis,
@@ -109,6 +121,9 @@ export const useApiClient = () => {
     getBacktestHistory,
     healthCheck,
     getConfig,
+    getJobs,
+    scheduleJob,
+    deleteJob,
     isLoading
   }
 }

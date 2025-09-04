@@ -159,4 +159,17 @@ export class ApiClient {
   async getConfig() {
     return this.request('GET', '/api/config');
   }
+
+  // Scheduler endpoints
+  async getJobs() {
+    return this.request('GET', '/api/scheduler/jobs');
+  }
+
+  async scheduleJob(data: any) {
+    return this.request('POST', '/api/scheduler/schedule', data);
+  }
+
+  async deleteJob(jobId: string) {
+    return this.request('DELETE', `/api/scheduler/jobs/${jobId}`);
+  }
 }
