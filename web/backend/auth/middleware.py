@@ -71,8 +71,10 @@ def check_permissions(permission, payload):
             'description': error_description
         }, 403)
     if permission not in payload['permissions']:
+        endpoint = request.endpoint or 'unknown'
+        method = request.method
         error_description = f'Permission "{permission}" not found in token permissions: {payload["permissions"]}'
-        logger.error(f"Token rejection reason: {error_description}")
+        logger.error(f"Token permission rejection - Endpoint: {method} {endpoint} | Required: '{permission}' | Token has: {payload['permissions']} | User: {payload.get('sub', 'unknown')}")
         raise AuthError({
             'code': 'insufficient_permissions',
             'description': error_description
