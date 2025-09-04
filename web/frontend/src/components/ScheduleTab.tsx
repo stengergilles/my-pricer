@@ -29,20 +29,21 @@ export const ScheduleTab = () => {
   const [crypto, setCrypto] = useState('');
   const [interval, setInterval] = useState(60);
 
-  const fetchJobs = useCallback(async () => {
-    try {
-      const response = await getJobs();
-      setJobs(response);
-      setError('');
-    } catch (err) {
-      setError('Failed to fetch jobs');
-      setJobs([]);
-    }
-  }, [getJobs]);
-
   useEffect(() => {
+    const fetchJobs = async () => {
+      try {
+        const response = await getJobs();
+        setJobs(response);
+        setError('');
+      } catch (err) {
+        setError('Failed to fetch jobs');
+        setJobs([]);
+      }
+    };
+    
     fetchJobs();
-  }, [fetchJobs]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const submitJob = async () => {
     if (!crypto.trim()) {
@@ -64,7 +65,14 @@ export const ScheduleTab = () => {
       
       setSuccess('Job scheduled successfully');
       setCrypto('');
-      await fetchJobs();
+      
+      // Refetch jobs
+      try {
+        const response = await getJobs();
+        setJobs(response);
+      } catch (err) {
+        // Ignore refetch errors
+      }
     } catch (err) {
       setError('Failed to schedule job');
     } finally {
@@ -78,7 +86,14 @@ export const ScheduleTab = () => {
     try {
       await deleteJob(jobId);
       setSuccess('Job stopped');
-      await fetchJobs();
+      
+      // Refetch jobs
+      try {
+        const response = await getJobs();
+        setJobs(response);
+      } catch (err) {
+        // Ignore refetch errors
+      }
     } catch (err) {
       setError('Failed to stop job');
     }
