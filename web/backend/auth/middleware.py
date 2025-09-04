@@ -7,6 +7,9 @@ from flask import request, g
 
 from jose import jwt
 
+import logging
+logger = logging.getLogger(__name__)
+
 # Auth0 configuration
 AUTH0_DOMAIN = os.getenv('AUTH0_DOMAIN')
 API_AUDIENCE = os.getenv('AUTH0_API_AUDIENCE')
@@ -23,6 +26,7 @@ def get_token_auth_header():
     """
     auth = request.headers.get('Authorization', None)
     if not auth:
+        logger.error("Token rejection reason: Authorization header is missing.")
         raise AuthError({
             'code': 'authorization_header_missing',
             'description': 'Authorization header is expected.'
@@ -30,21 +34,27 @@ def get_token_auth_header():
 
     parts = auth.split()
     if parts[0].lower() != 'bearer':
+        error_description = 'Authorization header must start with "Bearer".'
+        logger.error(f"Token rejection reason: {error_description}")
         raise AuthError({
             'code': 'invalid_header',
-            'description': 'Authorization header must start with "Bearer".'
+            'description': error_description
         }, 401)
 
     elif len(parts) == 1:
+        error_description = 'Token not found.'
+        logger.error(f"Token rejection reason: {error_description}")
         raise AuthError({
             'code': 'invalid_header',
-            'description': 'Token not found.'
+            'description': error_description
         }, 401)
 
     elif len(parts) > 2:
+        error_description = 'Authorization header must be bearer token.'
+        logger.error(f"Token rejection reason: {error_description}")
         raise AuthError({
             'code': 'invalid_header',
-            'description': 'Authorization header must be bearer token.'
+            'description': error_description
         }, 401)
 
     token = parts[1]
@@ -54,14 +64,18 @@ def check_permissions(permission, payload):
     if permission is None:
         return True
     if 'permissions' not in payload:
+        error_description = 'Permissions not included in JWT.'
+        logger.error(f"Token rejection reason: {error_description}")
         raise AuthError({
             'code': 'invalid_claims',
-            'description': 'Permissions not included in JWT.'
+            'description': error_description
         }, 400)
     if permission not in payload['permissions']:
+        error_description = f'Permission "{permission}" not found in token permissions: {payload["permissions"]}'
+        logger.error(f"Token rejection reason: {error_description}")
         raise AuthError({
             'code': 'unauthorized',
-            'description': 'Permission not found.'
+            'description': error_description
         }, 403)
     return True
 
@@ -76,22 +90,34 @@ def requires_auth(permission=None):
                     'iss': f'https://{AUTH0_DOMAIN}/',
                     'aud': API_AUDIENCE,
                     'sub': 'auth0|bypasseduser',
-                    'permissions': ['read:all', 'write:all'],
+                    'permissions': ['read:all', 'write:all', 'read:results', 'create:jobs', 'manage:jobs', 'read:config', 'read:log', 'read:cryptos', 'read:strategies', 'read:analysis', 'read:backtest', 'read:scheduler'],
                     'exp': 9999999999
                 }
                 return f(*args, **kwargs)
 
-            token = get_token_auth_header()
-            try:
-                jsonurl = urlopen(f"https://{AUTH0_DOMAIN}/.well-known/jwks.json")
-                jwks = json.loads(jsonurl.read())
-            except Exception as e:
-                raise AuthError({
-                    'code': 'jwks_fetch_error',
-                    'description': f'Error fetching JWKS: {e}'
-                }, 500)
+            token = get_token_auth_header() # Moved this line here
 
-            unverified_header = jwt.get_unverified_header(token)
+            
+
+            jsonurl = urlopen(f"https://{AUTH0_DOMAIN}/.well-known/jwks.json")
+            jwks = json.loads(jsonurl.read())
+
+            if not token:
+                error_description = "Authorization header is expected"
+                logger.error(f"Token rejection reason: {error_description}")
+                raise AuthError({"code": "authorization_header_missing",
+                                "description": error_description}, 401)
+
+            # Try to get unverified header, catching errors for malformed tokens
+            try:
+                unverified_header = jwt.get_unverified_header(token)
+            except (jwt.JWTError, jwt.JWSError) as e:
+                error_description = f'Malformed token header: {e}'
+                logger.error(f"Token rejection reason: {error_description}")
+                raise AuthError({
+                    'code': 'invalid_header',
+                    'description': error_description
+                }, 400)
 
             rsa_key = {}
             for key in jwks['keys']:
@@ -113,27 +139,42 @@ def requires_auth(permission=None):
                         issuer='https://' + AUTH0_DOMAIN + '/'
                     )
                 except jwt.ExpiredSignatureError:
+                    error_description = 'Token expired.'
+                    logger.error(f"Token rejection reason: {error_description}")
                     raise AuthError({
                         'code': 'token_expired',
-                        'description': 'Token expired.'
+                        'description': error_description
                     }, 401)
-                except jwt.JWTClaimsError:
+                except jwt.JWTClaimsError as e:
+                    error_description = f'Incorrect claims. Please, check the audience and issuer. Error: {e}'
+                    logger.error(f"Token rejection reason: {error_description}")
                     raise AuthError({
                         'code': 'invalid_claims',
-                        'description': 'Incorrect claims. Please, check the audience and issuer.'
-                    }, 401)
-                except Exception as e:
+                        'description': error_description
+                    }, 400)
+                except (jwt.JWTError, jwt.JWSError) as e: # Catch specific JOSE errors
+                    error_description = f'Malformed token: {e}'
+                    logger.error(f"Token rejection reason: {error_description}")
+                    raise AuthError({
+                        'code': 'invalid_header', # Use 'invalid_header' as per test expectation
+                        'description': error_description
+                    }, 400) # Return 400 for malformed tokens
+                except Exception as e: # Catch any other unexpected errors
+                    error_description = f'Unable to parse authentication token: {e}'
+                    logger.error(f"Token rejection reason: {error_description}")
                     raise AuthError({
                         'code': 'invalid_header',
-                        'description': f'Unable to parse authentication token: {e}'
+                        'description': error_description
                     }, 400)
 
                 check_permissions(permission, payload)
                 g.current_user = payload
                 return f(*args, **kwargs)
+            error_description = 'Unable to find the appropriate key.'
+            logger.error(f"Token rejection reason: {error_description}")
             raise AuthError({
                 'code': 'invalid_header',
-                'description': 'Unable to find the appropriate key.'
+                'description': error_description
             }, 400)
         return wrapper
     return requires_auth_decorator
