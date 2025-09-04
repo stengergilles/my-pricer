@@ -94,8 +94,9 @@ def get_config():
         logger.error(f"Error getting config: {e}")
         return jsonify({'error': 'Failed to get configuration'}), 500
 
-# Health check endpoint (no auth required)
+# Health check endpoint
 @app.route('/api/health')
+@requires_auth('read:health')
 def health_check():
     """System health check endpoint."""
     try:
