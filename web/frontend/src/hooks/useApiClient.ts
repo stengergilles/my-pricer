@@ -26,7 +26,6 @@ export const useApiClient = () => {
     startOperation(operationId)
     
     try {
-      // Type assertion to ensure method exists on ApiClient and is callable
       const apiMethod = apiClient[method] as (...args: any[]) => Promise<any>;
       if (typeof apiMethod === 'function') {
         const response = await apiMethod(...args);
