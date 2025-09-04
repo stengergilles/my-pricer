@@ -9,6 +9,7 @@ import { useCryptoStatus } from '../hooks/useCryptoStatus.ts'
 import { Chip } from '@mui/material'
 import CheckCircle from '@mui/icons-material/CheckCircle'
 import { useApiClient } from '../hooks/useApiClient.ts'
+import { useErrorHandler } from '../hooks/useErrorHandler.ts'
 import { useConfig } from '../contexts/ConfigContext.tsx'
 import { Crypto, AnalysisFormData, AnalysisResult } from '../utils/types'
 import {
@@ -39,11 +40,12 @@ const StyledPaper = styled(Paper)(({ theme }) => ({
 
 export const CryptoAnalysis = () => {
   const { getCryptos, runAnalysis, apiClient } = useApiClient()
+  const { is403Error, handleError, reset403Error } = useErrorHandler()
   const queryClient = useQueryClient()
   const [result, setResult] = useState<AnalysisResult | null>(null)
   const [error, setError] = useState<string | null>(null)
 
-  const { data: cryptos, isLoading: cryptosLoading } = useQuery<{
+  const { data: cryptos, isLoading: cryptosLoading, error: cryptosError } = useQuery<{
     cryptos: Crypto[]
   }>({
     queryKey: ['cryptos'],
@@ -102,9 +104,24 @@ export const CryptoAnalysis = () => {
     },
     onError: (error: any) => {
       // console.error('Analysis mutation error:', error) // Removed for production
-      setError(error.message || 'An unknown error occurred.')
+      if (!handleError(error)) {
+        setError(error.message || 'An unknown error occurred.')
+      }
     },
   })
+
+  // Handle 403 errors from queries
+  useEffect(() => {
+    if (cryptosError && !handleError(cryptosError)) {
+      setError(cryptosError.message)
+    }
+  }, [cryptosError, handleError])
+
+  const handleRetry = () => {
+    reset403Error()
+    setError(null)
+    queryClient.invalidateQueries({ queryKey: ['cryptos'] })
+  }
 
   const onSubmit = (data: AnalysisFormData) => {
     setError(null)
@@ -127,6 +144,10 @@ export const CryptoAnalysis = () => {
         <CircularProgress />
       </Box>
     )
+  }
+
+  if (is403Error) {
+    return <ErrorDisplay error="403 Forbidden" onRetry={handleRetry} is403={true} onDismiss={() => {}} />
   }
 
   return (

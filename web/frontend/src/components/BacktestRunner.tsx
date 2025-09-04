@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm, Controller } from 'react-hook-form'
 import { useApiClient } from '../hooks/useApiClient.ts'
+import { useErrorHandler } from '../hooks/useErrorHandler.ts'
 import { useConfig } from '../contexts/ConfigContext.tsx'
 import { BacktestFormData, BacktestResponse } from '../utils/types.ts'
 import { useCryptoStatus } from '../hooks/useCryptoStatus.ts'
@@ -38,11 +39,12 @@ const StyledPaper = styled(Paper)(({ theme }) => ({
 
 export const BacktestRunner = () => {
   const { getCryptos, getStrategies, runBacktest, apiClient } = useApiClient()
+  const { is403Error, handleError, reset403Error } = useErrorHandler()
   const queryClient = useQueryClient()
   const [result, setResult] = useState<BacktestResponse | null>(null)
   const [error, setError] = useState<string | null>(null)
 
-  const { data: cryptos, isLoading: cryptosLoading } = useQuery(
+  const { data: cryptos, isLoading: cryptosLoading, error: cryptosError } = useQuery(
     {
       queryKey: ['cryptos'],
       queryFn: () => getCryptos(),
@@ -50,7 +52,7 @@ export const BacktestRunner = () => {
     }
   )
 
-  const { data: strategies, isLoading: strategiesLoading } = useQuery(
+  const { data: strategies, isLoading: strategiesLoading, error: strategiesError } = useQuery(
     {
       queryKey: ['strategies'],
       queryFn: () => getStrategies(),
@@ -131,9 +133,31 @@ export const BacktestRunner = () => {
     },
     onError: (error: any) => {
       // console.error('Backtest mutation error:', error) // Removed for production
-      setError(error.message || 'An unknown error occurred.')
+      if (!handleError(error)) {
+        setError(error.message || 'An unknown error occurred.')
+      }
     },
   })
+
+  // Handle 403 errors from queries
+  useEffect(() => {
+    if (cryptosError && !handleError(cryptosError)) {
+      setError(cryptosError.message)
+    }
+  }, [cryptosError, handleError])
+
+  useEffect(() => {
+    if (strategiesError && !handleError(strategiesError)) {
+      setError(strategiesError.message)
+    }
+  }, [strategiesError, handleError])
+
+  const handleRetry = () => {
+    reset403Error()
+    setError(null)
+    queryClient.invalidateQueries({ queryKey: ['cryptos'] })
+    queryClient.invalidateQueries({ queryKey: ['strategies'] })
+  }
 
   const onSubmit = (data: BacktestFormData) => {
     setError(null)
@@ -163,6 +187,10 @@ export const BacktestRunner = () => {
         <CircularProgress />
       </Box>
     )
+  }
+
+  if (is403Error) {
+    return <ErrorDisplay error="403 Forbidden" onRetry={handleRetry} is403={true} onDismiss={() => {}} />
   }
 
   return (
