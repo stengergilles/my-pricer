@@ -63,17 +63,10 @@ def get_token_auth_header():
 def check_permissions(permission, payload):
     if permission is None:
         return True
-    if 'permissions' not in payload:
-        endpoint = request.endpoint or 'unknown'
-        method = request.method
-        error_description = f'Permissions not included in JWT. Required: "{permission}" for {method} {endpoint}. Token contains: {list(payload.keys())}'
-        logger.error(f"Token rejection reason: {error_description}")
-        raise AuthError({
-            'code': 'insufficient_permissions',
-            'description': error_description
-        }, 403)
-    if permission not in payload['permissions']:
-        error_description = f'Permission "{permission}" not found in token permissions: {payload["permissions"]}'
+    scope = payload.get('scope', '')
+    scopes = scope.split() if scope else []
+    if permission not in scopes:
+        error_description = f'Scope "{permission}" not found in token scopes: {scopes}'
         logger.error(f"Token rejection reason: {error_description}")
         raise AuthError({
             'code': 'insufficient_permissions',
