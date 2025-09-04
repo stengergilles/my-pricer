@@ -20,6 +20,27 @@ class BacktestAPI(Resource):
         super().__init__() # Call parent constructor without args/kwargs
         self.engine = engine
 
+    @requires_auth('read:backtest')
+    def get(self, backtest_id=None):
+        """Get backtest results."""
+        try:
+            if backtest_id:
+                # Get specific backtest
+                result = self.engine.get_backtest(backtest_id)
+                if not result:
+                    return {'error': 'Backtest not found'}, 404
+                return {'backtest': result}
+            else:
+                # Get backtest history
+                crypto_id = request.args.get('crypto_id')
+                strategy_name = request.args.get('strategy_name')
+                limit = int(request.args.get('limit', 50))
+                results = self.engine.get_backtest_history(crypto_id, strategy_name, limit)
+                return {'backtests': results}
+        except Exception as e:
+            logger.error(f"Error getting backtest: {e}")
+            return {'error': 'Failed to get backtest'}, 500
+
     @requires_auth('execute:backtest')
     def post(self):
         """

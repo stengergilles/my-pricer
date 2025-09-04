@@ -21,6 +21,26 @@ class AnalysisAPI(Resource):
         super().__init__() # Call parent constructor without args/kwargs
         self.engine = engine
 
+    @requires_auth('read:analysis')
+    def get(self, analysis_id=None):
+        """Get analysis results."""
+        try:
+            if analysis_id:
+                # Get specific analysis
+                result = self.engine.get_analysis(analysis_id)
+                if not result:
+                    return {'error': 'Analysis not found'}, 404
+                return {'analysis': result}
+            else:
+                # Get analysis history
+                crypto_id = request.args.get('crypto_id')
+                limit = int(request.args.get('limit', 50))
+                results = self.engine.get_analysis_history(crypto_id, limit)
+                return {'analyses': results}
+        except Exception as e:
+            logger.error(f"Error getting analysis: {e}")
+            return {'error': 'Failed to get analysis'}, 500
+
     @requires_auth('execute:analysis')
     def post(self):
         """
