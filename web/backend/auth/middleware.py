@@ -67,14 +67,14 @@ def check_permissions(permission, payload):
         error_description = 'Permissions not included in JWT.'
         logger.error(f"Token rejection reason: {error_description}")
         raise AuthError({
-            'code': 'invalid_claims',
+            'code': 'insufficient_permissions',
             'description': error_description
-        }, 400)
+        }, 403)
     if permission not in payload['permissions']:
         error_description = f'Permission "{permission}" not found in token permissions: {payload["permissions"]}'
         logger.error(f"Token rejection reason: {error_description}")
         raise AuthError({
-            'code': 'unauthorized',
+            'code': 'insufficient_permissions',
             'description': error_description
         }, 403)
     return True

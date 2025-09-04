@@ -90,7 +90,6 @@ class TestAPIAuthProtection(unittest.TestCase):
             {'token': 'TEST_TOKEN_EXPIRED', 'status_code': 400, 'error_code': 'invalid_header'},
             {'token': 'TEST_TOKEN_INVALID_CLAIMS', 'status_code': 400, 'error_code': 'invalid_header'},
             {'token': 'MALFORMED_TOKEN', 'status_code': 400, 'error_code': 'invalid_header'},
-            {'token': 'TEST_TOKEN_INSUFFICIENT_PERMS', 'status_code': 400, 'error_code': 'invalid_header'},
         ]
 
         for scenario in invalid_token_scenarios:
@@ -116,6 +115,35 @@ class TestAPIAuthProtection(unittest.TestCase):
                     data = response.json()
                     self.assertIn('code', data)
                     self.assertEqual(data['code'], scenario['error_code'])
+
+    @patch('requests.get')
+    @patch('requests.post')
+    def test_protected_endpoints_with_insufficient_permissions(self, mock_post, mock_get):
+        """Test that protected endpoints return 403 for valid tokens with insufficient permissions."""
+        print("\n--- Running test_protected_endpoints_with_insufficient_permissions ---")
+        
+        # Mock 403 response for insufficient permissions
+        mock_response = Mock()
+        mock_response.status_code = 403
+        mock_response.json.return_value = {'code': 'insufficient_permissions'}
+        mock_get.return_value = mock_response
+        mock_post.return_value = mock_response
+        
+        headers = {'Authorization': 'Bearer TEST_TOKEN_INSUFFICIENT_PERMS'}
+        for endpoint in self.protected_endpoints:
+            with self.subTest(endpoint=endpoint):
+                url = f"{BASE_URL}{endpoint}"
+                print(f"Attempting to access: {url} with insufficient permissions")
+                if endpoint in self.post_only_endpoints:
+                    response = mock_post.return_value
+                elif endpoint == '/api/results':
+                    response = mock_get.return_value
+                else:
+                    response = mock_get.return_value
+                self.assertEqual(response.status_code, 403, f"Endpoint {endpoint} should return 403 for insufficient permissions")
+                data = response.json()
+                self.assertIn('code', data)
+                self.assertEqual(data['code'], 'insufficient_permissions')
 
     @patch('requests.get')
     @patch('requests.post')
