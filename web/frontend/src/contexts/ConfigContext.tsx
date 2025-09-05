@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 import { ApiClient } from '../utils/api.ts'
+import { useAuth0 } from '@auth0/auth0-react' // Import useAuth0
 
 interface StrategyConfig {
   long_entry: string[]
@@ -51,14 +52,15 @@ export const ConfigProvider: React.FC<ConfigProviderProps> = ({ children }) => {
   const [config, setConfig] = useState<ConfigData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const { getAccessTokenSilently } = useAuth0(); // Get getAccessTokenSilently here
 
-  const fetchConfig = async () => {
+  const fetchConfig = async (getAccessToken: () => Promise<string | undefined>) => {
     try {
       setIsLoading(true)
       setError(null)
       
-      // Create a direct API client instance for config fetching
-      const apiClient = new ApiClient(undefined) // No auth needed for config
+      // Create an API client instance for config fetching, with auth
+      const apiClient = new ApiClient(getAccessToken)
       const response = await apiClient.getConfig()
       setConfig(response)
     } catch (err) {
@@ -70,11 +72,11 @@ export const ConfigProvider: React.FC<ConfigProviderProps> = ({ children }) => {
   }
 
   useEffect(() => {
-    fetchConfig()
-  }, [])
+    fetchConfig(getAccessTokenSilently) // Pass getAccessTokenSilently
+  }, [getAccessTokenSilently]) // Add getAccessTokenSilently to dependency array
 
   const refetch = async () => {
-    await fetchConfig()
+    await fetchConfig(getAccessTokenSilently) // Pass getAccessTokenSilently
   }
 
   return (

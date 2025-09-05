@@ -46,12 +46,14 @@ function AppContent() {
   const [selectedCryptoForBacktest, setSelectedCryptoForBacktest] = useState(null);
   const [backtestResult, setBacktestResult] = useState(null);
 
+  const { getAccessTokenSilently } = useAuth0();
+
   useEffect(() => {
     const timer = setTimeout(() => {
-      setupRemoteLogger();
+      setupRemoteLogger(getAccessTokenSilently);
     }, 1000);
     return () => clearTimeout(timer);
-  }, []);
+  }, [getAccessTokenSilently]);
 
   useEffect(() => {
     document.title = APP_TITLE;

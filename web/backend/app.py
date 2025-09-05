@@ -36,6 +36,9 @@ from core.scheduler import init_scheduler, get_scheduler
 # Initialize core components
 config = Config()
 
+# Initialize scheduler globally
+init_scheduler(config)
+
 from core.logger_config import setup_logging
 
 # Set up logging
@@ -186,7 +189,6 @@ def serve_frontend(path):
         })
 
 if __name__ == '__main__':
-    init_scheduler(config)
     import signal
     import sys
 
