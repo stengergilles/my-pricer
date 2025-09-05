@@ -18,7 +18,7 @@ import { Stop } from '@mui/icons-material';
 import { useApiClient } from '../hooks/useApiClient.ts';
 
 export const ScheduleTab = () => {
-  const { getJobs, scheduleJob, deleteJob } = useApiClient();
+  const { getJobs, scheduleJob, deleteJob, apiClient } = useApiClient();
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -31,6 +31,7 @@ export const ScheduleTab = () => {
 
   useEffect(() => {
     const fetchJobs = async () => {
+      
       try {
         const response = await getJobs();
         setJobs(response);
@@ -41,9 +42,11 @@ export const ScheduleTab = () => {
       }
     };
     
-    fetchJobs();
+    if (apiClient) { // Check if apiClient is initialized
+      fetchJobs();
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [apiClient]); // Depend on apiClient
 
   const submitJob = async () => {
     if (!crypto.trim()) {

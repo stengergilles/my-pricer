@@ -61,7 +61,6 @@ CORS(app, origins="*", supports_credentials=True, allow_headers=["Authorization"
 # Initialize Flask-RESTful
 api = Api(app)
 
-init_scheduler(config)
 trading_engine = TradingEngine(config)
 trading_engine.set_scheduler(get_scheduler()) # Link the scheduler to the engine
 
@@ -187,6 +186,7 @@ def serve_frontend(path):
         })
 
 if __name__ == '__main__':
+    init_scheduler(config)
     import signal
     import sys
 

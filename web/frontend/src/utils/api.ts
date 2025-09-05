@@ -21,6 +21,9 @@ export class ApiClient {
     this.getBacktestHistory = this.getBacktestHistory.bind(this);
     this.healthCheck = this.healthCheck.bind(this);
     this.getConfig = this.getConfig.bind(this);
+    this.getJobs = this.getJobs.bind(this);
+    this.scheduleJob = this.scheduleJob.bind(this);
+    this.deleteJob = this.deleteJob.bind(this);
   }
 
   private async request(method: string, endpoint: string, data?: any) {
