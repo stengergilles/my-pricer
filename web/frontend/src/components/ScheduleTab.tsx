@@ -12,13 +12,16 @@ import {
   InputLabel,
   Alert,
   IconButton,
-  Grid
+  Grid,
+  CircularProgress
 } from '@mui/material';
 import { Stop } from '@mui/icons-material';
 import { useApiClient } from '../hooks/useApiClient.ts';
+import { useQuery } from '@tanstack/react-query';
+import { Crypto } from '../utils/types';
 
 export const ScheduleTab = () => {
-  const { getJobs, scheduleJob, deleteJob, getJobLogs, apiClient } = useApiClient();
+  const { getJobs, scheduleJob, deleteJob, getJobLogs, apiClient, getCryptos } = useApiClient();
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -31,6 +34,12 @@ export const ScheduleTab = () => {
   const [jobType, setJobType] = useState('analyze_crypto');
   const [crypto, setCrypto] = useState('');
   const [interval, setInterval] = useState(60);
+
+  const { data: volatileCryptos, isLoading: cryptosLoading } = useQuery<Crypto[]>({
+    queryKey: ['volatileCryptos'],
+    queryFn: () => getCryptos({ volatile: true, min_volatility: 20.0, limit: 250 }).then(data => data.cryptos),
+    enabled: !!apiClient,
+  });
 
   useEffect(() => {
     const fetchJobs = async () => {
@@ -72,8 +81,8 @@ export const ScheduleTab = () => {
   };
 
   const submitJob = async () => {
-    if (!crypto.trim()) {
-      setError('Crypto symbol is required');
+    if (!crypto) {
+      setError('Crypto is required');
       return;
     }
 
@@ -86,7 +95,7 @@ export const ScheduleTab = () => {
         function: jobType,
         trigger: 'interval',
         trigger_args: { seconds: interval },
-        func_args: [crypto.toUpperCase()]
+        func_args: [crypto]
       });
       
       setSuccess('Job scheduled successfully');
@@ -144,14 +153,23 @@ export const ScheduleTab = () => {
                 </Select>
               </FormControl>
 
-              <TextField
-                fullWidth
-                label="Crypto Symbol"
-                value={crypto}
-                onChange={(e) => setCrypto(e.target.value)}
-                placeholder="BTC, ETH, etc."
-                sx={{ mb: 2 }}
-              />
+              <FormControl fullWidth sx={{ mb: 2 }}>
+                <InputLabel>Crypto</InputLabel>
+                <Select value={crypto} onChange={(e) => setCrypto(e.target.value)} disabled={cryptosLoading}>
+                  {cryptosLoading ? (
+                    <MenuItem value="">
+                      <CircularProgress size={20} />
+                      <Typography sx={{ ml: 1 }}>Loading...</Typography>
+                    </MenuItem>
+                  ) : (
+                    volatileCryptos?.map((c) => (
+                      <MenuItem key={c.id} value={c.id}>
+                        {c.name} ({c.symbol.toUpperCase()})
+                      </MenuItem>
+                    ))
+                  )}
+                </Select>
+              </FormControl>
 
               <TextField
                 fullWidth
