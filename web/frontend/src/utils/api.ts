@@ -24,6 +24,7 @@ export class ApiClient {
     this.getJobs = this.getJobs.bind(this);
     this.scheduleJob = this.scheduleJob.bind(this);
     this.deleteJob = this.deleteJob.bind(this);
+    this.getJobLogs = this.getJobLogs.bind(this);
   }
 
   private async request(method: string, endpoint: string, data?: any) {
@@ -174,5 +175,9 @@ export class ApiClient {
 
   async deleteJob(jobId: string) {
     return this.request('DELETE', `/api/scheduler/jobs/${jobId}`);
+  }
+
+  async getJobLogs(jobId: string) {
+    return this.request('GET', `/api/scheduler/jobs/${jobId}/logs`);
   }
 }

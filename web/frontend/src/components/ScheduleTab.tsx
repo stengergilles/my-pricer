@@ -18,11 +18,14 @@ import { Stop } from '@mui/icons-material';
 import { useApiClient } from '../hooks/useApiClient.ts';
 
 export const ScheduleTab = () => {
-  const { getJobs, scheduleJob, deleteJob, apiClient } = useApiClient();
+  const { getJobs, scheduleJob, deleteJob, getJobLogs, apiClient } = useApiClient();
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [expandedJobId, setExpandedJobId] = useState<string | null>(null);
+  const [jobLogs, setJobLogs] = useState<string[]>([]);
+  const [logsLoading, setLogsLoading] = useState(false);
 
   // Form state
   const [jobType, setJobType] = useState('analyze_crypto');
@@ -47,6 +50,26 @@ export const ScheduleTab = () => {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [apiClient]); // Depend on apiClient
+
+  const handleJobClick = async (jobId: string) => {
+    if (expandedJobId === jobId) {
+      setExpandedJobId(null);
+      setJobLogs([]);
+    } else {
+      setExpandedJobId(jobId);
+      setLogsLoading(true);
+      try {
+        const response = await getJobLogs(jobId);
+        setJobLogs(response.logs || []);
+        setError('');
+      } catch (err) {
+        setError('Failed to fetch job logs');
+        setJobLogs([]);
+      } finally {
+        setLogsLoading(false);
+      }
+    }
+  };
 
   const submitJob = async () => {
     if (!crypto.trim()) {
@@ -163,27 +186,57 @@ export const ScheduleTab = () => {
                 jobs.map((job) => (
                   <Box key={job.id} sx={{ 
                     display: 'flex', 
+                    flexDirection: 'column',
                     justifyContent: 'space-between', 
-                    alignItems: 'center',
+                    alignItems: 'flex-start',
                     p: 2,
                     border: 1,
                     borderColor: 'divider',
                     borderRadius: 1,
-                    mb: 1
-                  }}>
-                    <Box>
-                      <Typography variant="subtitle2">{job.name || job.id}</Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        Next: {job.next_run_time}
-                      </Typography>
+                    mb: 1,
+                    cursor: 'pointer'
+                  }} onClick={() => handleJobClick(job.id)}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
+                      <Box>
+                        <Typography variant="subtitle2">{job.name || job.id}</Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          Next: {job.next_run_time}
+                        </Typography>
+                      </Box>
+                      <IconButton 
+                        color="error" 
+                        onClick={(e) => { e.stopPropagation(); stopJob(job.id); }}
+                        size="small"
+                      >
+                        <Stop />
+                      </IconButton>
                     </Box>
-                    <IconButton 
-                      color="error" 
-                      onClick={() => stopJob(job.id)}
-                      size="small"
-                    >
-                      <Stop />
-                    </IconButton>
+                    {expandedJobId === job.id && (
+                      <Box sx={{ mt: 2, width: '100%' }}>
+                        <Typography variant="subtitle2">Job Logs:</Typography>
+                        {logsLoading ? (
+                          <Typography>Loading logs...</Typography>
+                        ) : jobLogs.length > 0 ? (
+                          <Box sx={{ 
+                            backgroundColor: '#f0f0f0',
+                            p: 1,
+                            borderRadius: 1,
+                            maxHeight: 200,
+                            overflowY: 'auto',
+                            whiteSpace: 'pre-wrap',
+                            wordBreak: 'break-all'
+                          }}>
+                            {jobLogs.map((log, index) => (
+                              <Typography key={index} variant="caption" component="pre" sx={{ margin: 0 }}>
+                                {log}
+                              </Typography>
+                            ))}
+                          </Box>
+                        ) : (
+                          <Typography variant="caption" color="text.secondary">No logs available.</Typography>
+                        )}
+                      </Box>
+                    )}
                   </Box>
                 ))
               )}

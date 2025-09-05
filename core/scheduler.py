@@ -46,6 +46,11 @@ class Scheduler:
     def remove_job(self, job_id):
         self.scheduler.remove_job(job_id)
 
+    def get_job_logs(self, job_id):
+        # Placeholder for now. Actual log retrieval would involve reading from a log file
+        # or a database where job-specific logs are stored.
+        return [f"Logs for job {job_id}: Not yet implemented.", "This is a placeholder log entry."]
+
     def add_listener(self, callback, mask):
         self.scheduler.add_listener(callback, mask)
 

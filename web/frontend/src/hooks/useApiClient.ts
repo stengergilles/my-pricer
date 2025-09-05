@@ -105,6 +105,10 @@ export const useApiClient = () => {
     return callApi('deleteJob', jobId);
   }, [callApi]);
 
+  const getJobLogs = useCallback(async (jobId: string) => {
+    return callApi('getJobLogs', jobId);
+  }, [callApi]);
+
   return { 
     apiClient, 
     getCryptos,
@@ -123,6 +127,7 @@ export const useApiClient = () => {
     getJobs,
     scheduleJob,
     deleteJob,
+    getJobLogs,
     isLoading
   }
 }

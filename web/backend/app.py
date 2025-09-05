@@ -27,7 +27,7 @@ from api.analysis import AnalysisAPI
 from api.backtest import BacktestAPI
 from api.strategies import StrategiesAPI
 from api.results import ResultsAPI
-from api.scheduler import ScheduleJobAPI, JobsAPI, JobAPI
+from api.scheduler import ScheduleJobAPI, JobsAPI, JobAPI, JobLogsAPI
 from utils.error_handlers import register_error_handlers
 
 # Initialize scheduler
@@ -154,6 +154,7 @@ api.add_resource(ResultsAPI, '/api/results', '/api/results/<string:result_type>'
 api.add_resource(ScheduleJobAPI, '/api/scheduler/schedule', resource_class_kwargs={'engine': trading_engine})
 api.add_resource(JobsAPI, '/api/scheduler/jobs', resource_class_kwargs={'engine': trading_engine})
 api.add_resource(JobAPI, '/api/scheduler/jobs/<string:job_id>', resource_class_kwargs={'engine': trading_engine})
+api.add_resource(JobLogsAPI, '/api/scheduler/jobs/<string:job_id>/logs', resource_class_kwargs={'engine': trading_engine})
 
 
 # Serve frontend static files (for production)

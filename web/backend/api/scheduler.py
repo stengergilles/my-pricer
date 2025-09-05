@@ -32,9 +32,9 @@ class ScheduleJobAPI(Resource):
         job = self.scheduler.add_job(
             func=schedulable_functions[func_path],
             trigger=trigger,
-            **trigger_args,
+            kwargs={'config': self.engine.config, **func_kwargs},
             args=func_args,
-            kwargs=func_kwargs
+            **trigger_args,
         )
 
         return jsonify({'job_id': job.id})
@@ -94,3 +94,15 @@ class JobAPI(Resource):
     def delete(self, job_id):
         self.scheduler.remove_job(job_id)
         return jsonify({'status': 'removed'})
+
+class JobLogsAPI(Resource):
+    def __init__(self, engine):
+        super().__init__()
+        self.engine = engine
+        self.scheduler = self.engine.get_scheduler()
+
+    @requires_auth('read:jobs')
+    def get(self, job_id):
+        # For now, return a placeholder. Actual log retrieval needs a more robust logging setup.
+        logs = self.scheduler.get_job_logs(job_id)
+        return jsonify({'job_id': job_id, 'logs': logs})
