@@ -1,14 +1,14 @@
 from flask import request, jsonify
 from flask_restful import Resource
 from core.scheduler import get_scheduler # Keep for now, might remove later if engine fully encapsulates
-from pricer import analyze_crypto_with_existing_system
+from pricer import optimize_crypto_with_existing_system
 from web.backend.auth.middleware import requires_auth
 from core.trading_engine import TradingEngine # Import TradingEngine
 
 # Note: If analyze_crypto_with_existing_system needs to be part of the engine,
 # this mapping might need to be adjusted or moved.
 schedulable_functions = {
-    'analyze_crypto': analyze_crypto_with_existing_system
+    'optimize_crypto': optimize_crypto_with_existing_system
 }
 
 class ScheduleJobAPI(Resource):

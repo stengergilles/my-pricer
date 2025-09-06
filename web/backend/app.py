@@ -82,7 +82,7 @@ def handle_auth_error(ex):
 app.register_error_handler(AuthError, handle_auth_error)
 
 # Register AuthError with Flask-RESTful's error handling
-api.handle_error = handle_auth_error
+# api.handle_error = handle_auth_error # Handled by @app.errorhandler
 
 # Config endpoint
 @app.route('/api/config')

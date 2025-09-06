@@ -31,7 +31,7 @@ export const ScheduleTab = () => {
   const [logsLoading, setLogsLoading] = useState(false);
 
   // Form state
-  const [jobType, setJobType] = useState('analyze_crypto');
+  const [jobType, setJobType] = useState('optimize_crypto');
   const [crypto, setCrypto] = useState('');
   const [interval, setInterval] = useState(60);
 
@@ -154,7 +154,7 @@ export const ScheduleTab = () => {
                   label="Job Type"
                   onChange={(e) => setJobType(e.target.value)}
                 >
-                  <MenuItem value="analyze_crypto">Analyze Crypto</MenuItem>
+                  <MenuItem value="optimize_crypto">Optimize Crypto</MenuItem>
                 </Select>
               </FormControl>
 

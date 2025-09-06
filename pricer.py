@@ -178,7 +178,7 @@ def _convert_to_json_serializable(obj):
         return [_convert_to_json_serializable(item) for item in obj]
     return obj
 
-def analyze_crypto_with_existing_system(crypto_id, config: dict, timeframe=DEFAULT_TIMEFRAME, interval=DEFAULT_INTERVAL, 
+def optimize_crypto_with_existing_system(crypto_id, config: dict, timeframe=DEFAULT_TIMEFRAME, interval=DEFAULT_INTERVAL, 
                                       use_best_params=True, strategy_name=None):
     """
     Analyze cryptocurrency using existing backtester system components.
@@ -310,7 +310,7 @@ def run_continuous_analysis(crypto_id, config, interval_minutes=60, strategy_nam
     while True:
         try:
             # Run analysis
-            result = analyze_crypto_with_existing_system(crypto_id, config, strategy_name=strategy_name)
+            result = optimize_crypto_with_existing_system(crypto_id, config, strategy_name=strategy_name)
             
             if result:
                 # Save result
@@ -389,7 +389,7 @@ def main():
             )
         else:
             # Run single analysis
-            result = analyze_crypto_with_existing_system(
+            result = optimize_crypto_with_existing_system(
                 args.crypto,
                 config,
                 args.timeframe,
