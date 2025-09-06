@@ -160,6 +160,12 @@ export const AnalysisResultDisplay = ({
                   label="Total Profit"
                   value={`${total_profit_percentage?.toFixed(2)}%`}
                 />
+                {result.analysis_timestamp && (
+                  <MetricItem
+                    label="Backtest Date"
+                    value={new Date(result.analysis_timestamp).toLocaleString()}
+                  />
+                )}
                 <MetricItem label="Total Trades" value={total_trades} />
                 <MetricItem label="Win Rate" value={`${win_rate?.toFixed(1)}%`} />
               </List>
