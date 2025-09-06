@@ -104,10 +104,6 @@ export const AnalysisResultDisplay = ({ result }: { result: AnalysisResult }) =>
                   value={`${current_price.toLocaleString()}`}
                 />
                 <MetricItem label="Current Signal" value={current_signal} />
-                <MetricItem
-                  label="Strategy Used"
-                  value={strategy_used.replace(/_/g, ' ')}
-                />
               </List>
             </CardContent>
           </StyledCard>
@@ -119,6 +115,10 @@ export const AnalysisResultDisplay = ({ result }: { result: AnalysisResult }) =>
                 Backtest Performance
               </Typography>
               <List dense>
+                <MetricItem
+                  label="Strategy Used"
+                  value={strategy_used.replace(/_/g, ' ')}
+                />
                 <MetricItem
                   label="Total Profit"
                   value={`${total_profit_percentage?.toFixed(2)}%`}
