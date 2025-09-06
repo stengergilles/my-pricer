@@ -81,7 +81,7 @@ export interface BacktestRequest {
 
 export interface BacktestResult {
   total_profit_percentage: number
-  num_trades: number
+  total_trades: number
   win_rate: number
   sharpe_ratio?: number
   max_drawdown?: number

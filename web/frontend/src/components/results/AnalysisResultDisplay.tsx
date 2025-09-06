@@ -8,9 +8,13 @@ import {
   List,
   ListItem,
   ListItemText,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
 } from '@mui/material'
 import { styled } from '@mui/system'
-import { AnalysisResult, Line } from '../../utils/types'
+import { AnalysisResult, Line, BacktestResponse } from '../../utils/types'
 
 const StyledCard = styled(Card)(({ theme }) => ({
   marginTop: theme.spacing(2),
@@ -61,18 +65,24 @@ const LineList = ({ title, lines }: { title: string; lines: Line[] | undefined }
   </Box>
 )
 
-export const AnalysisResultDisplay = ({ result }: { result: AnalysisResult }) => {
-  // console.log("AnalysisResultDisplay: result prop received:", result); // Removed for production
+export const AnalysisResultDisplay = ({
+  result,
+  backtestHistory = [],
+  onBacktestSelect,
+}: {
+  result: AnalysisResult,
+  backtestHistory: BacktestResponse[],
+  onBacktestSelect: (backtest: BacktestResponse) => void,
+}) => {
   if (!result) {
-    // console.log("AnalysisResultDisplay: result is null or undefined, returning null."); // Removed for production
     return null;
   }
 
   const {
+    analysis_id,
     crypto_id,
     current_price,
     current_signal,
-    strategy_used,
     active_resistance_lines,
     active_support_lines,
     chart_data,
@@ -81,12 +91,26 @@ export const AnalysisResultDisplay = ({ result }: { result: AnalysisResult }) =>
 
   const {
     total_profit_percentage,
-    num_trades: total_trades,
+    total_trades,
     win_rate,
   } = backtest_result || {};
 
-  // console.log("AnalysisResultDisplay: active_resistance_lines:", active_resistance_lines); // Removed for production
-  // console.log("AnalysisResultDisplay: active_support_lines:", active_support_lines); // Removed for production
+  const uniqueStrategies = backtestHistory.reduce((acc, backtest) => {
+    if (!acc[backtest.strategy] || acc[backtest.strategy].backtest_result.total_profit_percentage < backtest.backtest_result.total_profit_percentage) {
+        acc[backtest.strategy] = backtest;
+    }
+    return acc;
+}, {} as Record<string, BacktestResponse>);
+
+  const bestBacktests = Object.values(uniqueStrategies);
+
+  const handleSelectChange = (event: any) => {
+    const selectedId = event.target.value;
+    const selectedBacktest = bestBacktests.find(b => b.backtest_id === selectedId);
+    if (selectedBacktest) {
+      onBacktestSelect(selectedBacktest);
+    }
+  };
 
   return (
     <Box>
@@ -115,10 +139,23 @@ export const AnalysisResultDisplay = ({ result }: { result: AnalysisResult }) =>
                 Backtest Performance
               </Typography>
               <List dense>
-                <MetricItem
-                  label="Strategy Used"
-                  value={strategy_used.replace(/_/g, ' ')}
-                />
+                <ListItem>
+                  <FormControl fullWidth>
+                    <InputLabel id="backtest-select-label">Strategy</InputLabel>
+                    <Select
+                      labelId="backtest-select-label"
+                      value={analysis_id || ''}
+                      onChange={handleSelectChange}
+                      label="Strategy"
+                    >
+                      {bestBacktests.map((backtest) => (
+                        <MenuItem key={backtest.backtest_id} value={backtest.backtest_id}>
+                          {`${backtest.strategy.replace(/_/g, ' ')} (${backtest.backtest_result.total_profit_percentage?.toFixed(2)}%)`}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </ListItem>
                 <MetricItem
                   label="Total Profit"
                   value={`${total_profit_percentage?.toFixed(2)}%`}

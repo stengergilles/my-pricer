@@ -443,7 +443,7 @@ class TradingEngine:
                 'analysis_timestamp': datetime.now().isoformat(),
                 'backtest_result': {
                     'total_profit_percentage': result.get('total_profit_loss'),
-                    'num_trades': result.get('total_trades'),
+                    'total_trades': result.get('total_trades'),
                     'win_rate': result.get('win_rate')
                 }
             }

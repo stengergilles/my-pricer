@@ -1,5 +1,3 @@
-
-
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -11,7 +9,7 @@ import CheckCircle from '@mui/icons-material/CheckCircle'
 import { useApiClient } from '../hooks/useApiClient.ts'
 import { useErrorHandler } from '../hooks/useErrorHandler.ts'
 import { useConfig } from '../contexts/ConfigContext.tsx'
-import { Crypto, AnalysisFormData, AnalysisResult } from '../utils/types'
+import { Crypto, AnalysisFormData, AnalysisResult, BacktestResponse } from '../utils/types'
 import {
   Box,
   Typography,
@@ -39,10 +37,11 @@ const StyledPaper = styled(Paper)(({ theme }) => ({
 
 
 export const CryptoAnalysis = () => {
-  const { getCryptos, runAnalysis, apiClient } = useApiClient()
+  const { getCryptos, runAnalysis, apiClient, getBacktestHistory } = useApiClient()
   const { is403Error, handleError, reset403Error } = useErrorHandler()
   const queryClient = useQueryClient()
   const [result, setResult] = useState<AnalysisResult | null>(null)
+  const [selectedBacktest, setSelectedBacktest] = useState<AnalysisResult | null>(null);
   const [error, setError] = useState<string | null>(null)
 
   const { data: cryptos, isLoading: cryptosLoading, error: cryptosError } = useQuery<{
@@ -72,6 +71,14 @@ export const CryptoAnalysis = () => {
   const watchedCryptoId = watch('cryptoId');
   const { data: cryptoStatus } = useCryptoStatus(watchedCryptoId);
 
+  const { data: backtestHistoryData, isLoading: backtestHistoryLoading } = useQuery({
+    queryKey: ['backtestHistory', watchedCryptoId],
+    queryFn: () => getBacktestHistory(watchedCryptoId),
+    enabled: !!watchedCryptoId,
+  });
+
+  const backtestHistory: BacktestResponse[] = backtestHistoryData?.backtests || [];
+
   useEffect(() => {
     if (cryptos && cryptos.cryptos && cryptos.cryptos.length > 0) {
       setValue('cryptoId', cryptos.cryptos[0].id);
@@ -96,8 +103,35 @@ export const CryptoAnalysis = () => {
       if (data.result && data.result.success === false) {
         setError(data.result.error || 'Analysis failed')
         setResult(null)
+        setSelectedBacktest(null);
       } else {
         setResult(data.result)
+        setSelectedBacktest(data.result);
+
+        // Manually update the backtest history query cache
+        queryClient.setQueryData(['backtestHistory', variables.cryptoId], (oldData) => {
+            const newBacktest = {
+                backtest_id: data.result.analysis_id,
+                crypto: data.result.crypto_id,
+                strategy: data.result.strategy_used,
+                parameters: data.result.parameters_used,
+                timestamp: data.result.analysis_timestamp,
+                engine_version: data.result.engine_version,
+                result_path: data.result.result_path,
+                chart_data: data.result.chart_data,
+                backtest_result: data.result.backtest_result,
+            };
+
+            const existingBacktests = oldData?.backtests || [];
+            // Avoid adding duplicates
+            if (existingBacktests.find(b => b.backtest_id === newBacktest.backtest_id)) {
+                return oldData;
+            }
+
+            return {
+                backtests: [newBacktest, ...existingBacktests]
+            }
+        });
       }
       queryClient.invalidateQueries({ queryKey: ['analysis-history'] })
       queryClient.invalidateQueries({ queryKey: ['cryptoStatus', variables.cryptoId] })
@@ -126,12 +160,31 @@ export const CryptoAnalysis = () => {
   const onSubmit = (data: AnalysisFormData) => {
     setError(null)
     setResult(null)
+    setSelectedBacktest(null);
     analysisMutation.mutate(data)
   }
 
-  
+  const handleBacktestSelect = (backtest: BacktestResponse) => {
+    const analysisResult: AnalysisResult = {
+      analysis_id: backtest.backtest_id,
+      crypto_id: backtest.crypto,
+      strategy_used: backtest.strategy,
+      current_signal: 'HOLD', // Not available in backtest results
+      current_price: 0, // Not available in backtest results
+      analysis_timestamp: backtest.timestamp,
+      active_resistance_lines: [], // Not available in backtest results
+      active_support_lines: [], // Not available in backtest results
+      parameters_used: backtest.parameters,
+      timeframe_days: 0, // Not available in backtest results
+      engine_version: backtest.engine_version,
+      result_path: backtest.result_path,
+      chart_data: backtest.chart_data,
+      backtest_result: backtest.backtest_result,
+    };
+    setSelectedBacktest(analysisResult);
+  };
 
-  if (cryptosLoading || configLoading) {
+  if (cryptosLoading || configLoading || backtestHistoryLoading) {
     return (
       <Box
         sx={{
@@ -241,7 +294,7 @@ export const CryptoAnalysis = () => {
           <Typography variant="h5" component="h3" gutterBottom>
             Analysis Results
           </Typography>
-          <AnalysisResultDisplay result={result} />
+          <AnalysisResultDisplay result={selectedBacktest || result} backtestHistory={backtestHistory} onBacktestSelect={handleBacktestSelect} />
         </StyledPaper>
       )}
     </Box>
