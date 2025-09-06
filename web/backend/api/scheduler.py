@@ -5,11 +5,13 @@ from pricer import optimize_crypto_with_existing_system
 from web.backend.auth.middleware import requires_auth
 from core.trading_engine import TradingEngine # Import TradingEngine
 from core.optimize_cryptos_job import run_optimize_cryptos_job # Import the new job function
+import uuid
+from core.single_strategy_optimizer_job import run_single_strategy_optimization_job # Import the new single strategy job
 
 # Note: If analyze_crypto_with_existing_system needs to be part of the engine,
 # this mapping might need to be adjusted or moved.
 schedulable_functions = {
-    'optimize_crypto': optimize_crypto_with_existing_system,
+    'optimize_crypto': run_single_strategy_optimization_job, # Map to the new single strategy job
     'optimize_cryptos_job': run_optimize_cryptos_job # Add the new job
 }
 
@@ -32,18 +34,26 @@ class ScheduleJobAPI(Resource):
             return jsonify({'error': 'Function not allowed'}), 400
 
         # Special handling for 'optimize_cryptos_job' to pass its specific kwargs
-        if func_path == 'optimize_cryptos_job':
+        if func_path in ['optimize_cryptos_job', 'optimize_crypto']: # Handle both optimization jobs
             job_func = schedulable_functions[func_path]
-            # Pass func_kwargs directly to the job function
+            # Construct kwargs for the scheduled function
+            # Generate a unique job_id before adding the job
+            new_job_id = str(uuid.uuid4())
+
+            # Construct kwargs for the scheduled function
+            scheduled_func_kwargs = {'job_id': new_job_id} # Pass the generated job_id
+            scheduled_func_kwargs.update(func_kwargs) # Add other func_kwargs
+
             job = self.scheduler.add_job(
                 func=job_func,
                 trigger=trigger,
-                kwargs=func_kwargs, # Pass func_kwargs directly
-                args=func_args,
+                kwargs=scheduled_func_kwargs, # Pass the constructed kwargs
+                args=func_args, # func_args should be empty for these jobs
+                id=new_job_id, # Pass the generated job_id to APScheduler
                 **trigger_args,
             )
         else:
-            # Existing logic for other functions
+            # Existing logic for other functions that might need config
             job = self.scheduler.add_job(
                 func=schedulable_functions[func_path],
                 trigger=trigger,
@@ -53,6 +63,8 @@ class ScheduleJobAPI(Resource):
             )
 
         return jsonify({'job_id': job.id})
+
+from core import job_status_manager # Import job_status_manager
 
 class JobsAPI(Resource):
     def __init__(self, engine):
@@ -65,11 +77,14 @@ class JobsAPI(Resource):
         jobs = self.scheduler.get_jobs()
         job_list = []
         for job in jobs:
+            job_status = job_status_manager.get_job_status(job.id) # Get job status
             job_list.append({
                 'id': job.id,
                 'name': job.name,
                 'trigger': str(job.trigger),
-                'next_run_time': str(job.next_run_time)
+                'next_run_time': str(job.next_run_time),
+                'status': job_status.get('status', 'unknown'), # Add status
+                'message': job_status.get('message', '') # Add message
             })
         return jsonify(job_list)
 

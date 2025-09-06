@@ -18,10 +18,9 @@ import {
 import { Stop } from '@mui/icons-material';
 import { useApiClient } from '../hooks/useApiClient.ts';
 import { useQuery } from '@tanstack/react-query';
-import { Crypto } from '../utils/types';
 
 export const ScheduleTab = () => {
-  const { getJobs, scheduleJob, deleteJob, getJobLogs, apiClient, getCryptos } = useApiClient();
+  const { getJobs, scheduleJob, deleteJob, getJobLogs, apiClient } = useApiClient();
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -32,7 +31,6 @@ export const ScheduleTab = () => {
 
   // Form state
   const [jobType, setJobType] = useState('optimize_crypto');
-  const [crypto, setCrypto] = useState('');
   const [interval, setInterval] = useState(60);
   const [intervalUnit, setIntervalUnit] = useState('seconds');
   const [triggerType, setTriggerType] = useState('interval'); // 'interval' or 'cron'
@@ -42,16 +40,20 @@ export const ScheduleTab = () => {
   const [topCount, setTopCount] = useState(10); // Default from backend
   const [minVolatility, setMinVolatility] = useState(5.0); // Default from backend
   const [maxWorkers, setMaxWorkers] = useState(3); // Default from backend
+  const [strategyConfigInput, setStrategyConfigInput] = useState(''); // New state for strategy config JSON
+  const [strategyName, setStrategyName] = useState(''); // New state for single strategy selection
+  const [singleStrategyParamsInput, setSingleStrategyParamsInput] = useState(''); // New state for single strategy params JSON
 
-  const { data: volatileCryptos, isLoading: cryptosLoading } = useQuery<Crypto[]>({
-    queryKey: ['volatileCryptos'],
-    queryFn: () => getCryptos({ volatile: true, min_volatility: 20.0, limit: 250 }).then(data => data.cryptos),
-    enabled: !!apiClient,
-  });
+  const { data: availableStrategies, isLoading: strategiesLoading } = useQuery<any[]>(
+    {
+      queryKey: ['availableStrategies'],
+      queryFn: () => apiClient.getStrategies(),
+      enabled: !!apiClient,
+    }
+  );
 
   useEffect(() => {
     const fetchJobs = async () => {
-      
       try {
         const response = await getJobs();
         setJobs(response);
@@ -63,7 +65,15 @@ export const ScheduleTab = () => {
     };
     
     if (apiClient) { // Check if apiClient is initialized
-      fetchJobs();
+      // Delay initial fetch to ensure it doesn't happen during render
+      const initialFetchTimeout = setTimeout(() => {
+        fetchJobs();
+      }, 0); 
+      const intervalId = setInterval(fetchJobs, 5000); // Poll every 5 seconds
+      return () => {
+        clearTimeout(initialFetchTimeout); // Clear timeout on unmount
+        clearInterval(intervalId); // Cleanup on unmount
+      };
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [apiClient]); // Depend on apiClient
@@ -102,9 +112,24 @@ export const ScheduleTab = () => {
     let funcArgs: string[] = [];
 
     if (jobType === 'optimize_crypto') {
-      funcArgs = [crypto];
-      // No specific func_kwargs for optimize_crypto in this context,
-      // as it's handled by the backend's default parameters or other inputs.
+      if (!strategyName) {
+        setError('Strategy is required for Optimize Single Strategy job');
+        return;
+      }
+      funcArgs = []; // No crypto argument
+      funcKwargs = {
+        strategy_name: strategyName,
+      };
+      if (singleStrategyParamsInput) {
+        try {
+          const parsedParams = JSON.parse(singleStrategyParamsInput);
+          funcKwargs.strategy_params = parsedParams;
+        } catch (e) {
+          setError('Invalid JSON for Strategy Parameters');
+          setLoading(false);
+          return;
+        }
+      }
     } else if (jobType === 'optimize_cryptos_job') {
       funcKwargs = {
         n_trials: nTrials,
@@ -112,6 +137,16 @@ export const ScheduleTab = () => {
         min_volatility: minVolatility,
         max_workers: maxWorkers,
       };
+      if (strategyConfigInput) {
+        try {
+          const parsedConfig = JSON.parse(strategyConfigInput);
+          funcKwargs.strategy_config = parsedConfig;
+        } catch (e) {
+          setError('Invalid JSON for Strategy Configuration');
+          setLoading(false);
+          return;
+        }
+      }
     }
 
     let trigger: string;
@@ -143,10 +178,8 @@ export const ScheduleTab = () => {
       });
       
       setSuccess('Job scheduled successfully');
+      setError(''); // Clear any previous error
       // Reset form fields based on job type
-      if (jobType === 'optimize_crypto') {
-        setCrypto('');
-      }
       // No need to reset nTrials, topCount etc. as they have defaults
       
       // Refetch jobs
@@ -157,7 +190,9 @@ export const ScheduleTab = () => {
         // Ignore refetch errors
       }
     } catch (err) {
-      setError('Failed to schedule job');
+      console.error("Error scheduling job:", err);
+      setError(`Failed to schedule job: ${err instanceof Error ? err.message : String(err)}`);
+      setSuccess(''); // Clear any previous success
     } finally {
       setLoading(false);
     }
@@ -203,41 +238,48 @@ export const ScheduleTab = () => {
                   label="Job Type"
                   onChange={(e) => {
                     setJobType(e.target.value as string);
-                    // Reset crypto selection if switching to optimize_cryptos_job
-                    if (e.target.value === 'optimize_cryptos_job') {
-                      setCrypto('');
-                    }
                   }}
                 >
-                  <MenuItem value="optimize_crypto">Optimize Crypto (Single)</MenuItem>
-                  <MenuItem value="optimize_cryptos_job">Optimize Cryptos (All Volatile)</MenuItem>
+                  <MenuItem value="optimize_crypto">Optimize Single Strategy</MenuItem>
+                  <MenuItem value="optimize_cryptos_job">Optimize All Strategies</MenuItem>
                 </Select>
               </FormControl>
 
               {jobType === 'optimize_crypto' && (
-                <FormControl fullWidth sx={{ mb: 2 }}>
-                  <InputLabel id="crypto-label">Crypto</InputLabel>
-                  <Select
-                    labelId="crypto-label"
-                    value={crypto}
-                    label="Crypto"
-                    onChange={(e) => setCrypto(e.target.value as string)}
-                    disabled={cryptosLoading}
-                  >
-                    {cryptosLoading ? (
-                      <MenuItem value="">
-                        <CircularProgress size={20} />
-                        <Typography sx={{ ml: 1 }}>Loading...</Typography>
-                      </MenuItem>
-                    ) : (
-                      volatileCryptos?.map((c) => (
-                        <MenuItem key={c.id} value={c.id}>
-                          {c.name} ({c.symbol.toUpperCase()})
+                <>
+                  <FormControl fullWidth sx={{ mb: 2 }}>
+                    <InputLabel id="strategy-label">Strategy</InputLabel>
+                    <Select
+                      labelId="strategy-label"
+                      value={strategyName}
+                      label="Strategy"
+                      onChange={(e) => setStrategyName(e.target.value as string)}
+                    >
+                      {strategiesLoading ? (
+                        <MenuItem value="">
+                          <CircularProgress size={20} />
+                          <Typography sx={{ ml: 1 }}>Loading...</Typography>
                         </MenuItem>
-                      ))
-                    )}
-                  </Select>
-                </FormControl>
+                      ) : (
+                        availableStrategies?.strategies?.map((s) => (
+                          <MenuItem key={s.name} value={s.name}>
+                            {s.name}
+                          </MenuItem>
+                        ))
+                      )}
+                    </Select>
+                  </FormControl>
+                  <TextField
+                    fullWidth
+                    label="Strategy Parameters (JSON)"
+                    multiline
+                    rows={4}
+                    value={singleStrategyParamsInput}
+                    onChange={(e) => setSingleStrategyParamsInput(e.target.value)}
+                    sx={{ mb: 2 }}
+                    placeholder='{"param1": "value1", "param2": "value2"}'
+                  />
+                </>
               )}
 
               {jobType === 'optimize_cryptos_job' && (
@@ -277,6 +319,16 @@ export const ScheduleTab = () => {
                     onChange={(e) => setMaxWorkers(Number(e.target.value))}
                     sx={{ mb: 2 }}
                     inputProps={{ min: 1 }}
+                  />
+                  <TextField
+                    fullWidth
+                    label="Strategy Configuration (JSON)"
+                    multiline
+                    rows={4}
+                    value={strategyConfigInput}
+                    onChange={(e) => setStrategyConfigInput(e.target.value)}
+                    sx={{ mb: 2 }}
+                    placeholder='{"strategy_name_1": {"param1": "value1"}, "strategy_name_2": {"param2": "value2"}}'
                   />
                 </>
               )}
@@ -390,6 +442,9 @@ export const ScheduleTab = () => {
                         <Typography variant="subtitle2">{job.name || job.id}</Typography>
                         <Typography variant="caption" color="text.secondary">
                           Next: {job.next_run_time}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
+                          Status: {job.status} {job.message && `(${job.message})`}
                         </Typography>
                       </Box>
                       <IconButton 

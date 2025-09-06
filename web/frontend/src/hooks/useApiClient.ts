@@ -1,21 +1,23 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useCallback, useMemo } from 'react'
 import { useAuth0 } from '@auth0/auth0-react'
 import { ApiClient } from '../utils/api.ts'
 import { useApiLoading } from '../contexts/ApiLoadingContext.tsx'
 
 export const useApiClient = () => {
   const { getAccessTokenSilently, isAuthenticated } = useAuth0()
-  const [apiClient, setApiClient] = useState<ApiClient | null>(null)
+  
   const { isLoading, startOperation, endOperation } = useApiLoading()
 
-  useEffect(() => {
+  const apiClient = useMemo(() => {
     if (isAuthenticated) {
-      setApiClient(new ApiClient(getAccessTokenSilently))
+      return new ApiClient(getAccessTokenSilently);
     } else {
       // If not authenticated, use a client without auth (for public endpoints)
-      setApiClient(new ApiClient(undefined))
+      return new ApiClient(undefined);
     }
-  }, [getAccessTokenSilently, isAuthenticated])
+  }, [getAccessTokenSilently, isAuthenticated]);
+
+  
 
   const callApi = useCallback(async (method: keyof ApiClient, ...args: any[]) => {
     if (!apiClient) {
