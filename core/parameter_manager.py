@@ -95,8 +95,11 @@ class ParameterManager:
                 'take_profit_multiple': ParameterRange(1.5, 5.0, 'float', description="Take profit multiplier"),
             },
             'Combined_Trigger_Verifier': {
+                'short_sma_period': ParameterRange(5, 50, 'int', description="Short SMA period"),
+                'long_sma_period': ParameterRange(51, min(200, self.max_data_points // 2), 'int',
+                                                description="Long SMA period"),
                 'short_ema_period': ParameterRange(5, 30, 'int', description="Short EMA period"),
-                'long_ema_period': ParameterRange(31, min(100, self.max_data_points // 3), 'int', 
+                'long_ema_period': ParameterRange(31, min(100, self.max_data_points // 3), 'int',
                                                 description="Long EMA period"),
                 'bb_period': ParameterRange(10, min(50, self.max_data_points // 6), 'int', description="Bollinger Band period"),
                 'bb_std_dev': ParameterRange(1.5, 3.0, 'float', description="Bollinger Band standard deviation"),
@@ -108,7 +111,7 @@ class ParameterManager:
                 'fixed_stop_loss_percentage': ParameterRange(0.005, 0.05, 'float', description="Fixed stop loss %"),
                 'take_profit_multiple': ParameterRange(1.5, 5.0, 'float', description="Take profit multiplier"),
                 'macd_fast_period': ParameterRange(5, 25, 'int', description="MACD fast period"),
-                'macd_slow_period': ParameterRange(26, min(50, self.max_data_points // 6), 'int', 
+                'macd_slow_period': ParameterRange(26, min(50, self.max_data_points // 6), 'int',
                                                  description="MACD slow period"),
                 'macd_signal_period': ParameterRange(5, 20, 'int', description="MACD signal period"),
             }
@@ -266,9 +269,9 @@ class ParameterManager:
         #     defaults['short_ema_period'] = 12
         #     defaults['long_ema_period'] = 26
         
-        # if 'short_sma_period' in defaults and 'long_sma_period' in defaults:
-        #     defaults['short_sma_period'] = 20
-        #     defaults['long_sma_period'] = 50
+        if 'short_sma_period' in defaults and 'long_sma_period' in defaults:
+            defaults['short_sma_period'] = 20
+            defaults['long_sma_period'] = 51
         
         # if 'rsi_oversold' in defaults and 'rsi_overbought' in defaults:
         #     defaults['rsi_oversold'] = 30

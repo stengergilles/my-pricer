@@ -54,8 +54,8 @@ DEFAULT_SPREAD_PERCENTAGE = 0.01  # 1% - from your platform
 DEFAULT_SLIPPAGE_PERCENTAGE = 0.0005  # 0.05% - realistic slippage
 
 indicator_defaults = {
-    "short_sma": 10,
-    "long_sma": 30,
+    "short_sma_period": 10,
+    "long_sma_period": 51,
     "short_ema": 10,
     "long_ema": 30,
     "volume_sma": 20,
