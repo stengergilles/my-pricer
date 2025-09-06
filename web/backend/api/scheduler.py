@@ -4,11 +4,13 @@ from core.scheduler import get_scheduler # Keep for now, might remove later if e
 from pricer import optimize_crypto_with_existing_system
 from web.backend.auth.middleware import requires_auth
 from core.trading_engine import TradingEngine # Import TradingEngine
+from core.optimize_cryptos_job import run_optimize_cryptos_job # Import the new job function
 
 # Note: If analyze_crypto_with_existing_system needs to be part of the engine,
 # this mapping might need to be adjusted or moved.
 schedulable_functions = {
-    'optimize_crypto': optimize_crypto_with_existing_system
+    'optimize_crypto': optimize_crypto_with_existing_system,
+    'optimize_cryptos_job': run_optimize_cryptos_job # Add the new job
 }
 
 class ScheduleJobAPI(Resource):
@@ -29,13 +31,26 @@ class ScheduleJobAPI(Resource):
         if func_path not in schedulable_functions:
             return jsonify({'error': 'Function not allowed'}), 400
 
-        job = self.scheduler.add_job(
-            func=schedulable_functions[func_path],
-            trigger=trigger,
-            kwargs={'config': self.engine.config, **func_kwargs},
-            args=func_args,
-            **trigger_args,
-        )
+        # Special handling for 'optimize_cryptos_job' to pass its specific kwargs
+        if func_path == 'optimize_cryptos_job':
+            job_func = schedulable_functions[func_path]
+            # Pass func_kwargs directly to the job function
+            job = self.scheduler.add_job(
+                func=job_func,
+                trigger=trigger,
+                kwargs=func_kwargs, # Pass func_kwargs directly
+                args=func_args,
+                **trigger_args,
+            )
+        else:
+            # Existing logic for other functions
+            job = self.scheduler.add_job(
+                func=schedulable_functions[func_path],
+                trigger=trigger,
+                kwargs={'config': self.engine.config, **func_kwargs},
+                args=func_args,
+                **trigger_args,
+            )
 
         return jsonify({'job_id': job.id})
 

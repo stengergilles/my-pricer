@@ -34,6 +34,14 @@ export const ScheduleTab = () => {
   const [jobType, setJobType] = useState('optimize_crypto');
   const [crypto, setCrypto] = useState('');
   const [interval, setInterval] = useState(60);
+  const [intervalUnit, setIntervalUnit] = useState('seconds');
+  const [triggerType, setTriggerType] = useState('interval'); // 'interval' or 'cron'
+  const [cronHour, setCronHour] = useState(4); // Default to 4 AM
+  const [cronMinute, setCronMinute] = useState(0); // Default to 0 minutes
+  const [nTrials, setNTrials] = useState(30); // Default from backend
+  const [topCount, setTopCount] = useState(10); // Default from backend
+  const [minVolatility, setMinVolatility] = useState(5.0); // Default from backend
+  const [maxWorkers, setMaxWorkers] = useState(3); // Default from backend
 
   const { data: volatileCryptos, isLoading: cryptosLoading } = useQuery<Crypto[]>({
     queryKey: ['volatileCryptos'],
@@ -81,8 +89,8 @@ export const ScheduleTab = () => {
   };
 
   const submitJob = async () => {
-    if (!crypto) {
-      setError('Crypto is required');
+    if (jobType === 'optimize_crypto' && !crypto) {
+      setError('Crypto is required for Optimize Crypto job');
       return;
     }
 
@@ -90,16 +98,56 @@ export const ScheduleTab = () => {
     setError('');
     setSuccess('');
     
+    let funcKwargs: { [key: string]: any } = {};
+    let funcArgs: string[] = [];
+
+    if (jobType === 'optimize_crypto') {
+      funcArgs = [crypto];
+      // No specific func_kwargs for optimize_crypto in this context,
+      // as it's handled by the backend's default parameters or other inputs.
+    } else if (jobType === 'optimize_cryptos_job') {
+      funcKwargs = {
+        n_trials: nTrials,
+        top_count: topCount,
+        min_volatility: minVolatility,
+        max_workers: maxWorkers,
+      };
+    }
+
+    let trigger: string;
+    let triggerArgs: { [key: string]: any } = {};
+
+    if (triggerType === 'interval') {
+      trigger = 'interval';
+      if (intervalUnit === 'seconds') {
+        triggerArgs = { seconds: interval };
+      } else if (intervalUnit === 'minutes') {
+        triggerArgs = { minutes: interval };
+      } else if (intervalUnit === 'hours') {
+        triggerArgs = { hours: interval };
+      } else if (intervalUnit === 'days') {
+        triggerArgs = { days: interval };
+      }
+    } else { // triggerType === 'cron'
+      trigger = 'cron';
+      triggerArgs = { hour: cronHour, minute: cronMinute };
+    }
+
     try {
       await scheduleJob({
         function: jobType,
-        trigger: 'interval',
-        trigger_args: { seconds: interval },
-        func_args: [crypto]
+        trigger: trigger, // Use the dynamically determined trigger
+        trigger_args: triggerArgs, // Use the dynamically created triggerArgs
+        func_args: funcArgs,
+        func_kwargs: funcKwargs,
       });
       
       setSuccess('Job scheduled successfully');
-      setCrypto('');
+      // Reset form fields based on job type
+      if (jobType === 'optimize_crypto') {
+        setCrypto('');
+      }
+      // No need to reset nTrials, topCount etc. as they have defaults
       
       // Refetch jobs
       try {
@@ -146,50 +194,162 @@ export const ScheduleTab = () => {
             <CardContent>
               <Typography variant="h6" gutterBottom>Schedule New Job</Typography>
               
+              <Typography variant="subtitle1" gutterBottom sx={{ mt: 2 }}>Job Parameters</Typography>
               <FormControl fullWidth sx={{ mb: 2 }}>
                 <InputLabel id="job-type-label">Job Type</InputLabel>
                 <Select
                   labelId="job-type-label"
                   value={jobType}
                   label="Job Type"
-                  onChange={(e) => setJobType(e.target.value)}
+                  onChange={(e) => {
+                    setJobType(e.target.value as string);
+                    // Reset crypto selection if switching to optimize_cryptos_job
+                    if (e.target.value === 'optimize_cryptos_job') {
+                      setCrypto('');
+                    }
+                  }}
                 >
-                  <MenuItem value="optimize_crypto">Optimize Crypto</MenuItem>
+                  <MenuItem value="optimize_crypto">Optimize Crypto (Single)</MenuItem>
+                  <MenuItem value="optimize_cryptos_job">Optimize Cryptos (All Volatile)</MenuItem>
                 </Select>
               </FormControl>
 
-              <FormControl fullWidth sx={{ mb: 2 }}>
-                <InputLabel id="crypto-label">Crypto</InputLabel>
-                <Select
-                  labelId="crypto-label"
-                  value={crypto}
-                  label="Crypto"
-                  onChange={(e) => setCrypto(e.target.value)}
-                  disabled={cryptosLoading}
-                >
-                  {cryptosLoading ? (
-                    <MenuItem value="">
-                      <CircularProgress size={20} />
-                      <Typography sx={{ ml: 1 }}>Loading...</Typography>
-                    </MenuItem>
-                  ) : (
-                    volatileCryptos?.map((c) => (
-                      <MenuItem key={c.id} value={c.id}>
-                        {c.name} ({c.symbol.toUpperCase()})
+              {jobType === 'optimize_crypto' && (
+                <FormControl fullWidth sx={{ mb: 2 }}>
+                  <InputLabel id="crypto-label">Crypto</InputLabel>
+                  <Select
+                    labelId="crypto-label"
+                    value={crypto}
+                    label="Crypto"
+                    onChange={(e) => setCrypto(e.target.value as string)}
+                    disabled={cryptosLoading}
+                  >
+                    {cryptosLoading ? (
+                      <MenuItem value="">
+                        <CircularProgress size={20} />
+                        <Typography sx={{ ml: 1 }}>Loading...</Typography>
                       </MenuItem>
-                    ))
-                  )}
+                    ) : (
+                      volatileCryptos?.map((c) => (
+                        <MenuItem key={c.id} value={c.id}>
+                          {c.name} ({c.symbol.toUpperCase()})
+                        </MenuItem>
+                      ))
+                    )}
+                  </Select>
+                </FormControl>
+              )}
+
+              {jobType === 'optimize_cryptos_job' && (
+                <>
+                  <TextField
+                    fullWidth
+                    type="number"
+                    label="Number of Trials (n_trials)"
+                    value={nTrials}
+                    onChange={(e) => setNTrials(Number(e.target.value))}
+                    sx={{ mb: 2 }}
+                    inputProps={{ min: 1 }}
+                  />
+                  <TextField
+                    fullWidth
+                    type="number"
+                    label="Top Cryptos to Optimize (top_count)"
+                    value={topCount}
+                    onChange={(e) => setTopCount(Number(e.target.value))}
+                    sx={{ mb: 2 }}
+                    inputProps={{ min: 1 }}
+                  />
+                  <TextField
+                    fullWidth
+                    type="number"
+                    label="Minimum Volatility (min_volatility)"
+                    value={minVolatility}
+                    onChange={(e) => setMinVolatility(Number(e.target.value))}
+                    sx={{ mb: 2 }}
+                    inputProps={{ step: 0.1, min: 0 }}
+                  />
+                  <TextField
+                    fullWidth
+                    type="number"
+                    label="Maximum Workers (max_workers)"
+                    value={maxWorkers}
+                    onChange={(e) => setMaxWorkers(Number(e.target.value))}
+                    sx={{ mb: 2 }}
+                    inputProps={{ min: 1 }}
+                  />
+                </>
+              )}
+
+              <Typography variant="subtitle1" gutterBottom sx={{ mt: 3 }}>Schedule Parameters</Typography>
+              <FormControl fullWidth sx={{ mb: 2 }}>
+                <InputLabel id="trigger-type-label">Schedule Type</InputLabel>
+                <Select
+                  labelId="trigger-type-label"
+                  value={triggerType}
+                  label="Schedule Type"
+                  onChange={(e) => setTriggerType(e.target.value as string)}
+                >
+                  <MenuItem value="interval">Interval (e.g., every 5 minutes)</MenuItem>
+                  <MenuItem value="cron">Specific Time (e.g., daily at 04:00 AM)</MenuItem>
                 </Select>
               </FormControl>
 
-              <TextField
-                fullWidth
-                type="number"
-                label="Interval (seconds)"
-                value={interval}
-                onChange={(e) => setInterval(Number(e.target.value))}
-                sx={{ mb: 2 }}
-              />
+              {triggerType === 'interval' && (
+                <Grid container spacing={2} alignItems="center" sx={{ mb: 2 }}>
+                  <Grid item xs={8}>
+                    <TextField
+                      fullWidth
+                      type="number"
+                      label="Interval"
+                      value={interval}
+                      onChange={(e) => setInterval(Number(e.target.value))}
+                      inputProps={{ min: 1 }}
+                    />
+                  </Grid>
+                  <Grid item xs={4}>
+                    <FormControl fullWidth>
+                      <InputLabel id="interval-unit-label">Unit</InputLabel>
+                      <Select
+                        labelId="interval-unit-label"
+                        value={intervalUnit}
+                        label="Unit"
+                        onChange={(e) => setIntervalUnit(e.target.value as string)}
+                      >
+                        <MenuItem value="seconds">Seconds</MenuItem>
+                        <MenuItem value="minutes">Minutes</MenuItem>
+                        <MenuItem value="hours">Hours</MenuItem>
+                        <MenuItem value="days">Days</MenuItem>
+                      </Select>
+                    </FormControl>
+                  </Grid>
+                </Grid>
+              )}
+
+              {triggerType === 'cron' && (
+                <Grid container spacing={2} alignItems="center" sx={{ mb: 2 }}>
+                  <Grid item xs={6}>
+                    <TextField
+                      fullWidth
+                      type="number"
+                      label="Hour (0-23)"
+                      value={cronHour}
+                      onChange={(e) => setCronHour(Number(e.target.value))}
+                      inputProps={{ min: 0, max: 23 }}
+                    />
+                  </Grid>
+                  <Grid item xs={6}>
+                    <TextField
+                      fullWidth
+                      type="number"
+                      label="Minute (0-59)"
+                      value={cronMinute}
+                      onChange={(e) => setCronMinute(Number(e.target.value))}
+                      inputProps={{ min: 0, max: 59 }}
+                    />
+                  </Grid>
+                </Grid>
+              )}
 
               <Button
                 variant="contained"
