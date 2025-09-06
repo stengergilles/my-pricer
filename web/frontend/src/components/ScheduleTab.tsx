@@ -147,15 +147,26 @@ export const ScheduleTab = () => {
               <Typography variant="h6" gutterBottom>Schedule New Job</Typography>
               
               <FormControl fullWidth sx={{ mb: 2 }}>
-                <InputLabel>Job Type</InputLabel>
-                <Select value={jobType} onChange={(e) => setJobType(e.target.value)}>
+                <InputLabel id="job-type-label">Job Type</InputLabel>
+                <Select
+                  labelId="job-type-label"
+                  value={jobType}
+                  label="Job Type"
+                  onChange={(e) => setJobType(e.target.value)}
+                >
                   <MenuItem value="analyze_crypto">Analyze Crypto</MenuItem>
                 </Select>
               </FormControl>
 
               <FormControl fullWidth sx={{ mb: 2 }}>
-                <InputLabel>Crypto</InputLabel>
-                <Select value={crypto} onChange={(e) => setCrypto(e.target.value)} disabled={cryptosLoading}>
+                <InputLabel id="crypto-label">Crypto</InputLabel>
+                <Select
+                  labelId="crypto-label"
+                  value={crypto}
+                  label="Crypto"
+                  onChange={(e) => setCrypto(e.target.value)}
+                  disabled={cryptosLoading}
+                >
                   {cryptosLoading ? (
                     <MenuItem value="">
                       <CircularProgress size={20} />
