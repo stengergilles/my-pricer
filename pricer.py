@@ -179,7 +179,7 @@ def _convert_to_json_serializable(obj):
     return obj
 
 def optimize_crypto_with_existing_system(crypto_id, config: dict, timeframe=DEFAULT_TIMEFRAME, interval=DEFAULT_INTERVAL, 
-                                      use_best_params=True, strategy_name=None):
+                                      use_best_params=True, strategy_name=None, strategy_params: dict = None):
     """
     Analyze cryptocurrency using existing backtester system components.
     This replaces the large duplicated analysis function.
@@ -211,6 +211,10 @@ def optimize_crypto_with_existing_system(crypto_id, config: dict, timeframe=DEFA
             params = load_best_parameters_from_results(crypto_id)
         else:
             params = create_default_params()
+        
+        # Merge with provided strategy_params, if any
+        if strategy_params:
+            params.update(strategy_params)
         
         # Create strategy instance
         if strategy_name not in strategy_configs:

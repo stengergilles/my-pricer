@@ -42,7 +42,6 @@ export const ScheduleTab = () => {
   const [maxWorkers, setMaxWorkers] = useState(3); // Default from backend
   const [strategyConfigInput, setStrategyConfigInput] = useState(''); // New state for strategy config JSON
   const [strategyName, setStrategyName] = useState(''); // New state for single strategy selection
-  const [singleStrategyParamsInput, setSingleStrategyParamsInput] = useState(''); // New state for single strategy params JSON
 
   const { data: availableStrategies, isLoading: strategiesLoading } = useQuery<any[]>(
     {
@@ -99,11 +98,6 @@ export const ScheduleTab = () => {
   };
 
   const submitJob = async () => {
-    if (jobType === 'optimize_crypto' && !crypto) {
-      setError('Crypto is required for Optimize Crypto job');
-      return;
-    }
-
     setLoading(true);
     setError('');
     setSuccess('');
@@ -120,16 +114,6 @@ export const ScheduleTab = () => {
       funcKwargs = {
         strategy_name: strategyName,
       };
-      if (singleStrategyParamsInput) {
-        try {
-          const parsedParams = JSON.parse(singleStrategyParamsInput);
-          funcKwargs.strategy_params = parsedParams;
-        } catch (e) {
-          setError('Invalid JSON for Strategy Parameters');
-          setLoading(false);
-          return;
-        }
-      }
     } else if (jobType === 'optimize_cryptos_job') {
       funcKwargs = {
         n_trials: nTrials,
@@ -269,16 +253,6 @@ export const ScheduleTab = () => {
                       )}
                     </Select>
                   </FormControl>
-                  <TextField
-                    fullWidth
-                    label="Strategy Parameters (JSON)"
-                    multiline
-                    rows={4}
-                    value={singleStrategyParamsInput}
-                    onChange={(e) => setSingleStrategyParamsInput(e.target.value)}
-                    sx={{ mb: 2 }}
-                    placeholder='{"param1": "value1", "param2": "value2"}'
-                  />
                 </>
               )}
 

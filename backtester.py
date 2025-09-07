@@ -263,7 +263,8 @@ if __name__ == "__main__":
         exit()
 
     if args.single_run:
-        run_single_backtest(args, config)
+        app_config = Config() # Instantiate Config
+        run_single_backtest(args, app_config) # Pass the instance
     else: # Search mode
         # Load data
         data = get_crypto_data_merged(args.crypto, DEFAULT_TIMEFRAME, config)

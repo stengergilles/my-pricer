@@ -9,7 +9,6 @@ def run_single_strategy_optimization_job(
     *, # Mark subsequent arguments as keyword-only
     job_id: str,
     strategy_name: str,
-    strategy_params: dict = None,
     n_trials: int = 30,
     top_count: int = 10,
     min_volatility: float = 5.0,
@@ -38,14 +37,12 @@ def run_single_strategy_optimization_job(
         # The optimize_volatile_cryptos method in BayesianOptimizer
         # is expected to handle the discovery of volatile cryptos internally
         # and apply the optimization for the given strategy.
-        # We pass strategy_params directly to it.
         optimizer.optimize_volatile_cryptos(
             strategy=strategy_name,
             n_trials=n_trials,
             top_count=top_count,
             min_volatility=min_volatility,
-            max_workers=max_workers,
-            **strategy_params if strategy_params else {} # Unpack strategy_params
+            max_workers=max_workers
         )
         logger.info(f"Finished single strategy optimization for strategy: {strategy_name}")
         job_status_manager.update_job_status(job_id, 'completed', 'Optimization completed successfully.') # Update status on success
@@ -59,9 +56,8 @@ def run_single_strategy_optimization_job(
 if __name__ == "__main__":
     # Example usage when run directly
     logging.basicConfig(level=logging.INFO)
-    # Example: Optimize 'EMA_Only' strategy with custom parameters
+    # Example: Optimize 'EMA_Only' strategy
     run_single_strategy_optimization_job(
         strategy_name="EMA_Only",
-        strategy_params={"short_ema_period": 10, "long_ema_period": 20},
         n_trials=50
     )
