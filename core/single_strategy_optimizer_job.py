@@ -25,7 +25,7 @@ def run_single_strategy_optimization_job(
     logger.info(f"Starting single strategy optimization job for strategy: {strategy_name}")
     job_status_manager.update_job_status(job_id, 'running', 'Optimization started.', log_path=log_path) # Update status
 
-    optimizer = BayesianOptimizer()
+    optimizer = BayesianOptimizer(logger=logger)
     param_manager = ParameterManager()
 
     if strategy_name not in param_manager.get_available_strategies():

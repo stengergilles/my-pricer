@@ -43,7 +43,8 @@ class BayesianOptimizer:
     def __init__(self, 
                  results_dir: str = "backtest_results",
                  backtester_path: str = None,
-                 seed: int = 42):
+                 seed: int = 42,
+                 logger: logging.Logger = None):
         """
         Initialize optimizer.
         
@@ -51,11 +52,15 @@ class BayesianOptimizer:
             results_dir: Directory to store optimization results
             backtester_path: Path to backtester script
             seed: Random seed for reproducibility
+            logger: Optional logger instance
         """
         self.results_dir = results_dir
-        self.backtester_path = backtester_path or "backtester.py"
+        # Resolve backtester_path to an absolute path relative to the project root
+        # Assuming the project root is the parent of 'core' directory
+        project_root = Path(__file__).parent.parent
+        self.backtester_path = backtester_path or str(project_root / "backtester.py")
         self.seed = seed
-        self.logger = logging.getLogger(__name__)
+        self.logger = logger or logging.getLogger(__name__)
         
         # Initialize components
         self.param_manager = ParameterManager()
@@ -89,6 +94,7 @@ class BayesianOptimizer:
         
         # Validate strategy
         if strategy not in self.param_manager.get_available_strategies():
+            self.logger.error(f"Unknown strategy: {strategy}")
             raise ValueError(f"Unknown strategy: {strategy}")
         
         # Create study
@@ -126,7 +132,7 @@ class BayesianOptimizer:
                 'all_trials': []
             }
         except Exception as e:
-            self.logger.error(f"Optimization failed: {e}")
+            self.logger.error(f"Optimization failed: {e}", exc_info=True)
             raise
         
         end_time = time.time()
@@ -203,9 +209,11 @@ class BayesianOptimizer:
         self.logger.info(f"Starting batch optimization: {strategy} on top {top_count} volatile cryptos")
         
         # Get volatile cryptocurrencies
+        self.logger.info(f"Discovering volatile cryptos with min volatility: {min_volatility}")
         volatile_cryptos = self.crypto_discovery.get_volatile_cryptos(min_volatility=min_volatility)
         
         if not volatile_cryptos:
+            self.logger.warning("No volatile cryptocurrencies found")
             raise ValueError("No volatile cryptocurrencies found")
         
         # Select top cryptos
@@ -242,7 +250,7 @@ class BayesianOptimizer:
                     self.logger.info(f"Completed {crypto['symbol']}: {result['best_value']}")
                     
                 except Exception as e:
-                    self.logger.error(f"Failed to optimize {crypto['symbol']}: {e}")
+                    self.logger.error(f"Failed to optimize {crypto['symbol']}: {e}", exc_info=True)
                     results.append({
                         'crypto': crypto['id'],
                         'crypto_info': crypto,
@@ -286,6 +294,7 @@ class BayesianOptimizer:
         """
         # Get parameter suggestions
         params = self.param_manager.suggest_parameters(trial, strategy)
+        self.logger.info(f"Trial {trial.number}: Testing params {params}")
         
         # Format parameters for CLI
         cli_args = self.param_manager.format_cli_params(params)
@@ -300,6 +309,7 @@ class BayesianOptimizer:
         
         try:
             # Run backtester
+            self.logger.info(f"Running backtester for trial {trial.number}: {' '.join(cmd)}")
             result = subprocess.run(
                 cmd,
                 capture_output=True,
@@ -311,9 +321,10 @@ class BayesianOptimizer:
             if result.returncode != 0:
                 # Check if the error is due to CoinGecko rate limit
                 if "CoinGecko API rate limit exceeded" in result.stderr:
+                    self.logger.error(f"CoinGecko API rate limit exceeded during trial {trial.number}")
                     raise CoinGeckoRateLimitError(f"CoinGecko API rate limit exceeded. Optimization stopped.")
                 
-                self.logger.warning(f"Backtester failed: {result.stderr}")
+                self.logger.warning(f"Backtester failed for trial {trial.number}: {result.stderr}")
                 return -100.0  # Penalty for failed runs
             
             # Parse output for profit percentage (JSON format)
@@ -328,27 +339,28 @@ class BayesianOptimizer:
                     
                     if "total_profit_percentage" in results_data:
                         profit_percentage = float(results_data["total_profit_percentage"])
+                        self.logger.info(f"Trial {trial.number} completed. Profit: {profit_percentage}%")
                         return profit_percentage
                     else:
-                        self.logger.warning(f"JSON output missing 'total_profit_percentage': {output}")
+                        self.logger.warning(f"JSON output missing 'total_profit_percentage' in trial {trial.number}: {output}")
                         return -100.0
                 else:
-                    self.logger.warning(f"Could not find OPTIMIZER_RESULTS: prefix in output. Full stdout: {output}. Stderr: {result.stderr}")
+                    self.logger.warning(f"Could not find OPTIMIZER_RESULTS: prefix in output for trial {trial.number}. Full stdout: {output}. Stderr: {result.stderr}")
                     return -100.0
             except json.JSONDecodeError as e:
-                self.logger.warning(f"Could not parse JSON from output: {output}. Error: {e}")
+                self.logger.warning(f"Could not parse JSON from output in trial {trial.number}: {output}. Error: {e}")
                 return -100.0
             except Exception as e:
-                self.logger.warning(f"An unexpected error occurred while parsing output: {output}. Error: {e}")
+                self.logger.warning(f"An unexpected error occurred while parsing output in trial {trial.number}: {output}. Error: {e}")
                 return -100.0
                 
         except subprocess.TimeoutExpired:
-                self.logger.warning(f"Backtester timeout for {crypto} {strategy}")
+                self.logger.warning(f"Backtester timeout for {crypto} {strategy} in trial {trial.number}")
                 return -100.0
             # No generic except Exception here, let it propagate if not handled above
 
         # If we reach here, it means backtester ran successfully but profit was not parsed
-        self.logger.warning(f"Could not parse profit from output. Full stdout: {output}. Stderr: {result.stderr}")
+        self.logger.warning(f"Could not parse profit from output in trial {trial.number}. Full stdout: {output}. Stderr: {result.stderr}")
         return -100.0
     
     def _find_best_result(self, results: List[Dict]) -> Optional[Dict]:

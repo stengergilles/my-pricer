@@ -24,7 +24,7 @@ def run_optimize_cryptos_job(
     logger.info("Starting optimize cryptos job...")
     job_status_manager.update_job_status(job_id, 'running', 'Optimization started.', log_path=log_path) # Update status
 
-    optimizer = BayesianOptimizer()
+    optimizer = BayesianOptimizer(logger=logger)
     param_manager = ParameterManager()
     available_strategies = param_manager.get_available_strategies()
 
