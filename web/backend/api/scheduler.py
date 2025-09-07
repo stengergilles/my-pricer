@@ -1,4 +1,4 @@
-from flask import request, jsonify
+from flask import request, jsonify, current_app
 from flask_restful import Resource
 from core.scheduler import get_scheduler # Keep for now, might remove later if engine fully encapsulates
 from pricer import optimize_crypto_with_existing_system
@@ -7,6 +7,7 @@ from core.trading_engine import TradingEngine # Import TradingEngine
 from core.optimize_cryptos_job import run_optimize_cryptos_job # Import the new job function
 import uuid
 from core.single_strategy_optimizer_job import run_single_strategy_optimization_job # Import the new single strategy job
+import os
 
 # Note: If analyze_crypto_with_existing_system needs to be part of the engine,
 # this mapping might need to be adjusted or moved.
@@ -98,11 +99,15 @@ class JobAPI(Resource):
     def get(self, job_id):
         job = self.scheduler.get_job(job_id)
         if job:
+            job_status = job_status_manager.get_job_status(job.id)
             return jsonify({
                 'id': job.id,
                 'name': job.name,
                 'trigger': str(job.trigger),
-                'next_run_time': str(job.next_run_time)
+                'next_run_time': str(job.next_run_time),
+                'status': job_status.get('status', 'unknown'),
+                'message': job_status.get('message', ''),
+                'log_path': job_status.get('log_path')
             })
         return jsonify({'error': 'Job not found'}), 404
 
@@ -129,10 +134,19 @@ class JobLogsAPI(Resource):
     def __init__(self, engine):
         super().__init__()
         self.engine = engine
-        self.scheduler = self.engine.get_scheduler()
 
     @requires_auth('read:jobs')
     def get(self, job_id):
-        # For now, return a placeholder. Actual log retrieval needs a more robust logging setup.
-        logs = self.scheduler.get_job_logs(job_id)
-        return jsonify({'job_id': job_id, 'logs': logs})
+        job_status = job_status_manager.get_job_status(job_id)
+        log_path = job_status.get('log_path')
+
+        if not log_path or not os.path.exists(log_path):
+            return jsonify({'error': 'Log file not found'}), 404
+
+        try:
+            with open(log_path, 'r') as f:
+                logs = f.read()
+            return jsonify({'job_id': job_id, 'logs': logs})
+        except Exception as e:
+            current_app.logger.error(f"Failed to read log file for job {job_id}: {e}")
+            return jsonify({'error': 'Failed to read log file'}), 500

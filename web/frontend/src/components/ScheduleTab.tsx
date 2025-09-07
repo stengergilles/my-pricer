@@ -87,7 +87,7 @@ export const ScheduleTab = () => {
       setLogsLoading(true);
       try {
         const response = await getJobLogs(jobId);
-        setJobLogs(response.logs || []);
+        setJobLogs(response.logs ? response.logs.split('\n') : []);
         setError('');
       } catch (err) {
         setError('Failed to fetch job logs');
