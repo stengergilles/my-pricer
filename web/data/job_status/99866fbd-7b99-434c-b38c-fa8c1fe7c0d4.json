@@ -1,0 +1,10 @@
+{
+  "job_id": "99866fbd-7b99-434c-b38c-fa8c1fe7c0d4",
+  "status": "error",
+  "message": "Failed to read status file: Expecting value: line 1 column 1 (char 0)",
+  "pids": [
+    22866,
+    22867,
+    22868
+  ]
+}

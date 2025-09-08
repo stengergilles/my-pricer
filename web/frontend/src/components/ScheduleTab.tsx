@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   Box,
   Card,
@@ -17,14 +17,11 @@ import {
 } from '@mui/material';
 import { Stop } from '@mui/icons-material';
 import { useApiClient } from '../hooks/useApiClient.ts';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 
 export const ScheduleTab = () => {
   const { getJobs, scheduleJob, deleteJob, getJobLogs, apiClient } = useApiClient();
-  const [jobs, setJobs] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const queryClient = useQueryClient();
   const [expandedJobId, setExpandedJobId] = useState<string | null>(null);
   const [jobLogs, setJobLogs] = useState<string[]>([]);
   const [logsLoading, setLogsLoading] = useState(false);
@@ -51,31 +48,28 @@ export const ScheduleTab = () => {
     }
   );
 
-  useEffect(() => {
-    const fetchJobs = async () => {
-      try {
-        const response = await getJobs();
-        setJobs(response);
-        setError('');
-      } catch (err) {
-        setError('Failed to fetch jobs');
-        setJobs([]);
-      }
-    };
-    
-    if (apiClient) { // Check if apiClient is initialized
-      // Delay initial fetch to ensure it doesn't happen during render
-      const initialFetchTimeout = setTimeout(() => {
-        fetchJobs();
-      }, 0); 
-      const intervalId = setInterval(fetchJobs, 5000); // Poll every 5 seconds
-      return () => {
-        clearTimeout(initialFetchTimeout); // Clear timeout on unmount
-        clearInterval(intervalId); // Cleanup on unmount
-      };
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [apiClient]); // Depend on apiClient
+  const { data: jobs = [] } = useQuery({
+    queryKey: ['jobs'],
+    queryFn: getJobs,
+    enabled: !!apiClient,
+    refetchInterval: 5000, // Poll every 5 seconds
+  });
+
+  const scheduleJobMutation = useMutation({
+    mutationFn: scheduleJob,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['jobs'] });
+    },
+  });
+
+  const deleteJobMutation = useMutation({
+    mutationFn: deleteJob,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['jobs'] });
+    },
+  });
+
+  
 
   const handleJobClick = async (jobId: string) => {
     if (expandedJobId === jobId) {
@@ -87,9 +81,7 @@ export const ScheduleTab = () => {
       try {
         const response = await getJobLogs(jobId);
         setJobLogs(response.logs ? response.logs.split('\n') : []);
-        setError('');
       } catch (err) {
-        setError('Failed to fetch job logs');
         setJobLogs([]);
       } finally {
         setLogsLoading(false);
@@ -98,16 +90,11 @@ export const ScheduleTab = () => {
   };
 
   const submitJob = async () => {
-    setLoading(true);
-    setError('');
-    setSuccess('');
-    
     let funcKwargs: { [key: string]: any } = {};
     let funcArgs: string[] = [];
 
     if (jobType === 'optimize_crypto') {
       if (!strategyName) {
-        setError('Strategy is required for Optimize Single Strategy job');
         return;
       }
       funcArgs = []; // No crypto argument
@@ -126,8 +113,6 @@ export const ScheduleTab = () => {
           const parsedConfig = JSON.parse(strategyConfigInput);
           funcKwargs.strategy_config = parsedConfig;
         } catch (e) {
-          setError('Invalid JSON for Strategy Configuration');
-          setLoading(false);
           return;
         }
       }
@@ -152,59 +137,25 @@ export const ScheduleTab = () => {
       triggerArgs = { hour: cronHour, minute: cronMinute };
     }
 
-    try {
-      await scheduleJob({
-        function: jobType,
-        trigger: trigger, // Use the dynamically determined trigger
-        trigger_args: triggerArgs, // Use the dynamically created triggerArgs
-        func_args: funcArgs,
-        func_kwargs: funcKwargs,
-      });
-      
-      setSuccess('Job scheduled successfully');
-      setError(''); // Clear any previous error
-      // Reset form fields based on job type
-      // No need to reset nTrials, topCount etc. as they have defaults
-      
-      // Refetch jobs
-      try {
-        const response = await getJobs();
-        setJobs(response);
-      } catch (err) {
-        // Ignore refetch errors
-      }
-    } catch (err) {
-      console.error("Error scheduling job:", err);
-      setError(`Failed to schedule job: ${err instanceof Error ? err.message : String(err)}`);
-      setSuccess(''); // Clear any previous success
-    } finally {
-      setLoading(false);
-    }
+    scheduleJobMutation.mutate({
+      function: jobType,
+      trigger: trigger, // Use the dynamically determined trigger
+      trigger_args: triggerArgs, // Use the dynamically created triggerArgs
+      func_args: funcArgs,
+      func_kwargs: funcKwargs,
+    });
   };
 
   const stopJob = async (jobId) => {
-    setError('');
-    setSuccess('');
-    try {
-      await deleteJob(jobId);
-      setSuccess('Job stopped');
-      
-      // Refetch jobs
-      try {
-        const response = await getJobs();
-        setJobs(response);
-      } catch (err) {
-        // Ignore refetch errors
-      }
-    } catch (err) {
-      setError('Failed to stop job');
-    }
+    deleteJobMutation.mutate(jobId);
   };
 
   return (
     <Box sx={{ p: 2 }}>
-      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-      {success && <Alert severity="success" sx={{ mb: 2 }}>{success}</Alert>}
+      {scheduleJobMutation.isError && <Alert severity="error" sx={{ mb: 2 }}>Failed to schedule job: {scheduleJobMutation.error.message}</Alert>}
+      {scheduleJobMutation.isSuccess && <Alert severity="success" sx={{ mb: 2 }}>Job scheduled successfully</Alert>}
+      {deleteJobMutation.isError && <Alert severity="error" sx={{ mb: 2 }}>Failed to stop job: {deleteJobMutation.error.message}</Alert>}
+      {deleteJobMutation.isSuccess && <Alert severity="success" sx={{ mb: 2 }}>Job stopped successfully</Alert>}
 
       <Grid container spacing={3}>
         {/* Submit Job Form */}
@@ -380,10 +331,10 @@ export const ScheduleTab = () => {
               <Button
                 variant="contained"
                 onClick={submitJob}
-                disabled={loading}
+                disabled={scheduleJobMutation.isPending}
                 fullWidth
               >
-                {loading ? 'Scheduling...' : 'Schedule Job'}
+                {scheduleJobMutation.isPending ? 'Scheduling...' : 'Schedule Job'}
               </Button>
             </CardContent>
           </Card>

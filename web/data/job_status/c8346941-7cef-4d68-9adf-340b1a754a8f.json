@@ -1,0 +1,8 @@
+{
+  "job_id": "c8346941-7cef-4d68-9adf-340b1a754a8f",
+  "status": "running",
+  "timestamp": "2025-09-07T22:35:18.346733",
+  "message": "Stop requested.",
+  "log_path": "/data/data/com.termux/files/home/Work/my-pricer/web/backend/../../data/logs/job_c8346941-7cef-4d68-9adf-340b1a754a8f.log",
+  "stop_requested": true
+}

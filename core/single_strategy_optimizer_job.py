@@ -23,6 +23,7 @@ def run_single_strategy_optimization_job(
 
     logger.info(f"Starting single strategy optimization job for strategy: {strategy_name}")
     job_status_manager.update_job_status(job_id, 'running', 'Optimization started.', log_path=log_path) # Update status
+    logger.debug(f"Job {job_id} status set to 'running'.") # Added debug log
 
     optimizer = BayesianOptimizer(logger=logger)
     param_manager = ParameterManager()
@@ -34,6 +35,10 @@ def run_single_strategy_optimization_job(
         return
 
     try:
+        if job_status_manager.is_job_stop_requested(job_id):
+            logger.info(f"Job {job_id} stop requested. Exiting optimization.")
+            job_status_manager.update_job_status(job_id, 'stopped', 'Optimization stopped by user.')
+            return
         # The optimize_volatile_cryptos method in BayesianOptimizer
         # is expected to handle the discovery of volatile cryptos internally
         # and apply the optimization for the given strategy.
@@ -42,15 +47,16 @@ def run_single_strategy_optimization_job(
             n_trials=n_trials,
             top_count=top_count,
             min_volatility=min_volatility,
-            max_workers=max_workers
+            max_workers=max_workers,
+            job_id=job_id # Added job_id
         )
         logger.info(f"Finished single strategy optimization for strategy: {strategy_name}")
-        job_status_manager.update_job_status(job_id, 'completed', 'Optimization completed successfully.') # Update status on success
     except Exception as e:
         error_message = f"Error optimizing single strategy {strategy_name}: {e}"
         logger.error(error_message, exc_info=True)
         job_status_manager.update_job_status(job_id, 'failed', error_message)
 
+    # The status is now updated by optimizer.optimize_volatile_cryptos
     logger.info("Single strategy optimization job completed.")
 
 if __name__ == "__main__":

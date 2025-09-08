@@ -1,0 +1,9 @@
+{
+  "job_id": "d395cb47-15bd-4966-9bcf-ff4e4015c2a0",
+  "status": "completed",
+  "timestamp": "2025-09-08T07:05:04.771274",
+  "message": "Stop requested.",
+  "log_path": "/data/data/com.termux/files/home/Work/my-pricer/web/backend/../../data/logs/job_d395cb47-15bd-4966-9bcf-ff4e4015c2a0.log",
+  "stop_requested": true,
+  "pids": []
+}

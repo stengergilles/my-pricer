@@ -127,6 +127,9 @@ class JobAPI(Resource):
 
     @requires_auth('manage:jobs')
     def delete(self, job_id):
+        # Request the job to stop gracefully first
+        job_status_manager.request_job_stop(job_id)
+        # Then remove it from the scheduler's queue
         self.scheduler.remove_job(job_id)
         return jsonify({'status': 'removed'})
 
@@ -146,7 +149,7 @@ class JobLogsAPI(Resource):
         try:
             with open(log_path, 'r') as f:
                 logs = f.read()
-            return jsonify({'job_id': job_id, 'logs': logs})
+            return {'job_id': job_id, 'logs': logs}
         except Exception as e:
             current_app.logger.error(f"Failed to read log file for job {job_id}: {e}")
-            return jsonify({'error': 'Failed to read log file'}), 500
+            return {'error': 'Failed to read log file'}, 500

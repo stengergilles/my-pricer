@@ -184,6 +184,9 @@ def run_single_backtest(args, config):
         'long_ema_period': args.long_ema_period,
         'rsi_oversold': args.rsi_oversold,
         'rsi_overbought': args.rsi_overbought,
+        'bb_period': args.bb_period,
+        'bb_std_dev': args.bb_std_dev,
+        'rsi_period': args.rsi_period,
         'atr_period': args.atr_period,
         'atr_multiple': args.atr_multiple,
         'fixed_stop_loss_percentage': args.fixed_stop_loss_percentage,
@@ -248,6 +251,9 @@ if __name__ == "__main__":
     parser.add_argument('--long-ema-period', type=int)
     parser.add_argument('--rsi-oversold', type=int)
     parser.add_argument('--rsi-overbought', type=int)
+    parser.add_argument('--bb-period', type=int)
+    parser.add_argument('--bb-std-dev', type=float)
+    parser.add_argument('--rsi-period', type=int)
     parser.add_argument('--atr-period', type=int)
     parser.add_argument('--atr-multiple', type=float)
     parser.add_argument('--fixed-stop-loss-percentage', type=float)

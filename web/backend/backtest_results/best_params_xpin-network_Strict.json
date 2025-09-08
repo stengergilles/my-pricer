@@ -1,0 +1,626 @@
+{
+  "crypto": "xpin-network",
+  "strategy": "Strict",
+  "n_trials": 30,
+  "best_value": 0.0,
+  "best_params": {
+    "short_ema_period": 14,
+    "long_ema_period": 97,
+    "short_sma_period": 38,
+    "long_sma_period": 107,
+    "rsi_oversold": 9,
+    "rsi_overbought": 39,
+    "macd_fast_period": 6,
+    "macd_slow_period": 47,
+    "atr_period": 20,
+    "atr_multiple": 3.832290311184182,
+    "fixed_stop_loss_percentage": 0.0059263022433111105,
+    "take_profit_multiple": 4.89468448256698,
+    "macd_signal_period": 18
+  },
+  "optimization_time": 161.04523611068726,
+  "timestamp": "2025-09-07T17:31:55.700793",
+  "study_name": "xpin-network_Strict_1757258954",
+  "all_trials": [
+    {
+      "number": 0,
+      "value": 0.0,
+      "params": {
+        "short_ema_period": 14,
+        "long_ema_period": 97,
+        "short_sma_period": 38,
+        "long_sma_period": 107,
+        "rsi_oversold": 9,
+        "rsi_overbought": 39,
+        "macd_fast_period": 6,
+        "macd_slow_period": 47,
+        "atr_period": 20,
+        "atr_multiple": 3.832290311184182,
+        "fixed_stop_loss_percentage": 0.0059263022433111105,
+        "take_profit_multiple": 4.89468448256698,
+        "macd_signal_period": 18
+      },
+      "state": "COMPLETE"
+    },
+    {
+      "number": 1,
+      "value": 0.0,
+      "params": {
+        "short_ema_period": 10,
+        "long_ema_period": 43,
+        "short_sma_period": 13,
+        "long_sma_period": 58,
+        "rsi_oversold": 21,
+        "rsi_overbought": 64,
+        "macd_fast_period": 11,
+        "macd_slow_period": 41,
+        "atr_period": 8,
+        "atr_multiple": 2.1685785941408726,
+        "fixed_stop_loss_percentage": 0.02148628294821613,
+        "take_profit_multiple": 3.0962449447596256,
+        "macd_signal_period": 17
+      },
+      "state": "COMPLETE"
+    },
+    {
+      "number": 2,
+      "value": 0.0,
+      "params": {
+        "short_ema_period": 10,
+        "long_ema_period": 66,
+        "short_sma_period": 32,
+        "long_sma_period": 42,
+        "rsi_oversold": 23,
+        "rsi_overbought": 52,
+        "macd_fast_period": 6,
+        "macd_slow_period": 49,
+        "atr_period": 30,
+        "atr_multiple": 4.233589392465845,
+        "fixed_stop_loss_percentage": 0.018707619612801683,
+        "take_profit_multiple": 1.8418523990223434,
+        "macd_signal_period": 15
+      },
+      "state": "COMPLETE"
+    },
+    {
+      "number": 3,
+      "value": 0.0,
+      "params": {
+        "short_ema_period": 16,
+        "long_ema_period": 39,
+        "short_sma_period": 27,
+        "long_sma_period": 36,
+        "rsi_oversold": 33,
+        "rsi_overbought": 64,
+        "macd_fast_period": 18,
+        "macd_slow_period": 33,
+        "atr_period": 18,
+        "atr_multiple": 3.1868411173731186,
+        "fixed_stop_loss_percentage": 0.013318450498648719,
+        "take_profit_multiple": 4.893546197175955,
+        "macd_signal_period": 17
+      },
+      "state": "COMPLETE"
+    },
+    {
+      "number": 4,
+      "value": 0.0,
+      "params": {
+        "short_ema_period": 29,
+        "long_ema_period": 93,
+        "short_sma_period": 32,
+        "long_sma_period": 142,
+        "rsi_oversold": 7,
+        "rsi_overbought": 40,
+        "macd_fast_period": 5,
+        "macd_slow_period": 34,
+        "atr_period": 15,
+        "atr_multiple": 2.0853961270955836,
+        "fixed_stop_loss_percentage": 0.042293187911836824,
+        "take_profit_multiple": 2.7486366434275626,
+        "macd_signal_period": 9
+      },
+      "state": "COMPLETE"
+    },
+    {
+      "number": 5,
+      "value": 0.0,
+      "params": {
+        "short_ema_period": 19,
+        "long_ema_period": 40,
+        "short_sma_period": 41,
+        "long_sma_period": 53,
+        "rsi_oversold": 35,
+        "rsi_overbought": 86,
+        "macd_fast_period": 9,
+        "macd_slow_period": 26,
+        "atr_period": 26,
+        "atr_multiple": 3.8274293753904685,
+        "fixed_stop_loss_percentage": 0.037805322561844434,
+        "take_profit_multiple": 4.19944621340081,
+        "macd_signal_period": 6
+      },
+      "state": "COMPLETE"
+    },
+    {
+      "number": 6,
+      "value": 0.0,
+      "params": {
+        "short_ema_period": 14,
+        "long_ema_period": 39,
+        "short_sma_period": 44,
+        "long_sma_period": 112,
+        "rsi_oversold": 15,
+        "rsi_overbought": 38,
+        "macd_fast_period": 11,
+        "macd_slow_period": 34,
+        "atr_period": 23,
+        "atr_multiple": 3.5502298854208525,
+        "fixed_stop_loss_percentage": 0.0449245734159347,
+        "take_profit_multiple": 3.1527522380668227,
+        "macd_signal_period": 6
+      },
+      "state": "COMPLETE"
+    },
+    {
+      "number": 7,
+      "value": 0.0,
+      "params": {
+        "short_ema_period": 23,
+        "long_ema_period": 84,
+        "short_sma_period": 30,
+        "long_sma_period": 124,
+        "rsi_oversold": 20,
+        "rsi_overbought": 69,
+        "macd_fast_period": 13,
+        "macd_slow_period": 26,
+        "atr_period": 7,
+        "atr_multiple": 1.125716742746937,
+        "fixed_stop_loss_percentage": 0.03363846850687012,
+        "take_profit_multiple": 2.6002459337671433,
+        "macd_signal_period": 13
+      },
+      "state": "COMPLETE"
+    },
+    {
+      "number": 8,
+      "value": 0.0,
+      "params": {
+        "short_ema_period": 28,
+        "long_ema_period": 48,
+        "short_sma_period": 23,
+        "long_sma_period": 120,
+        "rsi_oversold": 12,
+        "rsi_overbought": 36,
+        "macd_fast_period": 11,
+        "macd_slow_period": 30,
+        "atr_period": 29,
+        "atr_multiple": 4.232481518257668,
+        "fixed_stop_loss_percentage": 0.03350316904296906,
+        "take_profit_multiple": 4.550112065657012,
+        "macd_signal_period": 17
+      },
+      "state": "COMPLETE"
+    },
+    {
+      "number": 9,
+      "value": 0.0,
+      "params": {
+        "short_ema_period": 9,
+        "long_ema_period": 93,
+        "short_sma_period": 29,
+        "long_sma_period": 128,
+        "rsi_oversold": 32,
+        "rsi_overbought": 65,
+        "macd_fast_period": 7,
+        "macd_slow_period": 31,
+        "atr_period": 16,
+        "atr_multiple": 4.272059063689973,
+        "fixed_stop_loss_percentage": 0.04373287624653546,
+        "take_profit_multiple": 1.5243324568591674,
+        "macd_signal_period": 13
+      },
+      "state": "COMPLETE"
+    },
+    {
+      "number": 10,
+      "value": 0.0,
+      "params": {
+        "short_ema_period": 6,
+        "long_ema_period": 70,
+        "short_sma_period": 49,
+        "long_sma_period": 87,
+        "rsi_oversold": 5,
+        "rsi_overbought": 27,
+        "macd_fast_period": 25,
+        "macd_slow_period": 50,
+        "atr_period": 21,
+        "atr_multiple": 4.969450661841348,
+        "fixed_stop_loss_percentage": 0.006214616412623133,
+        "take_profit_multiple": 3.934123392597537,
+        "macd_signal_period": 19
+      },
+      "state": "COMPLETE"
+    },
+    {
+      "number": 11,
+      "value": 0.0,
+      "params": {
+        "short_ema_period": 12,
+        "long_ema_period": 55,
+        "short_sma_period": 6,
+        "long_sma_period": 82,
+        "rsi_oversold": 24,
+        "rsi_overbought": 86,
+        "macd_fast_period": 17,
+        "macd_slow_period": 44,
+        "atr_period": 5,
+        "atr_multiple": 2.5644632523003597,
+        "fixed_stop_loss_percentage": 0.023035891273313847,
+        "take_profit_multiple": 3.6784393625652845,
+        "macd_signal_period": 20
+      },
+      "state": "COMPLETE"
+    },
+    {
+      "number": 12,
+      "value": 0.0,
+      "params": {
+        "short_ema_period": 5,
+        "long_ema_period": 78,
+        "short_sma_period": 12,
+        "long_sma_period": 73,
+        "rsi_oversold": 17,
+        "rsi_overbought": 76,
+        "macd_fast_period": 15,
+        "macd_slow_period": 42,
+        "atr_period": 11,
+        "atr_multiple": 1.8958949036187398,
+        "fixed_stop_loss_percentage": 0.005591314207301374,
+        "take_profit_multiple": 3.4621864512916853,
+        "macd_signal_period": 17
+      },
+      "state": "COMPLETE"
+    },
+    {
+      "number": 13,
+      "value": 0.0,
+      "params": {
+        "short_ema_period": 19,
+        "long_ema_period": 56,
+        "short_sma_period": 18,
+        "long_sma_period": 101,
+        "rsi_oversold": 27,
+        "rsi_overbought": 77,
+        "macd_fast_period": 9,
+        "macd_slow_period": 41,
+        "atr_period": 12,
+        "atr_multiple": 2.739786066085123,
+        "fixed_stop_loss_percentage": 0.014130370905191265,
+        "take_profit_multiple": 2.418128472982576,
+        "macd_signal_period": 15
+      },
+      "state": "COMPLETE"
+    },
+    {
+      "number": 14,
+      "value": 0.0,
+      "params": {
+        "short_ema_period": 14,
+        "long_ema_period": 99,
+        "short_sma_period": 39,
+        "long_sma_period": 66,
+        "rsi_oversold": 12,
+        "rsi_overbought": 52,
+        "macd_fast_period": 21,
+        "macd_slow_period": 46,
+        "atr_period": 10,
+        "atr_multiple": 1.1088761055647869,
+        "fixed_stop_loss_percentage": 0.02683875469119422,
+        "take_profit_multiple": 3.081991112170067,
+        "macd_signal_period": 11
+      },
+      "state": "COMPLETE"
+    },
+    {
+      "number": 15,
+      "value": 0.0,
+      "params": {
+        "short_ema_period": 9,
+        "long_ema_period": 79,
+        "short_sma_period": 16,
+        "long_sma_period": 98,
+        "rsi_oversold": 10,
+        "rsi_overbought": 52,
+        "macd_fast_period": 8,
+        "macd_slow_period": 38,
+        "atr_period": 21,
+        "atr_multiple": 1.9507879506443901,
+        "fixed_stop_loss_percentage": 0.014967829043124251,
+        "take_profit_multiple": 4.366735816820753,
+        "macd_signal_period": 19
+      },
+      "state": "COMPLETE"
+    },
+    {
+      "number": 16,
+      "value": 0.0,
+      "params": {
+        "short_ema_period": 23,
+        "long_ema_period": 50,
+        "short_sma_period": 6,
+        "long_sma_period": 12,
+        "rsi_oversold": 18,
+        "rsi_overbought": 60,
+        "macd_fast_period": 12,
+        "macd_slow_period": 38,
+        "atr_period": 18,
+        "atr_multiple": 3.170309282184146,
+        "fixed_stop_loss_percentage": 0.021797495649296523,
+        "take_profit_multiple": 2.19805491552229,
+        "macd_signal_period": 15
+      },
+      "state": "COMPLETE"
+    },
+    {
+      "number": 17,
+      "value": 0.0,
+      "params": {
+        "short_ema_period": 17,
+        "long_ema_period": 33,
+        "short_sma_period": 36,
+        "long_sma_period": 147,
+        "rsi_oversold": 28,
+        "rsi_overbought": 93,
+        "macd_fast_period": 5,
+        "macd_slow_period": 46,
+        "atr_period": 14,
+        "atr_multiple": 2.431112214919919,
+        "fixed_stop_loss_percentage": 0.009872187407422593,
+        "take_profit_multiple": 4.8999241585357955,
+        "macd_signal_period": 18
+      },
+      "state": "COMPLETE"
+    },
+    {
+      "number": 18,
+      "value": 0.0,
+      "params": {
+        "short_ema_period": 12,
+        "long_ema_period": 63,
+        "short_sma_period": 22,
+        "long_sma_period": 59,
+        "rsi_oversold": 22,
+        "rsi_overbought": 57,
+        "macd_fast_period": 14,
+        "macd_slow_period": 41,
+        "atr_period": 8,
+        "atr_multiple": 4.805086233038107,
+        "fixed_stop_loss_percentage": 0.028499112045305402,
+        "take_profit_multiple": 3.9147470257405454,
+        "macd_signal_period": 10
+      },
+      "state": "COMPLETE"
+    },
+    {
+      "number": 19,
+      "value": 0.0,
+      "params": {
+        "short_ema_period": 7,
+        "long_ema_period": 72,
+        "short_sma_period": 50,
+        "long_sma_period": 92,
+        "rsi_oversold": 14,
+        "rsi_overbought": 44,
+        "macd_fast_period": 10,
+        "macd_slow_period": 47,
+        "atr_period": 24,
+        "atr_multiple": 1.6493881994700033,
+        "fixed_stop_loss_percentage": 0.04997360723394584,
+        "take_profit_multiple": 2.958437239717757,
+        "macd_signal_period": 20
+      },
+      "state": "COMPLETE"
+    },
+    {
+      "number": 20,
+      "value": 0.0,
+      "params": {
+        "short_ema_period": 21,
+        "long_ema_period": 59,
+        "short_sma_period": 11,
+        "long_sma_period": 24,
+        "rsi_oversold": 26,
+        "rsi_overbought": 75,
+        "macd_fast_period": 16,
+        "macd_slow_period": 44,
+        "atr_period": 19,
+        "atr_multiple": 3.6224365009772885,
+        "fixed_stop_loss_percentage": 0.01899707743995554,
+        "take_profit_multiple": 3.3883948272470796,
+        "macd_signal_period": 15
+      },
+      "state": "COMPLETE"
+    },
+    {
+      "number": 21,
+      "value": 0.0,
+      "params": {
+        "short_ema_period": 10,
+        "long_ema_period": 87,
+        "short_sma_period": 35,
+        "long_sma_period": 55,
+        "rsi_oversold": 22,
+        "rsi_overbought": 52,
+        "macd_fast_period": 7,
+        "macd_slow_period": 50,
+        "atr_period": 30,
+        "atr_multiple": 4.403443095395533,
+        "fixed_stop_loss_percentage": 0.018212580296059596,
+        "take_profit_multiple": 1.8480288455516583,
+        "macd_signal_period": 16
+      },
+      "state": "COMPLETE"
+    },
+    {
+      "number": 22,
+      "value": 0.0,
+      "params": {
+        "short_ema_period": 11,
+        "long_ema_period": 31,
+        "short_sma_period": 25,
+        "long_sma_period": 45,
+        "rsi_oversold": 19,
+        "rsi_overbought": 47,
+        "macd_fast_period": 5,
+        "macd_slow_period": 49,
+        "atr_period": 27,
+        "atr_multiple": 3.989439483383742,
+        "fixed_stop_loss_percentage": 0.010556547664342886,
+        "take_profit_multiple": 2.115748193964511,
+        "macd_signal_period": 13
+      },
+      "state": "COMPLETE"
+    },
+    {
+      "number": 23,
+      "value": 0.0,
+      "params": {
+        "short_ema_period": 15,
+        "long_ema_period": 70,
+        "short_sma_period": 35,
+        "long_sma_period": 75,
+        "rsi_oversold": 30,
+        "rsi_overbought": 59,
+        "macd_fast_period": 7,
+        "macd_slow_period": 48,
+        "atr_period": 13,
+        "atr_multiple": 4.517241934080338,
+        "fixed_stop_loss_percentage": 0.026121181137723402,
+        "take_profit_multiple": 1.5181043157028031,
+        "macd_signal_period": 15
+      },
+      "state": "COMPLETE"
+    },
+    {
+      "number": 24,
+      "value": 0.0,
+      "params": {
+        "short_ema_period": 7,
+        "long_ema_period": 49,
+        "short_sma_period": 44,
+        "long_sma_period": 109,
+        "rsi_oversold": 23,
+        "rsi_overbought": 57,
+        "macd_fast_period": 7,
+        "macd_slow_period": 45,
+        "atr_period": 27,
+        "atr_multiple": 3.4034441581300405,
+        "fixed_stop_loss_percentage": 0.018806895430649805,
+        "take_profit_multiple": 1.9657061044657962,
+        "macd_signal_period": 18
+      },
+      "state": "COMPLETE"
+    },
+    {
+      "number": 25,
+      "value": 0.0,
+      "params": {
+        "short_ema_period": 13,
+        "long_ema_period": 64,
+        "short_sma_period": 20,
+        "long_sma_period": 42,
+        "rsi_oversold": 25,
+        "rsi_overbought": 64,
+        "macd_fast_period": 9,
+        "macd_slow_period": 43,
+        "atr_period": 24,
+        "atr_multiple": 2.809696628940751,
+        "fixed_stop_loss_percentage": 0.009256891483227631,
+        "take_profit_multiple": 2.4497815487735832,
+        "macd_signal_period": 14
+      },
+      "state": "COMPLETE"
+    },
+    {
+      "number": 26,
+      "value": 0.0,
+      "params": {
+        "short_ema_period": 8,
+        "long_ema_period": 99,
+        "short_sma_period": 32,
+        "long_sma_period": 72,
+        "rsi_oversold": 16,
+        "rsi_overbought": 70,
+        "macd_fast_period": 5,
+        "macd_slow_period": 40,
+        "atr_period": 9,
+        "atr_multiple": 3.8764238123054815,
+        "fixed_stop_loss_percentage": 0.029922469123491384,
+        "take_profit_multiple": 3.6405886644985053,
+        "macd_signal_period": 16
+      },
+      "state": "COMPLETE"
+    },
+    {
+      "number": 27,
+      "value": 0.0,
+      "params": {
+        "short_ema_period": 10,
+        "long_ema_period": 44,
+        "short_sma_period": 39,
+        "long_sma_period": 65,
+        "rsi_oversold": 20,
+        "rsi_overbought": 49,
+        "macd_fast_period": 12,
+        "macd_slow_period": 47,
+        "atr_period": 5,
+        "atr_multiple": 2.269580723322437,
+        "fixed_stop_loss_percentage": 0.02264814998278193,
+        "take_profit_multiple": 4.007738086277008,
+        "macd_signal_period": 11
+      },
+      "state": "COMPLETE"
+    },
+    {
+      "number": 28,
+      "value": 0.0,
+      "params": {
+        "short_ema_period": 12,
+        "long_ema_period": 80,
+        "short_sma_period": 14,
+        "long_sma_period": 32,
+        "rsi_oversold": 8,
+        "rsi_overbought": 31,
+        "macd_fast_period": 20,
+        "macd_slow_period": 39,
+        "atr_period": 20,
+        "atr_multiple": 1.4726133986999868,
+        "fixed_stop_loss_percentage": 0.017178049243902718,
+        "take_profit_multiple": 2.8238554517751866,
+        "macd_signal_period": 18
+      },
+      "state": "COMPLETE"
+    },
+    {
+      "number": 29,
+      "value": 0.0,
+      "params": {
+        "short_ema_period": 17,
+        "long_ema_period": 90,
+        "short_sma_period": 26,
+        "long_sma_period": 49,
+        "rsi_oversold": 29,
+        "rsi_overbought": 63,
+        "macd_fast_period": 10,
+        "macd_slow_period": 36,
+        "atr_period": 16,
+        "atr_multiple": 3.149816953848618,
+        "fixed_stop_loss_percentage": 0.011432683534271461,
+        "take_profit_multiple": 4.788407467923962,
+        "macd_signal_period": 16
+      },
+      "state": "COMPLETE"
+    }
+  ]
+}

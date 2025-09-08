@@ -1,0 +1,471 @@
+{
+  "crypto": "revox",
+  "strategy": "BB_Breakout",
+  "n_trials": 30,
+  "best_value": 0.05293969557095579,
+  "best_params": {
+    "rsi_oversold": 28,
+    "rsi_overbought": 86,
+    "bb_period": 33,
+    "bb_std_dev": 1.7293484175766112,
+    "atr_period": 22,
+    "atr_multiple": 2.594874787365932,
+    "fixed_stop_loss_percentage": 0.023820239445056273,
+    "take_profit_multiple": 1.8425269708236325
+  },
+  "optimization_time": 345.94026350975037,
+  "timestamp": "2025-09-07T18:53:44.560392",
+  "study_name": "revox_BB_Breakout_1757263678",
+  "all_trials": [
+    {
+      "number": 0,
+      "value": -0.3230108188964209,
+      "params": {
+        "rsi_oversold": 16,
+        "rsi_overbought": 93,
+        "bb_period": 40,
+        "bb_std_dev": 2.397987726295555,
+        "atr_period": 9,
+        "atr_multiple": 1.6239780813448106,
+        "fixed_stop_loss_percentage": 0.007613762547568976,
+        "take_profit_multiple": 4.531616510212273
+      },
+      "state": "COMPLETE"
+    },
+    {
+      "number": 1,
+      "value": 0.0,
+      "params": {
+        "rsi_oversold": 23,
+        "rsi_overbought": 80,
+        "bb_period": 10,
+        "bb_std_dev": 2.9548647782429915,
+        "atr_period": 26,
+        "atr_multiple": 1.8493564427131046,
+        "fixed_stop_loss_percentage": 0.01318212352431953,
+        "take_profit_multiple": 2.1419157844870185
+      },
+      "state": "COMPLETE"
+    },
+    {
+      "number": 2,
+      "value": -0.7174401179010061,
+      "params": {
+        "rsi_oversold": 14,
+        "rsi_overbought": 66,
+        "bb_period": 27,
+        "bb_std_dev": 1.9368437102970628,
+        "atr_period": 20,
+        "atr_multiple": 1.5579754426081673,
+        "fixed_stop_loss_percentage": 0.01814650918408482,
+        "take_profit_multiple": 2.7822664515279207
+      },
+      "state": "COMPLETE"
+    },
+    {
+      "number": 3,
+      "value": 0.0,
+      "params": {
+        "rsi_oversold": 19,
+        "rsi_overbought": 83,
+        "bb_period": 18,
+        "bb_std_dev": 2.2713516576204174,
+        "atr_period": 20,
+        "atr_multiple": 1.185801650879991,
+        "fixed_stop_loss_percentage": 0.032339518335564726,
+        "take_profit_multiple": 2.09683443290552
+      },
+      "state": "COMPLETE"
+    },
+    {
+      "number": 4,
+      "value": 0.0,
+      "params": {
+        "rsi_oversold": 7,
+        "rsi_overbought": 92,
+        "bb_period": 49,
+        "bb_std_dev": 2.712596022174692,
+        "atr_period": 12,
+        "atr_multiple": 1.3906884560255355,
+        "fixed_stop_loss_percentage": 0.03579048619304706,
+        "take_profit_multiple": 3.0405337280886044
+      },
+      "state": "COMPLETE"
+    },
+    {
+      "number": 5,
+      "value": 0.0,
+      "params": {
+        "rsi_oversold": 8,
+        "rsi_overbought": 61,
+        "bb_period": 11,
+        "bb_std_dev": 2.863980603118173,
+        "atr_period": 11,
+        "atr_multiple": 3.650089137415928,
+        "fixed_stop_loss_percentage": 0.019026998424023493,
+        "take_profit_multiple": 3.320238074122338
+      },
+      "state": "COMPLETE"
+    },
+    {
+      "number": 6,
+      "value": 0.0,
+      "params": {
+        "rsi_oversold": 21,
+        "rsi_overbought": 51,
+        "bb_period": 49,
+        "bb_std_dev": 2.662699235041672,
+        "atr_period": 29,
+        "atr_multiple": 4.579309401710596,
+        "fixed_stop_loss_percentage": 0.031905499046498836,
+        "take_profit_multiple": 4.726559822580909
+      },
+      "state": "COMPLETE"
+    },
+    {
+      "number": 7,
+      "value": -0.8446438836472937,
+      "params": {
+        "rsi_oversold": 7,
+        "rsi_overbought": 40,
+        "bb_period": 11,
+        "bb_std_dev": 1.9879954961448965,
+        "atr_period": 15,
+        "atr_multiple": 2.0853961270955836,
+        "fixed_stop_loss_percentage": 0.042293187911836824,
+        "take_profit_multiple": 2.7486366434275626
+      },
+      "state": "COMPLETE"
+    },
+    {
+      "number": 8,
+      "value": 0.0,
+      "params": {
+        "rsi_oversold": 13,
+        "rsi_overbought": 67,
+        "bb_period": 15,
+        "bb_std_dev": 2.7032954711310593,
+        "atr_period": 6,
+        "atr_multiple": 4.947547746402069,
+        "fixed_stop_loss_percentage": 0.03975101461834959,
+        "take_profit_multiple": 2.1955048853696035
+      },
+      "state": "COMPLETE"
+    },
+    {
+      "number": 9,
+      "value": -0.3230108188964209,
+      "params": {
+        "rsi_oversold": 5,
+        "rsi_overbought": 82,
+        "bb_period": 38,
+        "bb_std_dev": 2.593510752061481,
+        "atr_period": 25,
+        "atr_multiple": 1.2961786069363614,
+        "fixed_stop_loss_percentage": 0.02113095778449227,
+        "take_profit_multiple": 1.905541708337954
+      },
+      "state": "COMPLETE"
+    },
+    {
+      "number": 10,
+      "value": -2.558539692235044,
+      "params": {
+        "rsi_oversold": 32,
+        "rsi_overbought": 78,
+        "bb_period": 23,
+        "bb_std_dev": 1.5269428134222296,
+        "atr_period": 30,
+        "atr_multiple": 2.689964257681106,
+        "fixed_stop_loss_percentage": 0.005701765984630534,
+        "take_profit_multiple": 1.5430764171253624
+      },
+      "state": "COMPLETE"
+    },
+    {
+      "number": 11,
+      "value": -1.0892076163136295,
+      "params": {
+        "rsi_oversold": 25,
+        "rsi_overbought": 81,
+        "bb_period": 19,
+        "bb_std_dev": 2.169217723962314,
+        "atr_period": 22,
+        "atr_multiple": 2.435145190038787,
+        "fixed_stop_loss_percentage": 0.02668533483484984,
+        "take_profit_multiple": 3.724310016923023
+      },
+      "state": "COMPLETE"
+    },
+    {
+      "number": 12,
+      "value": -0.9648255207018082,
+      "params": {
+        "rsi_oversold": 26,
+        "rsi_overbought": 76,
+        "bb_period": 18,
+        "bb_std_dev": 1.6019652109989309,
+        "atr_period": 25,
+        "atr_multiple": 1.0310307333286057,
+        "fixed_stop_loss_percentage": 0.04924308696503259,
+        "take_profit_multiple": 2.338889757980909
+      },
+      "state": "COMPLETE"
+    },
+    {
+      "number": 13,
+      "value": 0.0,
+      "params": {
+        "rsi_oversold": 21,
+        "rsi_overbought": 88,
+        "bb_period": 31,
+        "bb_std_dev": 2.9940247976211527,
+        "atr_period": 17,
+        "atr_multiple": 3.6434229011691466,
+        "fixed_stop_loss_percentage": 0.026786130140516683,
+        "take_profit_multiple": 1.5156451381676186
+      },
+      "state": "COMPLETE"
+    },
+    {
+      "number": 14,
+      "value": -0.44563638171744907,
+      "params": {
+        "rsi_oversold": 30,
+        "rsi_overbought": 86,
+        "bb_period": 11,
+        "bb_std_dev": 2.436725117574567,
+        "atr_period": 24,
+        "atr_multiple": 2.0456751676281124,
+        "fixed_stop_loss_percentage": 0.012720848840235346,
+        "take_profit_multiple": 2.236502998485361
+      },
+      "state": "COMPLETE"
+    },
+    {
+      "number": 15,
+      "value": -0.43807462463686875,
+      "params": {
+        "rsi_oversold": 18,
+        "rsi_overbought": 71,
+        "bb_period": 23,
+        "bb_std_dev": 1.8657755887433736,
+        "atr_period": 19,
+        "atr_multiple": 3.250314305259061,
+        "fixed_stop_loss_percentage": 0.013694860649533645,
+        "take_profit_multiple": 2.5730643238422513
+      },
+      "state": "COMPLETE"
+    },
+    {
+      "number": 16,
+      "value": -0.44563638171744907,
+      "params": {
+        "rsi_oversold": 25,
+        "rsi_overbought": 73,
+        "bb_period": 16,
+        "bb_std_dev": 2.196249744067427,
+        "atr_period": 27,
+        "atr_multiple": 1.9672453393739682,
+        "fixed_stop_loss_percentage": 0.030228645554452278,
+        "take_profit_multiple": 3.67448006376312
+      },
+      "state": "COMPLETE"
+    },
+    {
+      "number": 17,
+      "value": 0.05293969557095579,
+      "params": {
+        "rsi_oversold": 28,
+        "rsi_overbought": 86,
+        "bb_period": 33,
+        "bb_std_dev": 1.7293484175766112,
+        "atr_period": 22,
+        "atr_multiple": 2.594874787365932,
+        "fixed_stop_loss_percentage": 0.023820239445056273,
+        "take_profit_multiple": 1.8425269708236325
+      },
+      "state": "COMPLETE"
+    },
+    {
+      "number": 18,
+      "value": -0.43807462463686875,
+      "params": {
+        "rsi_oversold": 34,
+        "rsi_overbought": 88,
+        "bb_period": 34,
+        "bb_std_dev": 1.7991359211470483,
+        "atr_period": 22,
+        "atr_multiple": 3.027105027486668,
+        "fixed_stop_loss_percentage": 0.012644511854309412,
+        "take_profit_multiple": 1.952880269314969
+      },
+      "state": "COMPLETE"
+    },
+    {
+      "number": 19,
+      "value": -0.3230108188964209,
+      "params": {
+        "rsi_oversold": 27,
+        "rsi_overbought": 94,
+        "bb_period": 43,
+        "bb_std_dev": 1.7132270605850042,
+        "atr_period": 27,
+        "atr_multiple": 2.3964158693171997,
+        "fixed_stop_loss_percentage": 0.024699595632421977,
+        "take_profit_multiple": 1.815609185315997
+      },
+      "state": "COMPLETE"
+    },
+    {
+      "number": 20,
+      "value": -0.43807462463686875,
+      "params": {
+        "rsi_oversold": 29,
+        "rsi_overbought": 77,
+        "bb_period": 27,
+        "bb_std_dev": 2.0459204770869883,
+        "atr_period": 16,
+        "atr_multiple": 3.55381725738542,
+        "fixed_stop_loss_percentage": 0.021830587380401438,
+        "take_profit_multiple": 4.2096099295394325
+      },
+      "state": "COMPLETE"
+    },
+    {
+      "number": 21,
+      "value": -0.11878143348394588,
+      "params": {
+        "rsi_oversold": 23,
+        "rsi_overbought": 83,
+        "bb_period": 34,
+        "bb_std_dev": 2.4408438047156125,
+        "atr_period": 22,
+        "atr_multiple": 1.758210091169512,
+        "fixed_stop_loss_percentage": 0.03329628786915792,
+        "take_profit_multiple": 2.4020598439760623
+      },
+      "state": "COMPLETE"
+    },
+    {
+      "number": 22,
+      "value": -0.7686797160627492,
+      "params": {
+        "rsi_oversold": 22,
+        "rsi_overbought": 86,
+        "bb_period": 22,
+        "bb_std_dev": 2.2987936584062374,
+        "atr_period": 20,
+        "atr_multiple": 1.0307757293287978,
+        "fixed_stop_loss_percentage": 0.037582188751725726,
+        "take_profit_multiple": 1.9184800173351855
+      },
+      "state": "COMPLETE"
+    },
+    {
+      "number": 23,
+      "value": -1.0940801086283614,
+      "params": {
+        "rsi_oversold": 18,
+        "rsi_overbought": 59,
+        "bb_period": 14,
+        "bb_std_dev": 2.061955796921316,
+        "atr_period": 27,
+        "atr_multiple": 2.4539289528313626,
+        "fixed_stop_loss_percentage": 0.015668309256188617,
+        "take_profit_multiple": 2.9875098874876795
+      },
+      "state": "COMPLETE"
+    },
+    {
+      "number": 24,
+      "value": 0.0,
+      "params": {
+        "rsi_oversold": 18,
+        "rsi_overbought": 71,
+        "bb_period": 28,
+        "bb_std_dev": 2.99620474272146,
+        "atr_period": 14,
+        "atr_multiple": 2.7851711280465854,
+        "fixed_stop_loss_percentage": 0.045030038875974746,
+        "take_profit_multiple": 2.104499866648115
+      },
+      "state": "COMPLETE"
+    },
+    {
+      "number": 25,
+      "value": -0.39293260469032987,
+      "params": {
+        "rsi_oversold": 35,
+        "rsi_overbought": 79,
+        "bb_period": 20,
+        "bb_std_dev": 1.7099190280536685,
+        "atr_period": 18,
+        "atr_multiple": 1.9262309369857447,
+        "fixed_stop_loss_percentage": 0.02973454440517386,
+        "take_profit_multiple": 1.6869985206918727
+      },
+      "state": "COMPLETE"
+    },
+    {
+      "number": 26,
+      "value": -0.3230108188964209,
+      "params": {
+        "rsi_oversold": 28,
+        "rsi_overbought": 90,
+        "bb_period": 32,
+        "bb_std_dev": 2.549014212729234,
+        "atr_period": 23,
+        "atr_multiple": 2.284152946036316,
+        "fixed_stop_loss_percentage": 0.008198322953043933,
+        "take_profit_multiple": 2.5468693055901372
+      },
+      "state": "COMPLETE"
+    },
+    {
+      "number": 27,
+      "value": 0.0,
+      "params": {
+        "rsi_oversold": 12,
+        "rsi_overbought": 56,
+        "bb_period": 14,
+        "bb_std_dev": 2.832403418656432,
+        "atr_period": 20,
+        "atr_multiple": 1.3796477560829763,
+        "fixed_stop_loss_percentage": 0.023880172327603838,
+        "take_profit_multiple": 2.113139149945292
+      },
+      "state": "COMPLETE"
+    },
+    {
+      "number": 28,
+      "value": -0.3230108188964209,
+      "params": {
+        "rsi_oversold": 24,
+        "rsi_overbought": 84,
+        "bb_period": 37,
+        "bb_std_dev": 2.314918163074353,
+        "atr_period": 26,
+        "atr_multiple": 4.050263264243315,
+        "fixed_stop_loss_percentage": 0.03460125475177628,
+        "take_profit_multiple": 3.458367852213636
+      },
+      "state": "COMPLETE"
+    },
+    {
+      "number": 29,
+      "value": -0.44563638171744907,
+      "params": {
+        "rsi_oversold": 16,
+        "rsi_overbought": 95,
+        "bb_period": 10,
+        "bb_std_dev": 2.135999096143118,
+        "atr_period": 23,
+        "atr_multiple": 1.6739231640036134,
+        "fixed_stop_loss_percentage": 0.010814438186941142,
+        "take_profit_multiple": 1.7006236225990026
+      },
+      "state": "COMPLETE"
+    }
+  ]
+}

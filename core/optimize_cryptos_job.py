@@ -23,6 +23,7 @@ def run_optimize_cryptos_job(
 
     logger.info("Starting optimize cryptos job...")
     job_status_manager.update_job_status(job_id, 'running', 'Optimization started.', log_path=log_path) # Update status
+    logger.debug(f"Job {job_id} status set to 'running'.") # Added debug log
 
     optimizer = BayesianOptimizer(logger=logger)
     param_manager = ParameterManager()
@@ -37,6 +38,10 @@ def run_optimize_cryptos_job(
     logger.info(f"Found {len(available_strategies)} strategies: {', '.join(available_strategies)}")
 
     for strategy_name in available_strategies:
+        if job_status_manager.is_job_stop_requested(job_id):
+            logger.info(f"Job {job_id} stop requested. Exiting optimization for remaining strategies.")
+            job_status_manager.update_job_status(job_id, 'stopped', 'Optimization stopped by user.')
+            return
         try:
             logger.info(f"Optimizing volatile cryptos for strategy: {strategy_name}")
             job_status_manager.update_job_status(job_id, 'running', f'Optimizing strategy: {strategy_name}') # Update status for current strategy
@@ -50,6 +55,7 @@ def run_optimize_cryptos_job(
                 top_count=top_count,
                 min_volatility=min_volatility,
                 max_workers=max_workers,
+                job_id=job_id, # Added job_id
                 **current_strategy_params  # Unpack strategy-specific parameters
             )
             logger.info(f"Finished optimizing for strategy: {strategy_name}")
@@ -59,7 +65,7 @@ def run_optimize_cryptos_job(
             job_status_manager.update_job_status(job_id, 'failed', error_message) # Update status on error
             # Continue to next strategy even if one fails
 
-    job_status_manager.update_job_status(job_id, 'completed', 'Optimize cryptos job completed.') # Update status on completion
+    # The status is now updated by optimizer.optimize_volatile_cryptos
     logger.info("Optimize cryptos job completed.")
 
 if __name__ == "__main__":
