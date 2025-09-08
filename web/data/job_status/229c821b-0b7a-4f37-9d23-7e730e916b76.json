@@ -1,8 +1,0 @@
-{
-  "job_id": "229c821b-0b7a-4f37-9d23-7e730e916b76",
-  "status": "running",
-  "timestamp": "2025-09-07T22:23:00.023211",
-  "message": "Optimization started.",
-  "log_path": "/data/data/com.termux/files/home/Work/my-pricer/web/backend/../../data/logs/job_229c821b-0b7a-4f37-9d23-7e730e916b76.log",
-  "stop_requested": false
-}

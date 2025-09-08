@@ -1,7 +1,0 @@
-{
-  "job_id": "6aa78c3d-1ee7-4c21-b298-653cb34cfe02",
-  "status": "completed",
-  "timestamp": "2025-09-07T13:27:50.651496",
-  "message": "Optimization completed successfully.",
-  "log_path": "/data/data/com.termux/files/home/Work/my-pricer/web/backend/../../data/logs/job_6aa78c3d-1ee7-4c21-b298-653cb34cfe02.log"
-}

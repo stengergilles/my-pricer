@@ -1,9 +1,0 @@
-{
-  "job_id": "1fbda2f7-7b2e-402a-be70-f972f34b0bbf",
-  "status": "completed",
-  "timestamp": "2025-09-08T07:08:57.944218",
-  "message": "Stop requested.",
-  "log_path": "/data/data/com.termux/files/home/Work/my-pricer/web/backend/../../data/logs/job_1fbda2f7-7b2e-402a-be70-f972f34b0bbf.log",
-  "stop_requested": true,
-  "pids": []
-}
