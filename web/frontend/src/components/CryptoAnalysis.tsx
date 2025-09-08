@@ -47,8 +47,8 @@ export const CryptoAnalysis = () => {
   const { data: cryptos, isLoading: cryptosLoading, error: cryptosError } = useQuery<{
     cryptos: Crypto[]
   }>({
-    queryKey: ['cryptos'],
-    queryFn: () => getCryptos(),
+    queryKey: ['volatileCryptos'],
+    queryFn: () => getCryptos({ volatile: true }),
     enabled: !!apiClient,
   })
 
@@ -154,7 +154,7 @@ export const CryptoAnalysis = () => {
   const handleRetry = () => {
     reset403Error()
     setError(null)
-    queryClient.invalidateQueries({ queryKey: ['cryptos'] })
+    queryClient.invalidateQueries({ queryKey: ['volatileCryptos'] })
   }
 
   const onSubmit = (data: AnalysisFormData) => {

@@ -46,8 +46,8 @@ export const BacktestRunner = () => {
 
   const { data: cryptos, isLoading: cryptosLoading, error: cryptosError } = useQuery(
     {
-      queryKey: ['cryptos'],
-      queryFn: () => getCryptos(),
+      queryKey: ['volatileCryptos'],
+      queryFn: () => getCryptos({ volatile: true }),
       enabled: !!apiClient,
     }
   )
@@ -155,7 +155,7 @@ export const BacktestRunner = () => {
   const handleRetry = () => {
     reset403Error()
     setError(null)
-    queryClient.invalidateQueries({ queryKey: ['cryptos'] })
+    queryClient.invalidateQueries({ queryKey: ['volatileCryptos'] })
     queryClient.invalidateQueries({ queryKey: ['strategies'] })
   }
 
