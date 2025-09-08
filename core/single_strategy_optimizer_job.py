@@ -25,7 +25,8 @@ def run_single_strategy_optimization_job(
     job_status_manager.update_job_status(job_id, 'running', 'Optimization started.', log_path=log_path) # Update status
     logger.debug(f"Job {job_id} status set to 'running'.") # Added debug log
 
-    optimizer = BayesianOptimizer(logger=logger)
+    config = Config()
+    optimizer = BayesianOptimizer(results_dir=config.RESULTS_DIR, logger=logger)
     param_manager = ParameterManager()
 
     if strategy_name not in param_manager.get_available_strategies():

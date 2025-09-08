@@ -2,6 +2,7 @@ import logging
 import os
 from core.optimizer import BayesianOptimizer
 from core.parameter_manager import ParameterManager
+from core.app_config import Config
 from . import job_status_manager # Import job_status_manager
 from core.logger_config import setup_job_logging # Import the new logging setup function
 
@@ -25,7 +26,8 @@ def run_optimize_cryptos_job(
     job_status_manager.update_job_status(job_id, 'running', 'Optimization started.', log_path=log_path) # Update status
     logger.debug(f"Job {job_id} status set to 'running'.") # Added debug log
 
-    optimizer = BayesianOptimizer(logger=logger)
+    config = Config()
+    optimizer = BayesianOptimizer(results_dir=config.RESULTS_DIR, logger=logger)
     param_manager = ParameterManager()
     available_strategies = param_manager.get_available_strategies()
 
