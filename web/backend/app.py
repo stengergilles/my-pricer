@@ -19,6 +19,8 @@ load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '.env'))
 # Add core module to path
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
 
+from core import job_status_manager
+
 from core.trading_engine import TradingEngine
 from core.app_config import Config
 from auth.middleware import AuthError, requires_auth
@@ -198,6 +200,12 @@ if __name__ == '__main__':
         try:
             scheduler_instance = get_scheduler()
             if scheduler_instance:
+                # Stop all running jobs first
+                jobs = scheduler_instance.get_jobs()
+                for job in jobs:
+                    logger.info(f"Requesting stop for job {job.id}")
+                    job_status_manager.request_job_stop(job.id)
+                
                 scheduler_instance.shutdown()
                 logger.info("Scheduler shut down gracefully.")
         except Exception as e:

@@ -22,6 +22,17 @@ class JobStopRequestedError(Exception):
     """Custom exception to signal that a job stop has been requested."""
     pass
 
+class JobStopCallback:
+    """Optuna callback that checks for job stop requests."""
+    def __init__(self, job_id, logger):
+        self.job_id = job_id
+        self.logger = logger
+    
+    def __call__(self, study, trial):
+        if self.job_id and job_status_manager.is_job_stop_requested(self.job_id):
+            self.logger.info(f"Job {self.job_id} stop requested. Stopping Optuna study.")
+            study.stop()
+
 class CoinGeckoRateLimitError(Exception):
     """Custom exception for CoinGecko API rate limit errors."""
     pass
@@ -126,7 +137,14 @@ class BayesianOptimizer:
         start_time = time.time()
         try:
             stopper = RateLimitStopper(self.logger)
-            study.optimize(objective, n_trials=n_trials, timeout=timeout, callbacks=[stopper])
+            callbacks = [stopper]
+            
+            # Add job stop callback if job_id is provided
+            if job_id:
+                job_stop_callback = JobStopCallback(job_id, self.logger)
+                callbacks.append(job_stop_callback)
+            
+            study.optimize(objective, n_trials=n_trials, timeout=timeout, callbacks=callbacks)
         except KeyboardInterrupt:
             self.logger.warning("Optimization interrupted by user")
             raise # Re-raise to stop the study
