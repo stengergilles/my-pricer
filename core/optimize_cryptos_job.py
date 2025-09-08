@@ -58,6 +58,13 @@ def run_optimize_cryptos_job(
                 job_id=job_id, # Added job_id
                 **current_strategy_params  # Unpack strategy-specific parameters
             )
+            
+            # Check again after each strategy completes
+            if job_status_manager.is_job_stop_requested(job_id):
+                logger.info(f"Job {job_id} stop requested after completing strategy {strategy_name}.")
+                job_status_manager.update_job_status(job_id, 'stopped', 'Optimization stopped by user.')
+                return
+                
             logger.info(f"Finished optimizing for strategy: {strategy_name}")
         except Exception as e:
             error_message = f"Error optimizing for strategy {strategy_name}: {e}"

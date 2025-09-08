@@ -242,7 +242,6 @@ class BayesianOptimizer:
                 if job_id and job_status_manager.is_job_stop_requested(job_id):
                     self.logger.info(f"Job {job_id} stop requested. Stopping submission of new tasks.")
                     stop_batch_optimization = True
-                    executor.shutdown(wait=False, cancel_futures=True)
                     break # Exit the loop if stop is requested
                 
                 future = executor.submit(
@@ -254,12 +253,23 @@ class BayesianOptimizer:
                 )
                 future_to_crypto[future] = crypto
             
+            # If stop was requested during submission, cancel all futures and exit
+            if stop_batch_optimization:
+                for future in future_to_crypto:
+                    future.cancel()
+                if job_id:
+                    job_status_manager.update_job_status(job_id, 'stopped', 'Optimization stopped by user.')
+                return []
+            
             # Collect results
             for future in as_completed(future_to_crypto):
                 if job_id and job_status_manager.is_job_stop_requested(job_id):
-                    self.logger.info(f"Job {job_id} stop requested. Stopping collection of results.")
+                    self.logger.info(f"Job {job_id} stop requested. Cancelling remaining futures.")
+                    # Cancel all remaining futures
+                    for remaining_future in future_to_crypto:
+                        if not remaining_future.done():
+                            remaining_future.cancel()
                     stop_batch_optimization = True
-                    executor.shutdown(wait=False, cancel_futures=True)
                     break # Exit the loop if stop is requested
 
                 crypto = future_to_crypto[future]

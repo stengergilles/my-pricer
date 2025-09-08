@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 # Define the directory for job status files relative to the project root
 # Assuming this file is in core/, so project root is one level up
 PROJECT_ROOT = Path(__file__).parent.parent
-JOB_STATUS_DIR = PROJECT_ROOT / "web" / "data" / "job_status"
+JOB_STATUS_DIR = PROJECT_ROOT / "data" / "job_status"
 
 def _get_status_filepath(job_id: str) -> Path:
     """Returns the full path to a job's status file."""
