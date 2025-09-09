@@ -5,7 +5,7 @@ export class ApiClient {
   constructor(getAccessToken?: () => Promise<string | undefined>) {
     this.getAccessToken = getAccessToken;
 
-    this.baseUrl = 'http://localhost:5000';
+    this.baseUrl = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
     // Bind methods to the instance to preserve 'this' context
     this.getCryptos = this.getCryptos.bind(this);
