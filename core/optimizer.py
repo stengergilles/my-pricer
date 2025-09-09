@@ -49,6 +49,8 @@ class RateLimitStopper:
 
 from .parameter_manager import ParameterManager
 from .crypto_discovery import CryptoDiscovery
+from .result_manager import ResultManager
+from .app_config import Config
 
 class BayesianOptimizer:
     """
@@ -79,8 +81,10 @@ class BayesianOptimizer:
         self.logger = logger or logging.getLogger(__name__)
         
         # Initialize components
+        self.config = Config()
         self.param_manager = ParameterManager()
         self.crypto_discovery = CryptoDiscovery(results_dir)
+        self.result_manager = ResultManager(self.config)
         
         # Ensure results directory exists
         os.makedirs(results_dir, exist_ok=True)
@@ -184,6 +188,9 @@ class BayesianOptimizer:
             }
         
         # Compile results
+        best_trial = study.best_trial
+        backtest_result = best_trial.user_attrs.get("backtest_result") if best_trial else None
+
         results = {
             'crypto': crypto,
             'strategy': strategy,
@@ -193,6 +200,7 @@ class BayesianOptimizer:
             'optimization_time': end_time - start_time,
             'timestamp': datetime.now().isoformat(),
             'study_name': study_name,
+            'backtest_result': backtest_result, # Add this line
             'all_trials': [
                 {
                     'number': trial.number,
@@ -296,6 +304,14 @@ class BayesianOptimizer:
                     result['crypto_info'] = crypto  # Add crypto metadata
                     results.append(result)
                     
+                    # Save the backtest result
+                    if result.get('backtest_result'):
+                        self.result_manager.save_backtest_result(
+                            crypto_id=result['crypto'],
+                            strategy_name=result['strategy'],
+                            result=result['backtest_result']
+                        )
+
                     self.logger.info(f"Completed {crypto['symbol']}: {result['best_value']}")
                     
                 except optuna.exceptions.OptunaError as e: # Catch OptunaError for job stop
@@ -453,6 +469,9 @@ class BayesianOptimizer:
                 if json_start != -1:
                     json_str = output[json_start + len("OPTIMIZER_RESULTS:"):]
                     results_data = json.loads(json_str)
+                    
+                    # Store the full backtest result in the trial's user attributes
+                    trial.set_user_attr("backtest_result", results_data)
                     
                     if "total_profit_percentage" in results_data:
                         profit_percentage = float(results_data["total_profit_percentage"])

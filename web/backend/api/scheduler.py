@@ -32,7 +32,7 @@ class ScheduleJobAPI(Resource):
         func_kwargs = data.get('func_kwargs', {})
 
         if func_path not in schedulable_functions:
-            return jsonify({'error': 'Function not allowed'}), 400
+            return {'error': 'Function not allowed'}, 400
 
         # Special handling for 'optimize_cryptos_job' to pass its specific kwargs
         if func_path in ['optimize_cryptos_job', 'optimize_crypto']: # Handle both optimization jobs
@@ -63,7 +63,7 @@ class ScheduleJobAPI(Resource):
                 **trigger_args,
             )
 
-        return jsonify({'job_id': job.id})
+        return {'job_id': job.id}
 
 from core import job_status_manager # Import job_status_manager
 
@@ -87,7 +87,7 @@ class JobsAPI(Resource):
                 'status': job_status.get('status', 'unknown'), # Add status
                 'message': job_status.get('message', '') # Add message
             })
-        return jsonify(job_list)
+        return job_list
 
 class JobAPI(Resource):
     def __init__(self, engine):
@@ -100,7 +100,7 @@ class JobAPI(Resource):
         job = self.scheduler.get_job(job_id)
         if job:
             job_status = job_status_manager.get_job_status(job.id)
-            return jsonify({
+            return {
                 'id': job.id,
                 'name': job.name,
                 'trigger': str(job.trigger),
@@ -108,8 +108,8 @@ class JobAPI(Resource):
                 'status': job_status.get('status', 'unknown'),
                 'message': job_status.get('message', ''),
                 'log_path': job_status.get('log_path')
-            })
-        return jsonify({'error': 'Job not found'}), 404
+            }
+        return {'error': 'Job not found'}, 404
 
     @requires_auth('manage:jobs')
     def post(self, job_id):
@@ -118,12 +118,12 @@ class JobAPI(Resource):
 
         if action == 'pause':
             self.scheduler.pause_job(job_id)
-            return jsonify({'status': 'paused'})
+            return {'status': 'paused'}
         elif action == 'resume':
             self.scheduler.resume_job(job_id)
-            return jsonify({'status': 'resumed'})
+            return {'status': 'resumed'}
         else:
-            return jsonify({'error': 'Invalid action'}), 400
+            return {'error': 'Invalid action'}, 400
 
     @requires_auth('manage:jobs')
     def delete(self, job_id):
@@ -131,7 +131,7 @@ class JobAPI(Resource):
         job_status_manager.request_job_stop(job_id)
         # Then remove it from the scheduler's queue
         self.scheduler.remove_job(job_id)
-        return jsonify({'status': 'removed'})
+        return {'status': 'removed'}
 
 class JobLogsAPI(Resource):
     def __init__(self, engine):
@@ -144,7 +144,7 @@ class JobLogsAPI(Resource):
         log_path = job_status.get('log_path')
 
         if not log_path or not os.path.exists(log_path):
-            return jsonify({'error': 'Log file not found'}), 404
+            return {'error': 'Log file not found'}, 404
 
         try:
             with open(log_path, 'r') as f:
