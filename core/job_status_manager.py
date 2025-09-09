@@ -75,15 +75,24 @@ def get_job_status(job_id: str) -> dict:
     """
     filepath = _get_status_filepath(job_id)
     if filepath.exists():
-        try:
-            with open(filepath, 'r') as f:
-                content = f.read().strip()
-                if not content:
-                    return {"job_id": job_id, "status": "unknown", "message": "Status file is empty."}
-                return json.loads(content)
-        except Exception as e:
-            logger.error(f"Failed to read status for job {job_id}: {e}")
-            return {"job_id": job_id, "status": "error", "message": f"Failed to read status file: {e}"}
+        for attempt in range(3):
+            try:
+                with open(filepath, 'r') as f:
+                    content = f.read().strip()
+                    if not content:
+                        if attempt < 2:
+                            import time
+                            time.sleep(0.1)
+                            continue
+                        return {"job_id": job_id, "status": "unknown", "message": "Status file is empty."}
+                    return json.loads(content)
+            except Exception as e:
+                if attempt < 2:
+                    import time
+                    time.sleep(0.1)
+                    continue
+                logger.error(f"Failed to read status for job {job_id}: {e}")
+                return {"job_id": job_id, "status": "error", "message": f"Failed to read status file: {e}"}
     else:
         return {"job_id": job_id, "status": "unknown", "message": "Status file not found."}
 
@@ -176,14 +185,23 @@ def is_job_stop_requested(job_id: str) -> bool:
     """
     filepath = _get_status_filepath(job_id)
     if filepath.exists():
-        try:
-            with open(filepath, 'r') as f:
-                content = f.read().strip()
-                if not content:
-                    return False
-                job_status = json.loads(content)
-                return job_status.get("stop_requested", False)
-        except Exception as e:
-            logger.error(f"Failed to read stop request for job {job_id}: {e}")
-            return False # Assume not requested if status cannot be read
+        for attempt in range(3):
+            try:
+                with open(filepath, 'r') as f:
+                    content = f.read().strip()
+                    if not content:
+                        if attempt < 2:
+                            import time
+                            time.sleep(0.1)
+                            continue
+                        return False
+                    job_status = json.loads(content)
+                    return job_status.get("stop_requested", False)
+            except Exception as e:
+                if attempt < 2:
+                    import time
+                    time.sleep(0.1)
+                    continue
+                logger.error(f"Failed to read stop request for job {job_id}: {e}")
+                return False
     return False
