@@ -48,3 +48,7 @@ web/backend/.env
 
 # Frontend package lock file
 web/frontend/package-lock.json
+
+# Frontend environment variables
+web/frontend/.env
+web/frontend/.env.local
