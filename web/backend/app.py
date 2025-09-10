@@ -164,7 +164,7 @@ api.add_resource(JobLogsAPI, '/api/scheduler/jobs/<string:job_id>/logs', resourc
 @app.route('/favicon-v2.ico')
 def favicon():
     """Serve the favicon with the correct content type."""
-    frontend_build_dir = os.path.join(os.path.dirname(__file__), '..', 'frontend', 'out')
+    frontend_build_dir = os.path.join(os.path.dirname(__file__), '..', 'frontend', 'build')
     response = send_from_directory(frontend_build_dir, 'favicon-v2.ico', mimetype='image/vnd.microsoft.icon')
     response.headers['Cache-Control'] = 'public, max-age=31536000'
     return response
@@ -176,7 +176,7 @@ def serve_frontend(path):
     if path.startswith('api/'):
         return jsonify({'code': 'not_found', 'description': 'The requested API endpoint was not found.'}), 404
 
-    frontend_build_dir = os.path.join(os.path.dirname(__file__), '..', 'frontend', 'out')
+    frontend_build_dir = os.path.join(os.path.dirname(__file__), '..', 'frontend', 'build')
 
     if os.path.exists(frontend_build_dir):
         if path and os.path.exists(os.path.join(frontend_build_dir, path)):

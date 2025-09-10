@@ -6,7 +6,6 @@ import { styled } from '@mui/system';
 // Import components that were in page.tsx
 import { LoginButton } from './components/auth/LoginButton.tsx';
 import { useAuth0 } from '@auth0/auth0-react';
-import { useApiClient } from './hooks/useApiClient.ts';
 import { setupRemoteLogger } from './utils/remoteLogger.ts';
 import { ApiLoadingProvider } from './contexts/ApiLoadingContext.tsx';
 import { ConfigProvider } from './contexts/ConfigContext.tsx';
@@ -41,7 +40,6 @@ const StyledTab = styled(Tab)(({ theme }) => ({
 
 function AppContent() {
   const { user, isLoading: auth0Loading, logout } = useAuth0();
-  const { isLoading: apiIsLoading } = useApiClient();
   const [activeTab, setActiveTab] = useState('volatile');
   const [selectedCryptoForBacktest, setSelectedCryptoForBacktest] = useState(null);
   const [backtestResult, setBacktestResult] = useState(null);
@@ -110,41 +108,34 @@ function AppContent() {
   }
 
   return (
-    <Router>
-      <Box sx={{ minHeight: '100vh', backgroundColor: (theme) => theme.palette.grey[50] }}>
-        {/* Header */}
-        <AppBar position="static" color="default" elevation={1}>
-          <Toolbar>
-            <Container maxWidth="xl" sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 2 }}>
-              <Box>
-                <Typography variant="h5" component="h1" sx={{ fontWeight: 'bold', color: 'text.primary' }}>
-                  {APP_TITLE}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Welcome back, {user.name}
-                </Typography>
-              </Box>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                {apiIsLoading && (
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <CircularProgress size={16} color="inherit" />
-                    <Typography variant="caption" color="text.secondary">
-                      Loading...
-                    </Typography>
-                  </Box>
-                )}
-                <HealthStatus />
-                <IconButton
-                  color="inherit"
-                  onClick={() => logout({ logoutParams: { returnTo: window.location.origin } })}
-                  aria-label="logout"
-                >
-                  <LogoutIcon />
-                </IconButton>
-              </Box>
-            </Container>
-          </Toolbar>
-        </AppBar>
+    <ConfigProvider>
+      <Router>
+        <Box sx={{ minHeight: '100vh', backgroundColor: (theme) => theme.palette.grey[50] }}>
+          {/* Header */}
+          <AppBar position="static" color="default" elevation={1}>
+            <Toolbar>
+              <Container maxWidth="xl" sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 2 }}>
+                <Box>
+                  <Typography variant="h5" component="h1" sx={{ fontWeight: 'bold', color: 'text.primary' }}>
+                    {APP_TITLE}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Welcome back, {user.name}
+                  </Typography>
+                </Box>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  <HealthStatus />
+                  <IconButton
+                    color="inherit"
+                    onClick={() => logout({ logoutParams: { returnTo: window.location.origin } })}
+                    aria-label="logout"
+                  >
+                    <LogoutIcon />
+                  </IconButton>
+                </Box>
+              </Container>
+            </Toolbar>
+          </AppBar>
 
         {/* Navigation */}
         <AppBar position="static" color="default" elevation={0} sx={{ borderBottom: 1, borderColor: 'divider' }}>
@@ -186,15 +177,14 @@ function AppContent() {
         </Container>
       </Box>
     </Router>
+    </ConfigProvider>
   );
 }
 
 function App() {
   return (
     <ApiLoadingProvider>
-      <ConfigProvider>
-        <AppContent />
-      </ConfigProvider>
+      <AppContent />
     </ApiLoadingProvider>
   );
 }
