@@ -108,8 +108,7 @@ function AppContent() {
   }
 
   return (
-    <ConfigProvider>
-      <Router>
+    <Router>
         <Box sx={{ minHeight: '100vh', backgroundColor: (theme) => theme.palette.grey[50] }}>
           {/* Header */}
           <AppBar position="static" color="default" elevation={1}>
@@ -154,7 +153,8 @@ function AppContent() {
         {/* Main Content */}
         <Container maxWidth="xl" sx={{ py: 3 }}>
           <Box sx={{ p: 2 }}>
-            <Suspense fallback={<CircularProgress />}>
+            <ConfigProvider>
+              <Suspense fallback={<CircularProgress />}>
               <Routes>
                 <Route path="/" element={
                   activeTab === 'volatile' ? (
@@ -173,11 +173,11 @@ function AppContent() {
                 } />
               </Routes>
             </Suspense>
+            </ConfigProvider>
           </Box>
         </Container>
       </Box>
     </Router>
-    </ConfigProvider>
   );
 }
 
