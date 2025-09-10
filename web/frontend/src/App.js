@@ -153,11 +153,11 @@ function AppContent() {
         {/* Main Content */}
         <Container maxWidth="xl" sx={{ py: 3 }}>
           <Box sx={{ p: 2 }}>
-            <ConfigProvider>
-              <Suspense fallback={<CircularProgress />}>
-              <Routes>
-                <Route path="/" element={
-                  activeTab === 'volatile' ? (
+            <Suspense fallback={<CircularProgress />}>
+            <Routes>
+              <Route path="/" element={
+                <ConfigProvider>
+                  {activeTab === 'volatile' ? (
                     <VolatileCryptoList />
                   ) : activeTab === 'analysis' ? (
                     <CryptoAnalysis setActiveTab={setActiveTab} onRunBacktest={handleRunBacktest} />
@@ -169,11 +169,11 @@ function AppContent() {
                     />
                   ) : (
                     <ScheduleTab />
-                  )
-                } />
-              </Routes>
-            </Suspense>
-            </ConfigProvider>
+                  )}
+                </ConfigProvider>
+              } />
+            </Routes>
+          </Suspense>
           </Box>
         </Container>
       </Box>

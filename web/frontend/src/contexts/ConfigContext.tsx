@@ -50,17 +50,18 @@ interface ConfigProviderProps {
 
 export const ConfigProvider: React.FC<ConfigProviderProps> = ({ children }) => {
   const [config, setConfig] = useState<ConfigData | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+  const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const { getAccessTokenSilently } = useAuth0(); // Get getAccessTokenSilently here
+  const { getAccessTokenSilently, isAuthenticated, isLoading: authLoading } = useAuth0()
 
-  const fetchConfig = async (getAccessToken: () => Promise<string | undefined>) => {
+  const fetchConfig = async () => {
+    if (!isAuthenticated || config) return // Skip if not authenticated or already cached
+    
     try {
       setIsLoading(true)
       setError(null)
       
-      // Create an API client instance for config fetching, with auth
-      const apiClient = new ApiClient(getAccessToken)
+      const apiClient = new ApiClient(getAccessTokenSilently)
       const response = await apiClient.getConfig()
       setConfig(response)
     } catch (err) {
@@ -72,11 +73,14 @@ export const ConfigProvider: React.FC<ConfigProviderProps> = ({ children }) => {
   }
 
   useEffect(() => {
-    fetchConfig(getAccessTokenSilently) // Pass getAccessTokenSilently
-  }, [getAccessTokenSilently]) // Add getAccessTokenSilently to dependency array
+    if (isAuthenticated && !authLoading && !config) {
+      fetchConfig()
+    }
+  }, [isAuthenticated, authLoading, config])
 
   const refetch = async () => {
-    await fetchConfig(getAccessTokenSilently) // Pass getAccessTokenSilently
+    setConfig(null) // Clear cache
+    await fetchConfig()
   }
 
   return (

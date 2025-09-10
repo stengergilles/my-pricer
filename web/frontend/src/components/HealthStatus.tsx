@@ -5,16 +5,20 @@ import { useApiClient } from '../hooks/useApiClient.ts'
 import { HealthCheck } from '../utils/types.ts'
 import { Box, Typography, CircularProgress } from '@mui/material';
 import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord';
+import { useAuth0 } from '@auth0/auth0-react'
 
 export const HealthStatus = () => {
   const { healthCheck } = useApiClient()
+  const { isAuthenticated, isLoading: authLoading } = useAuth0()
+  
   const { data: health, isLoading, error } = useQuery<HealthCheck>({
     queryKey: ['health'],
     queryFn: healthCheck,
-    refetchInterval: 30000, // Refetch every 30 seconds
+    refetchInterval: 30000,
+    enabled: isAuthenticated && !authLoading, // Only run when authenticated
   })
 
-  if (isLoading) {
+  if (authLoading || isLoading) {
     return (
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
         <CircularProgress size={12} color="inherit" />
@@ -26,7 +30,7 @@ export const HealthStatus = () => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'healthy':
-        return 'success.main' // MUI color palette
+        return 'success.main'
       case 'warning':
         return 'warning.main'
       case 'error':

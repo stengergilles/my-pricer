@@ -1,5 +1,5 @@
 
-const REMOTE_LOGGING_ENDPOINT = process.env.REACT_APP_REMOTE_LOGGING_ENDPOINT || 'http://localhost:5000/api/log';
+const REMOTE_LOGGING_ENDPOINT = process.env.REACT_APP_REMOTE_LOGGING_ENDPOINT || `${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/log`;
 
 export const setupRemoteLogger = (getAccessToken?: () => Promise<string | undefined>) => {
   const originalConsoleLog = console.log;
