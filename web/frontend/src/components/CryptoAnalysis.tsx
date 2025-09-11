@@ -206,10 +206,10 @@ export const CryptoAnalysis = () => {
 
   // Check if optimization results are invalid - only check for undefined values
   const hasValidOptimization = cryptoStatus?.has_optimization_results && 
-    backtestHistory.some(backtest => 
+    backtestHistory.every(backtest => 
       backtest.backtest_result && 
-      backtest.backtest_result.total_trades !== undefined &&
-      backtest.backtest_result.total_profit_percentage !== undefined
+      backtest.backtest_result.total_trades !== null && backtest.backtest_result.total_trades !== undefined &&
+      backtest.backtest_result.total_profit_percentage !== null && backtest.backtest_result.total_profit_percentage !== undefined
     );
 
   const getInvalidReason = () => {
