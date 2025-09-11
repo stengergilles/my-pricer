@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react'
 import { ApiClient } from '../utils/api.ts'
 import { useAuth0 } from '@auth0/auth0-react' // Import useAuth0
 
@@ -54,8 +54,10 @@ export const ConfigProvider: React.FC<ConfigProviderProps> = ({ children }) => {
   const [error, setError] = useState<string | null>(null)
   const { getAccessTokenSilently, isAuthenticated, isLoading: authLoading } = useAuth0()
 
-  const fetchConfig = async () => {
-    if (!isAuthenticated || config) return // Skip if not authenticated or already cached
+  const fetchConfig = useCallback(async () => {
+    if (!isAuthenticated) {
+      return;
+    }
     
     try {
       setIsLoading(true)
@@ -70,18 +72,15 @@ export const ConfigProvider: React.FC<ConfigProviderProps> = ({ children }) => {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [isAuthenticated, getAccessTokenSilently]);
 
   useEffect(() => {
     if (isAuthenticated && !authLoading && !config) {
       fetchConfig()
     }
-  }, [isAuthenticated, authLoading, config])
+  }, [isAuthenticated, authLoading, config, fetchConfig])
 
-  const refetch = async () => {
-    setConfig(null) // Clear cache
-    await fetchConfig()
-  }
+  const refetch = fetchConfig
 
   return (
     <ConfigContext.Provider value={{ config, isLoading, error, refetch }}>
