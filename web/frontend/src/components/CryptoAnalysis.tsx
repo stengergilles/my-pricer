@@ -6,6 +6,7 @@ import { useForm, Controller } from 'react-hook-form'
 import { useCryptoStatus } from '../hooks/useCryptoStatus.ts'
 import { Chip } from '@mui/material'
 import CheckCircle from '@mui/icons-material/CheckCircle'
+import Error from '@mui/icons-material/Error'
 import { useApiClient } from '../hooks/useApiClient.ts'
 import { useErrorHandler } from '../hooks/useErrorHandler.ts'
 import { useConfig } from '../contexts/ConfigContext.tsx'
@@ -203,6 +204,33 @@ export const CryptoAnalysis = () => {
     return <ErrorDisplay error="403 Forbidden" onRetry={handleRetry} is403={true} onDismiss={() => {}} />
   }
 
+  // Check if optimization results are invalid - only check for undefined values
+  const hasValidOptimization = cryptoStatus?.has_optimization_results && 
+    backtestHistory.some(backtest => 
+      backtest.backtest_result && 
+      backtest.backtest_result.total_trades !== undefined &&
+      backtest.backtest_result.total_profit_percentage !== undefined
+    );
+
+  const getInvalidReason = () => {
+    if (!cryptoStatus?.has_optimization_results) return null;
+    
+    const invalidBacktests = backtestHistory.filter(backtest => 
+      !backtest.backtest_result || 
+      backtest.backtest_result.total_trades === undefined ||
+      backtest.backtest_result.total_profit_percentage === undefined
+    );
+    
+    if (invalidBacktests.length === 0) return null;
+    
+    const reasons = [];
+    if (invalidBacktests.some(b => !b.backtest_result)) reasons.push("Missing results");
+    if (invalidBacktests.some(b => b.backtest_result?.total_trades === undefined)) reasons.push("Missing trade count");
+    if (invalidBacktests.some(b => b.backtest_result?.total_profit_percentage === undefined)) reasons.push("Missing profit data");
+    
+    return reasons.join(", ");
+  };
+
   return (
     <Box sx={{ my: 3 }}>
       <ErrorDisplay error={error} onDismiss={() => setError(null)} />
@@ -236,12 +264,12 @@ export const CryptoAnalysis = () => {
                     </Select>
                   )}
                 />
-                              {cryptoStatus?.has_optimization_results && (
+                {cryptoStatus?.has_optimization_results && (
                   <Chip
-                    icon={<CheckCircle />}
-                    label="Optimized"
+                    icon={hasValidOptimization ? <CheckCircle /> : <Error />}
+                    label={hasValidOptimization ? "Optimized" : `Invalid: ${getInvalidReason()}`}
                     size="small"
-                    color="success"
+                    color={hasValidOptimization ? "success" : "error"}
                     variant="outlined"
                     sx={{ mt: 1 }}
                   />

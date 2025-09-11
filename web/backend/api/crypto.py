@@ -205,6 +205,7 @@ class CryptoStatusAPI(Resource):
                 'crypto_id': crypto_id,
                 'has_config_params': status['has_config_params'],
                 'has_optimization_results': status['has_optimization_results'],
+                'has_valid_optimization_results': status['has_valid_optimization_results'],
                 'timestamp': datetime.now().isoformat()
             }
         except Exception as e:

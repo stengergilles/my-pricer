@@ -26,7 +26,7 @@ const MetricItem = ({ label, value }: { label: string; value: string | number | 
   <ListItem>
     <ListItemText
       primary={label}
-      secondary={value ?? 'N/A'}
+      secondary={value !== undefined && value !== null ? value : 'N/A'}
       secondaryTypographyProps={{
         color:
           label === 'Current Signal'
@@ -158,7 +158,7 @@ export const AnalysisResultDisplay = ({
                 </ListItem>
                 <MetricItem
                   label="Total Profit"
-                  value={`${total_profit_percentage?.toFixed(2)}%`}
+                  value={total_profit_percentage !== undefined && total_profit_percentage !== null ? `${total_profit_percentage.toFixed(2)}%` : 'N/A'}
                 />
                 {result.analysis_timestamp && (
                   <MetricItem
@@ -166,8 +166,8 @@ export const AnalysisResultDisplay = ({
                     value={new Date(result.analysis_timestamp).toLocaleString()}
                   />
                 )}
-                <MetricItem label="Total Trades" value={total_trades} />
-                <MetricItem label="Win Rate" value={`${win_rate?.toFixed(1)}%`} />
+                <MetricItem label="Total Trades" value={total_trades !== undefined && total_trades !== null ? total_trades : 'N/A'} />
+                <MetricItem label="Win Rate" value={win_rate !== undefined && win_rate !== null ? `${win_rate.toFixed(1)}%` : 'N/A'} />
               </List>
             </CardContent>
           </StyledCard>

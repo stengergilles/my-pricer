@@ -366,14 +366,34 @@ class TradingEngine:
         """
         Get status indicators for a specific cryptocurrency.
         """
-        has_optimization_results = bool(self.result_manager.get_backtest_history(crypto_id=crypto_id)) or \
-                                   bool(self.result_manager.get_analysis_history(crypto_id=crypto_id))
+        backtest_history = self.result_manager.get_backtest_history(crypto_id=crypto_id)
+        analysis_history = self.result_manager.get_analysis_history(crypto_id=crypto_id)
+        
+        has_optimization_results = bool(backtest_history) or bool(analysis_history)
+        has_valid_optimization_results = False
+        
+        if has_optimization_results:
+            # Check if any results have valid parameters
+            for result in (backtest_history or []):
+                if hasattr(result, 'parameters') and result.parameters:
+                    try:
+                        # Try to validate the stored parameters
+                        strategy_name = getattr(result, 'strategy', None)
+                        if strategy_name:
+                            validation_errors = self.validate_parameters(strategy_name, result.parameters)
+                            if not validation_errors:
+                                has_valid_optimization_results = True
+                                break
+                    except:
+                        continue
+        
         # For now, has_config_params is always False.
         # A more robust implementation would check for saved custom configurations.
         has_config_params = False
         
         return {
             "has_optimization_results": has_optimization_results,
+            "has_valid_optimization_results": has_valid_optimization_results,
             "has_config_params": has_config_params
         }
 
