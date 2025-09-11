@@ -265,24 +265,60 @@ class TestBayesianOptimizer(unittest.TestCase):
         self.assertIsNotNone(self.optimizer.param_manager)
         self.assertIsNotNone(self.optimizer.crypto_discovery)
     
-    @patch('subprocess.run')
-    def test_objective_function(self, mock_run):
+    @patch('core.optimizer.job_status_manager')
+    @patch('core.optimizer.subprocess.Popen')
+    def test_objective_function(self, mock_popen, mock_job_manager):
         """Test objective function."""
-        # Mock subprocess result
-        mock_result = MagicMock()
-        mock_result.returncode = 0
-        mock_result.stdout = "OPTIMIZER_RESULTS:{\"total_profit_percentage\": 15.5}"
-        mock_run.return_value = mock_result
+        # Mock Popen to return a process that simulates a successful backtest run
+        mock_process = MagicMock()
+        mock_process.pid = 12345
+        mock_process.poll.return_value = 0  # Indicates process has finished
         
-        # Create mock trial with enough return values
+        # Simulate stdout and stderr streams
+        mock_process.stdout.readline.side_effect = [
+            'OPTIMIZER_RESULTS:{"total_profit_percentage": 15.5}\n',
+            ''  # End of stream
+        ]
+        mock_process.stderr.readline.return_value = ''
+        mock_process.communicate.return_value = ('OPTIMIZER_RESULTS:{"total_profit_percentage": 15.5}', '')
+        mock_process.returncode = 0
+        mock_popen.return_value = mock_process
+
+        # Mock job status manager to avoid side effects
+        mock_job_manager.is_job_stop_requested.return_value = False
+
+        # Create a mock trial object
         mock_trial = MagicMock()
-        # Set up side effects for all possible parameter suggestions
-        mock_trial.suggest_int.side_effect = [12, 26, 30, 70, 14, 12, 26, 9]  # More values
-        mock_trial.suggest_float.side_effect = [2.0, 0.02, 2.5]
+        mock_trial.number = 1
+        # Configure suggest_int and suggest_float to return valid parameter values
+        mock_trial.suggest_int.side_effect = [
+            12,  # short_ema_period
+            26,  # long_ema_period
+            30,  # rsi_oversold
+            70,  # rsi_overbought
+            12,  # macd_fast_period
+            26,  # macd_slow_period
+            14,  # atr_period
+            9,   # macd_signal_period
+        ]
+        mock_trial.suggest_float.side_effect = [
+            2.0,  # atr_multiple
+            0.02, # fixed_stop_loss_percentage
+            2.5,  # take_profit_multiple
+        ]
+
+        # Test objective function with a mock job_id
+        result = self.optimizer._objective_function(mock_trial, 'bitcoin', 'EMA_Only', 'test-job-123')
         
-        # Test objective function
-        result = self.optimizer._objective_function(mock_trial, 'bitcoin', 'EMA_Only')
+        # Assert the expected outcome
         self.assertEqual(result, 15.5)
+        
+        # Verify that the subprocess was created
+        mock_popen.assert_called_once()
+        
+        # Verify that the job manager was used for registration and unregistration
+        mock_job_manager.register_job_process.assert_called_with('test-job-123', 12345)
+        mock_job_manager.unregister_job_process.assert_called_with('test-job-123', 12345)
     
     def test_save_and_load_results(self):
         """Test results saving and loading."""
