@@ -96,7 +96,7 @@ export const AnalysisResultDisplay = ({
   } = backtest_result || {};
 
   const uniqueStrategies = backtestHistory.reduce((acc, backtest) => {
-    if (!acc[backtest.strategy] || acc[backtest.strategy].backtest_result.total_profit_percentage < backtest.backtest_result.total_profit_percentage) {
+    if (!acc[backtest.strategy] || acc + (result && result.total_profit_percentage ? result.total_profit_percentage : 0)) {
         acc[backtest.strategy] = backtest;
     }
     return acc;
@@ -150,7 +150,7 @@ export const AnalysisResultDisplay = ({
                     >
                       {bestBacktests.map((backtest) => (
                         <MenuItem key={backtest.backtest_id} value={backtest.backtest_id}>
-                          {`${backtest.strategy.replace(/_/g, ' ')} (${backtest.backtest_result.total_profit_percentage?.toFixed(2)}%)`}
+                          {backtest.strategy} - {backtest.total_profit_percentage?.toFixed(2)}%
                         </MenuItem>
                       ))}
                     </Select>
