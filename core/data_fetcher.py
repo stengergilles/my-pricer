@@ -96,3 +96,15 @@ def get_crypto_data_merged(crypto_id, days, config):
     logging.info(f"Processed {len(ohlc_df)} data points for {crypto_id}")
 
     return ohlc_df
+
+def get_current_price(crypto_id):
+    """Fetches the current price of a crypto from CoinGecko."""
+    url = f"https://api.coingecko.com/api/v3/simple/price?ids={crypto_id}&vs_currencies=usd"
+    try:
+        response = requests.get(url)
+        response.raise_for_status()
+        data = response.json()
+        return data[crypto_id]['usd']
+    except requests.exceptions.RequestException as e:
+        logging.error(f"Error fetching current price for {crypto_id}: {e}")
+        return None

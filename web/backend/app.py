@@ -30,7 +30,9 @@ from api.backtest import BacktestAPI
 from api.strategies import StrategiesAPI
 from api.results import ResultsAPI
 from api.scheduler import ScheduleJobAPI, JobsAPI, JobAPI, JobLogsAPI
+from api.paper_trading import PaperTradingAPI
 from utils.error_handlers import register_error_handlers
+from core.paper_trading_engine import PaperTradingEngine
 
 # Initialize scheduler
 from core.scheduler import init_scheduler, get_scheduler
@@ -69,6 +71,9 @@ api = Api(app)
 
 trading_engine = TradingEngine(config)
 trading_engine.set_scheduler(get_scheduler()) # Link the scheduler to the engine
+
+# Initialize Paper Trading Engine
+paper_trading_engine = PaperTradingEngine(config)
 
 # Register error handlers
 register_error_handlers(app)
@@ -159,6 +164,8 @@ api.add_resource(JobsAPI, '/api/scheduler/jobs', resource_class_kwargs={'engine'
 api.add_resource(JobAPI, '/api/scheduler/jobs/<string:job_id>', resource_class_kwargs={'engine': trading_engine})
 api.add_resource(JobLogsAPI, '/api/scheduler/jobs/<string:job_id>/logs', resource_class_kwargs={'engine': trading_engine})
 
+api.add_resource(PaperTradingAPI, '/api/paper-trading/status', resource_class_kwargs={'engine': paper_trading_engine})
+
 
 # Serve frontend static files (for production)
 @app.route('/favicon-v2.ico')
@@ -218,6 +225,12 @@ if __name__ == '__main__':
     logger.info("Starting Crypto Trading Backend...")
     logger.info(f"Auth0 Domain: {os.getenv('AUTH0_DOMAIN')}")
     logger.info(f"API Audience: {os.getenv('AUTH0_API_AUDIENCE')}")
+
+    # Start the paper trading engine in a background thread
+    import threading
+    engine_thread = threading.Thread(target=paper_trading_engine.run, daemon=True)
+    engine_thread.start()
+    logger.info("Paper trading engine started in background thread.")
     
     app.run(
         host=os.getenv('API_HOST', 'localhost'),

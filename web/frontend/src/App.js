@@ -11,6 +11,7 @@ import { ApiLoadingProvider } from './contexts/ApiLoadingContext.tsx';
 import { ConfigProvider } from './contexts/ConfigContext.tsx';
 import { APP_TITLE } from './utils/constants.ts';
 import LogoutIcon from '@mui/icons-material/Logout';
+import PaperTradingStatus from './components/PaperTradingStatus.tsx';
 
 const CryptoAnalysis = lazy(() => import('./components/CryptoAnalysis.tsx').then(module => ({ default: module.CryptoAnalysis })));
 const BacktestRunner = lazy(() => import('./components/BacktestRunner.tsx').then(module => ({ default: module.BacktestRunner })));
@@ -135,6 +136,11 @@ function AppContent() {
               </Container>
             </Toolbar>
           </AppBar>
+
+          {/* Paper Trading Status */}
+          <Container maxWidth="xl" sx={{ py: 2 }}>
+            <PaperTradingStatus />
+          </Container>
 
         {/* Navigation */}
         <AppBar position="static" color="default" elevation={0} sx={{ borderBottom: 1, borderColor: 'divider' }}>

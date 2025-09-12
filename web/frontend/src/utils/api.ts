@@ -20,6 +20,7 @@ export class ApiClient {
     this.getBacktest = this.getBacktest.bind(this);
     this.getBacktestHistory = this.getBacktestHistory.bind(this);
     this.healthCheck = this.healthCheck.bind(this);
+    this.getPaperTradingStatus = this.getPaperTradingStatus.bind(this);
     this.getConfig = this.getConfig.bind(this);
     this.getJobs = this.getJobs.bind(this);
     this.scheduleJob = this.scheduleJob.bind(this);
@@ -157,6 +158,11 @@ export class ApiClient {
   // Health check
   async healthCheck() {
     return this.request('GET', '/api/health');
+  }
+
+  // Paper Trading status
+  async getPaperTradingStatus() {
+    return this.request('GET', '/api/paper-trading/status');
   }
 
   // Config endpoint

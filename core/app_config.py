@@ -48,6 +48,10 @@ class Config:
         # Database configuration
         db_path = os.path.join(self.BASE_DIR, 'data', 'scheduler.db')
         self.DB_URI = f'sqlite:///{db_path}'
+
+        # Paper Trading configuration
+        self.PAPER_TRADING_TOTAL_CAPITAL = float(os.getenv('PAPER_TRADING_TOTAL_CAPITAL', 470))
+        self.PAPER_TRADING_MIN_POSITION_VALUE = float(os.getenv('PAPER_TRADING_MIN_POSITION_VALUE', 50))
         
         # Ensure directories exist
         self._create_directories()

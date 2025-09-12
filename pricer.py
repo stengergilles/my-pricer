@@ -26,7 +26,7 @@ from backtester import Backtester
 from indicators import Indicators
 from config import strategy_configs, DEFAULT_TIMEFRAME, DEFAULT_INTERVAL, indicator_defaults
 from pricer_compatibility_fix import find_best_result_file
-from core.data_fetcher import get_crypto_data_merged
+from core.data_fetcher import get_crypto_data_merged, get_current_price
 from lines import (
     auto_discover_percentage_change,
     find_swing_points,
@@ -37,17 +37,7 @@ from chart import generate_chart
 
 
 
-def get_current_price(crypto_id):
-    """Fetches the current price of a crypto from CoinGecko."""
-    url = f"https://api.coingecko.com/api/v3/simple/price?ids={crypto_id}&vs_currencies=usd"
-    try:
-        response = requests.get(url)
-        response.raise_for_status()
-        data = response.json()
-        return data[crypto_id]['usd']
-    except requests.exceptions.RequestException as e:
-        logging.error(f"Error fetching current price for {crypto_id}: {e}")
-        return None
+
 
 def get_trade_signal_for_latest(df: pd.DataFrame, strategy: Strategy, params: dict):
     """
