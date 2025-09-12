@@ -1,12 +1,14 @@
 
 import React from 'react';
-import { useQuery } from 'react-query';
+import { useQuery } from '@tanstack/react-query';
 import { Paper, Typography, Grid, CircularProgress, Alert, Box } from '@mui/material';
-import { useApiClient } from '../hooks/useApiClient';
+import { useApiClient } from '../hooks/useApiClient.ts';
 
 const PaperTradingStatus = () => {
   const { getPaperTradingStatus } = useApiClient();
-  const { data, error, isLoading, dataUpdatedAt } = useQuery('paperTradingStatus', getPaperTradingStatus, {
+  const { data, error, isLoading, dataUpdatedAt } = useQuery({
+    queryKey: ['paperTradingStatus'],
+    queryFn: getPaperTradingStatus,
     refetchInterval: 60000, // Refetch every 1 minute
   });
 
