@@ -7,6 +7,7 @@ import sys
 import os
 import json
 import logging
+import threading
 from datetime import datetime
 from typing import Dict, List, Optional, Any
 import pandas as pd
@@ -82,16 +83,40 @@ class TradingEngine:
             self.logger.error(f"Error getting cryptos: {e}")
             return []
     
-    def get_volatile_cryptos(self, 
-                           min_volatility: float = 5.0, 
+    def get_volatile_cryptos(self,
+                           min_volatility: float = 5.0,
                            limit: int = 50,
                            force_refresh: bool = False) -> List[Dict[str, Any]]:
-        """Get volatile cryptocurrencies for optimization."""
-        return self.crypto_discovery.get_volatile_cryptos(
-            limit=limit, 
+        """
+        Get volatile cryptocurrencies for optimization.
+        If exchange data is missing for highly volatile cryptos, trigger a background update for them.
+        """
+        cryptos = self.crypto_discovery.get_volatile_cryptos(
+            limit=limit,
             min_volatility=min_volatility,
             force_refresh=force_refresh
         )
+
+        # Identify highly volatile cryptos (+/- 20%) that are missing exchange data
+        highly_volatile_missing_exchanges = [
+            c for c in cryptos
+            if not c.get('exchanges') and abs(c.get('price_change_percentage_24h', 0)) >= 20.0
+        ]
+
+        if highly_volatile_missing_exchanges:
+            ids_to_update = [c['id'] for c in highly_volatile_missing_exchanges]
+            self.logger.info(f"Exchange data missing for {len(ids_to_update)} highly volatile cryptos. Triggering background update for them.")
+            
+            update_thread = threading.Thread(
+                target=self.crypto_discovery.update_exchanges_for_cached_cryptos,
+                kwargs={
+                    'crypto_ids_to_update': ids_to_update,
+                    'force_refresh': True  # Force update as we know data is missing for these IDs
+                }
+            )
+            update_thread.start()
+
+        return cryptos
     
     def get_top_movers(self, count: int = 10) -> Dict[str, List[Dict]]:
         """Get top gaining and losing cryptocurrencies."""

@@ -75,10 +75,6 @@ class CryptoDiscovery:
                 data = response.json()
                 
                 all_cryptos = self._process_crypto_data(data)
-
-                # Add exchange data for the top N volatile cryptos
-                for crypto in all_cryptos[:limit]:
-                    crypto['exchanges'] = self.get_crypto_exchanges(crypto['id'])
                 
                 self._save_cache(cache_file, all_cryptos)
                 
@@ -95,6 +91,65 @@ class CryptoDiscovery:
         ]
         
         return volatile_cryptos[:limit]
+
+    def update_exchanges_for_cached_cryptos(self,
+                                          crypto_ids_to_update: Optional[List[str]] = None,
+                                          delay_seconds: int = 15,
+                                          cache_hours: int = 24,
+                                          force_refresh: bool = False) -> None:
+        """
+        Updates the cached volatile cryptos with exchange information.
+
+        Args:
+            crypto_ids_to_update: A specific list of crypto IDs to update. If None, checks all.
+            delay_seconds: Delay between API calls to avoid rate limiting.
+            cache_hours: The number of hours to consider the cache valid.
+            force_refresh: If True, forces the update even if the cache is valid.
+        """
+        cache_file = os.path.join(self.cache_dir, "volatile_cryptos.json")
+
+        if not force_refresh and self._is_cache_valid(cache_file, cache_hours):
+            self.logger.info("Exchange data cache is still valid. Skipping update.")
+            return
+
+        if not os.path.exists(cache_file):
+            self.logger.error("Cache file does not exist. Run `get_volatile_cryptos` first.")
+            return
+
+        all_cryptos = self._load_cache(cache_file)
+        if not all_cryptos:
+            self.logger.info("No cryptos in cache to update.")
+            return
+
+        # Determine which cryptos to check
+        cryptos_to_check = all_cryptos
+        if crypto_ids_to_update is not None:
+            self.logger.info(f"Updating exchanges for a specific list of {len(crypto_ids_to_update)} cryptos.")
+            cryptos_to_check = [c for c in all_cryptos if c['id'] in crypto_ids_to_update]
+        else:
+            self.logger.info("Checking all cached cryptos for missing exchange data.")
+
+        updated_count = 0
+        for i, crypto in enumerate(cryptos_to_check):
+            if not crypto.get('exchanges'):
+                self.logger.info(f"Fetching exchanges for {crypto.get('name', 'N/A')} ({i+1}/{len(cryptos_to_check)})...")
+                try:
+                    crypto['exchanges'] = self.get_crypto_exchanges(crypto['id'])
+                    updated_count += 1
+                    # Save after each successful update to make the process resumable
+                    self._save_cache(cache_file, all_cryptos)
+                    self.logger.info(f"Updated and saved exchanges for {crypto.get('name', 'N/A')}")
+                    time.sleep(delay_seconds)
+                except CoinGeckoAPIError as e:
+                    self.logger.error(f"Could not fetch exchanges for {crypto.get('name', 'N/A')}: {e}")
+                    if e.status_code == 429:
+                        self.logger.warning("Rate limit hit. Stopping update.")
+                        break
+        
+        if updated_count == 0:
+            self.logger.info("No new exchanges were updated for the specified cryptos.")
+        else:
+            self.logger.info(f"Finished updating exchanges for {updated_count} cryptos.")
     
     def get_top_movers(self, 
                       count: int = 10, 
@@ -272,7 +327,8 @@ class CryptoDiscovery:
                 'circulating_supply': coin.get('circulating_supply'),
                 'last_updated': coin.get('last_updated'),
                 'volatility_score': abs(price_change),  # Add volatility score
-                'fetch_timestamp': datetime.now().isoformat()
+                'fetch_timestamp': datetime.now().isoformat(),
+                'exchanges': []
             }
             
             processed.append(crypto_data)

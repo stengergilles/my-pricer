@@ -180,6 +180,15 @@ class CryptoAPI(Resource):
                     'timestamp': datetime.now().isoformat()
                 }
 
+            elif action == 'update_exchanges':
+                force_refresh = data.get('force_refresh', False)
+                self.engine.crypto_discovery.update_exchanges_for_cached_cryptos(force_refresh=force_refresh)
+                return {
+                    'action': 'update_exchanges',
+                    'message': 'Exchange data update triggered.',
+                    'timestamp': datetime.now().isoformat()
+                }
+
             else:
                 return {'error': f'Unknown action: {action}'}, 400
 
