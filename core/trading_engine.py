@@ -362,40 +362,47 @@ class TradingEngine:
         """Get analysis history."""
         return self.result_manager.get_analysis_history(crypto_id, limit)
 
-    def get_crypto_status(self, crypto_id: str) -> Dict[str, bool]:
+    def get_crypto_status(self, crypto_id: str) -> Dict[str, Any]:
         """
         Get status indicators for a specific cryptocurrency.
         """
-        backtest_history = self.result_manager.get_backtest_history(crypto_id=crypto_id)
-        analysis_history = self.result_manager.get_analysis_history(crypto_id=crypto_id)
-        
-        has_optimization_results = bool(backtest_history) or bool(analysis_history)
-        has_valid_optimization_results = False
-        
-        if has_optimization_results:
-            # Check if any results have valid parameters
-            for result in (backtest_history or []):
-                if hasattr(result, 'parameters') and result.parameters:
-                    try:
-                        # Try to validate the stored parameters
-                        strategy_name = getattr(result, 'strategy', None)
-                        if strategy_name:
-                            validation_errors = self.validate_parameters(strategy_name, result.parameters)
-                            if not validation_errors:
-                                has_valid_optimization_results = True
-                                break
-                    except:
-                        continue
-        
-        # For now, has_config_params is always False.
-        # A more robust implementation would check for saved custom configurations.
-        has_config_params = False
-        
-        return {
-            "has_optimization_results": has_optimization_results,
-            "has_valid_optimization_results": has_valid_optimization_results,
-            "has_config_params": has_config_params
-        }
+        all_results = self.optimizer.get_all_results()
+        crypto_results = [r for r in all_results if r.get('crypto') == crypto_id]
+
+        if not crypto_results:
+            return {
+                "has_optimization_results": False,
+                "has_valid_optimization_results": False,
+                "has_config_params": False
+            }
+
+        best_strategy = None
+        highest_profit = 0
+
+        for result in crypto_results:
+            profit = result.get('backtest_result', {}).get('total_profit_percentage', 0)
+            if profit > highest_profit:
+                highest_profit = profit
+                best_strategy = {
+                    'name': result.get('strategy'),
+                    'parameters': result.get('best_params'),
+                    'profit_percentage': profit
+                }
+
+        if best_strategy:
+            return {
+                "has_optimization_results": True,
+                "has_valid_optimization_results": True,
+                "best_strategy": best_strategy,
+                "has_config_params": False
+            }
+        else:
+            return {
+                "has_optimization_results": True,
+                "has_valid_optimization_results": False,
+                "error": "No profitable strategy found",
+                "has_config_params": False
+            }
 
     # ========== Analysis ==========
     
@@ -442,14 +449,55 @@ class TradingEngine:
                 else:
                     parameters = self.get_default_parameters(strategy_name)
             
-            # Run backtest as analysis
-            result = self.run_backtest(
-                crypto_id=crypto_id,
-                strategy_name=strategy_name,
-                parameters=parameters,
-                timeframe=timeframe,
-                save_result=False
-            )
+            # Check for existing analysis result (already implemented)
+            existing_analyses = self.result_manager.get_analysis_history(crypto_id=crypto_id)
+            for existing_analysis in existing_analyses:
+                # Convert timeframe to days for comparison
+                existing_timeframe_days = existing_analysis.get('timeframe_days')
+                requested_timeframe_days = self._timeframe_to_days(timeframe)
+
+                # Compare parameters. Handle cases where parameters_used might be a string (JSON dump)
+                existing_params = existing_analysis.get('parameters_used')
+                if isinstance(existing_params, str):
+                    try:
+                        existing_params = json.loads(existing_params)
+                    except json.JSONDecodeError:
+                        existing_params = {}
+
+                if (existing_analysis.get('strategy_used') == strategy_name and
+                    existing_timeframe_days == requested_timeframe_days and
+                    existing_params == parameters):
+                    self.logger.info(f"Found existing analysis for {crypto_id} with strategy {strategy_name}. Returning existing result.")
+                    return existing_analysis
+
+            # If no existing analysis, search for the most profitable backtest result
+            optimization_history = self.result_manager.get_optimization_history(crypto_id=crypto_id, strategy_name=strategy_name)
+            most_profitable_backtest = None
+            highest_profit = -1000 # Initialize with a very low number
+
+            for opt_result in optimization_history:
+                backtest_result = opt_result.get('backtest_result')
+                if backtest_result:
+                    profit = backtest_result.get('total_profit_percentage', -1000)
+                    if profit > highest_profit:
+                        highest_profit = profit
+                        most_profitable_backtest = opt_result
+
+            if not most_profitable_backtest:
+                self.logger.warning(f"No existing backtest found for {crypto_id} with strategy {strategy_name}. Cannot perform analysis without running a backtest.")
+                return {
+                    'success': False,
+                    'error': 'No matching backtest found. Please run a backtest first.',
+                    'crypto_id': crypto_id,
+                    'strategy_used': strategy_name,
+                    'parameters_used': parameters,
+                    'timeframe_days': self._timeframe_to_days(timeframe),
+                    'analysis_timestamp': datetime.now().isoformat()
+                }
+
+            # Use the found backtest result to construct the analysis_result
+            result = most_profitable_backtest
+            self.logger.info(f"Using existing backtest result for analysis: {result}")
             self.logger.info(f"Result from run_backtest: {result}")
             
             # Enhance with analysis metadata
@@ -461,11 +509,11 @@ class TradingEngine:
                 'parameters_source': 'custom' if custom_params else 'optimized',
                 'timeframe_days': self._timeframe_to_days(timeframe),
                 'analysis_timestamp': datetime.now().isoformat(),
-                'backtest_result': {
-                    'total_profit_percentage': result.get('total_profit_loss'),
+                'backtest_result': result.get('backtest_result', { # Use existing backtest_result if present
+                    'total_profit_percentage': result.get('total_profit_percentage'),
                     'total_trades': result.get('total_trades'),
                     'win_rate': result.get('win_rate')
-                }
+                })
             }
 
             # Add current price

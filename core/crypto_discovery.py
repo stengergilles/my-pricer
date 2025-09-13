@@ -75,6 +75,10 @@ class CryptoDiscovery:
                 data = response.json()
                 
                 all_cryptos = self._process_crypto_data(data)
+
+                # Add exchange data for the top N volatile cryptos
+                for crypto in all_cryptos[:limit]:
+                    crypto['exchanges'] = self.get_crypto_exchanges(crypto['id'])
                 
                 self._save_cache(cache_file, all_cryptos)
                 
@@ -187,6 +191,34 @@ class CryptoDiscovery:
         except requests.exceptions.RequestException as e:
             self.logger.error(f"Error fetching info for {crypto_id}: {e}")
             return None
+
+    def get_crypto_exchanges(self, crypto_id: str) -> List[str]:
+        """
+        Get the list of exchanges (markets) for a specific cryptocurrency.
+        
+        Args:
+            crypto_id: CoinGecko crypto ID
+            
+        Returns:
+            List of exchange names
+        """
+        url = f"{self.base_url}/coins/{crypto_id}/tickers"
+        
+        try:
+            time.sleep(self.rate_limit_delay)  # Rate limiting
+            response = requests.get(url, timeout=30)
+            response.raise_for_status()
+            data = response.json()
+            
+            if 'tickers' in data:
+                # Extract unique exchange names
+                exchanges = list(set([ticker['market']['name'] for ticker in data['tickers']]))
+                return exchanges
+            return []
+            
+        except requests.exceptions.RequestException as e:
+            self.logger.error(f"Error fetching exchanges for {crypto_id}: {e}")
+            return []
     
     def search_cryptos(self, query: str, limit: int = 10) -> List[Dict]:
         """

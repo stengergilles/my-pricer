@@ -64,6 +64,7 @@ export const useApiClient = () => {
   }, [callApi]);
 
   const runAnalysis = useCallback(async (data: any) => {
+    console.log('runAnalysis called with:', data);
     return callApi('runAnalysis', data);
   }, [callApi]);
 

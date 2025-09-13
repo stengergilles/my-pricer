@@ -78,7 +78,15 @@ export const CryptoAnalysis = () => {
     enabled: !!watchedCryptoId,
   });
 
-  const backtestHistory: BacktestResponse[] = backtestHistoryData?.backtests || [];
+  const backtestHistory: BacktestResponse[] = backtestHistoryData?.backtests?.map(b => {
+    if (b.backtest_result) {
+      return b;
+    }
+    return {
+      ...b,
+      backtest_result: b
+    }
+  }) || [];
 
   useEffect(() => {
     if (cryptos && cryptos.cryptos && cryptos.cryptos.length > 0) {
@@ -97,6 +105,8 @@ export const CryptoAnalysis = () => {
       const requestData = {
         crypto_id: data.cryptoId,
         timeframe: data.timeframe,
+        strategy_name: data.strategyName,
+        parameters: data.parameters,
       }
       return runAnalysis(requestData)
     },
@@ -162,7 +172,14 @@ export const CryptoAnalysis = () => {
     setError(null)
     setResult(null)
     setSelectedBacktest(null);
-    analysisMutation.mutate(data)
+
+    const analysisData = {
+      ...data,
+      strategyName: cryptoStatus?.best_strategy?.name,
+      parameters: cryptoStatus?.best_strategy?.parameters,
+    };
+
+    analysisMutation.mutate(analysisData)
   }
 
   const handleBacktestSelect = (backtest: BacktestResponse) => {
@@ -204,31 +221,39 @@ export const CryptoAnalysis = () => {
     return <ErrorDisplay error="403 Forbidden" onRetry={handleRetry} is403={true} onDismiss={() => {}} />
   }
 
-  // Check if optimization results are invalid - only check for undefined values
-  const hasValidOptimization = cryptoStatus?.has_optimization_results && 
-    backtestHistory.every(backtest => 
-      backtest.backtest_result && 
-      backtest.backtest_result.total_trades !== null && backtest.backtest_result.total_trades !== undefined &&
-      backtest.backtest_result.total_profit_percentage !== null && backtest.backtest_result.total_profit_percentage !== undefined
-    );
+  const hasValidOptimization = cryptoStatus?.has_valid_optimization_results;
 
   const getInvalidReason = () => {
+    if (cryptoStatus?.error) {
+      return cryptoStatus.error;
+    }
     if (!cryptoStatus?.has_optimization_results) return null;
-    
-    const invalidBacktests = backtestHistory.filter(backtest => 
-      !backtest.backtest_result || 
+
+    const reasons = [];
+
+    const hasAnyBacktestResult = backtestHistory.some(b => b.backtest_result);
+    if (!hasAnyBacktestResult) {
+      reasons.push("No backtest results found");
+    } else {
+      const hasBacktestWithTrades = backtestHistory.some(b => b.backtest_result && b.backtest_result.total_trades > 0);
+      if (!hasBacktestWithTrades) {
+        reasons.push("No backtest with trades > 0");
+      }
+    }
+
+    // Keep existing checks for undefined values if they are still relevant for other reasons
+    const invalidBacktestsForUndefined = backtestHistory.filter(backtest =>
+      !backtest.backtest_result ||
       backtest.backtest_result.total_trades === undefined ||
       backtest.backtest_result.total_profit_percentage === undefined
     );
-    
-    if (invalidBacktests.length === 0) return null;
-    
-    const reasons = [];
-    if (invalidBacktests.some(b => !b.backtest_result)) reasons.push("Missing results");
-    if (invalidBacktests.some(b => b.backtest_result?.total_trades === undefined)) reasons.push("Missing trade count");
-    if (invalidBacktests.some(b => b.backtest_result?.total_profit_percentage === undefined)) reasons.push("Missing profit data");
-    
-    return reasons.join(", ");
+
+    if (invalidBacktestsForUndefined.some(b => !b.backtest_result)) reasons.push("Missing results object");
+    if (invalidBacktestsForUndefined.some(b => b.backtest_result?.total_trades === undefined)) reasons.push("Missing trade count data");
+    if (invalidBacktestsForUndefined.some(b => b.backtest_result?.total_profit_percentage === undefined)) reasons.push("Missing profit data");
+
+
+    return reasons.length > 0 ? reasons.join(", ") : null;
   };
 
   return (

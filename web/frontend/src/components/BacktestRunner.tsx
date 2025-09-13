@@ -88,7 +88,15 @@ export const BacktestRunner = () => {
     enabled: !!watchedCryptoId,
   });
 
-  const backtestHistory = backtestHistoryData?.backtests || [];
+  const backtestHistory = backtestHistoryData?.backtests?.map(b => {
+    if (b.backtest_result) {
+      return b;
+    }
+    return {
+      ...b,
+      backtest_result: b
+    }
+  }) || [];
 
   useEffect(() => {
     if (cryptos?.cryptos?.length > 0) {
