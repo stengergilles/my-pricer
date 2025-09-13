@@ -79,7 +79,6 @@ export const AnalysisResultDisplay = ({
   }
 
   const {
-    analysis_id,
     crypto_id,
     current_price,
     current_signal,
@@ -96,11 +95,11 @@ export const AnalysisResultDisplay = ({
   } = backtest_result || {};
 
   const uniqueStrategies = backtestHistory.reduce((acc, backtest) => {
-    if (!acc[backtest.strategy] || acc + (result && result.total_profit_percentage ? result.total_profit_percentage : 0)) {
-        acc[backtest.strategy] = backtest;
+    if (!acc[backtest.strategy] || (backtest.backtest_result?.total_profit_percentage ?? 0) > (acc[backtest.strategy].backtest_result?.total_profit_percentage ?? 0)) {
+      acc[backtest.strategy] = backtest;
     }
     return acc;
-}, {} as Record<string, BacktestResponse>);
+  }, {} as Record<string, BacktestResponse>);
 
   const bestBacktests = Object.values(uniqueStrategies);
 
@@ -145,13 +144,13 @@ export const AnalysisResultDisplay = ({
                       <InputLabel id="backtest-select-label">Strategy</InputLabel>
                       <Select
                         labelId="backtest-select-label"
-                        value={analysis_id || ''}
+                        value={result.analysis_id || ''}
                         onChange={handleSelectChange}
                         label="Strategy"
                       >
                         {bestBacktests.map((backtest) => (
                           <MenuItem key={backtest.backtest_id} value={backtest.backtest_id}>
-                            {backtest.strategy} - {backtest.total_profit_percentage?.toFixed(2)}%
+                            {backtest.strategy}
                           </MenuItem>
                         ))}
                       </Select>

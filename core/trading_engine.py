@@ -497,16 +497,26 @@ class TradingEngine:
 
             # If no existing analysis, search for the most profitable backtest result
             optimization_history = self.result_manager.get_optimization_history(crypto_id=crypto_id, strategy_name=strategy_name)
+            backtest_history = self.result_manager.get_backtest_history(crypto_id=crypto_id, strategy_name=strategy_name)
+            
+            # Combine optimization and backtest results
+            all_results = optimization_history + backtest_history
+            
             most_profitable_backtest = None
-            highest_profit = -1000 # Initialize with a very low number
+            highest_profit = -1000
 
-            for opt_result in optimization_history:
-                backtest_result = opt_result.get('backtest_result')
-                if backtest_result:
-                    profit = backtest_result.get('total_profit_percentage', -1000)
+            for result in all_results:
+                # Handle different result structures
+                if 'backtest_result' in result:
+                    backtest_data = result.get('backtest_result')
+                else:
+                    backtest_data = result
+
+                if backtest_data:
+                    profit = backtest_data.get('total_profit_percentage', -1000)
                     if profit > highest_profit:
                         highest_profit = profit
-                        most_profitable_backtest = opt_result
+                        most_profitable_backtest = result
 
             if not most_profitable_backtest:
                 self.logger.warning(f"No existing backtest found for {crypto_id} with strategy {strategy_name}. Cannot perform analysis without running a backtest.")
