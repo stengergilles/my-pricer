@@ -6,7 +6,7 @@ import { useForm, Controller } from 'react-hook-form'
 import { useCryptoStatus } from '../hooks/useCryptoStatus.ts'
 import { Chip } from '@mui/material'
 import CheckCircle from '@mui/icons-material/CheckCircle'
-import Error from '@mui/icons-material/Error'
+
 import { useApiClient } from '../hooks/useApiClient.ts'
 import { useErrorHandler } from '../hooks/useErrorHandler.ts'
 import { useConfig } from '../contexts/ConfigContext.tsx'
@@ -221,40 +221,7 @@ export const CryptoAnalysis = () => {
     return <ErrorDisplay error="403 Forbidden" onRetry={handleRetry} is403={true} onDismiss={() => {}} />
   }
 
-  const hasValidOptimization = cryptoStatus?.has_valid_optimization_results;
-
-  const getInvalidReason = () => {
-    if (cryptoStatus?.error) {
-      return cryptoStatus.error;
-    }
-    if (!cryptoStatus?.has_optimization_results) return null;
-
-    const reasons = [];
-
-    const hasAnyBacktestResult = backtestHistory.some(b => b.backtest_result);
-    if (!hasAnyBacktestResult) {
-      reasons.push("No backtest results found");
-    } else {
-      const hasBacktestWithTrades = backtestHistory.some(b => b.backtest_result && b.backtest_result.total_trades > 0);
-      if (!hasBacktestWithTrades) {
-        reasons.push("No backtest with trades > 0");
-      }
-    }
-
-    // Keep existing checks for undefined values if they are still relevant for other reasons
-    const invalidBacktestsForUndefined = backtestHistory.filter(backtest =>
-      !backtest.backtest_result ||
-      backtest.backtest_result.total_trades === undefined ||
-      backtest.backtest_result.total_profit_percentage === undefined
-    );
-
-    if (invalidBacktestsForUndefined.some(b => !b.backtest_result)) reasons.push("Missing results object");
-    if (invalidBacktestsForUndefined.some(b => b.backtest_result?.total_trades === undefined)) reasons.push("Missing trade count data");
-    if (invalidBacktestsForUndefined.some(b => b.backtest_result?.total_profit_percentage === undefined)) reasons.push("Missing profit data");
-
-
-    return reasons.length > 0 ? reasons.join(", ") : null;
-  };
+  
 
   return (
     <Box sx={{ my: 3 }}>
@@ -291,10 +258,10 @@ export const CryptoAnalysis = () => {
                 />
                 {cryptoStatus?.has_optimization_results && (
                   <Chip
-                    icon={hasValidOptimization ? <CheckCircle /> : <Error />}
-                    label={hasValidOptimization ? "Optimized" : `Invalid: ${getInvalidReason()}`}
+                    icon={<CheckCircle />}
+                    label="Optimized"
                     size="small"
-                    color={hasValidOptimization ? "success" : "error"}
+                    color="success"
                     variant="outlined"
                     sx={{ mt: 1 }}
                   />

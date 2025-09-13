@@ -10,7 +10,7 @@ import { BacktestFormData, BacktestResponse } from '../utils/types.ts'
 import { useCryptoStatus } from '../hooks/useCryptoStatus.ts'
 import { Chip } from '@mui/material'
 import CheckCircle from '@mui/icons-material/CheckCircle'
-import Error from '@mui/icons-material/Error'
+
 import {
   Box,
   Typography,
@@ -39,7 +39,7 @@ const StyledPaper = styled(Paper)(({ theme }) => ({
 
 
 export const BacktestRunner = () => {
-  const { getCryptos, getStrategies, runBacktest, apiClient, getBacktestHistory } = useApiClient()
+  const { getCryptos, getStrategies, runBacktest, apiClient } = useApiClient()
   const { is403Error, handleError, reset403Error } = useErrorHandler()
   const queryClient = useQueryClient()
   const [result, setResult] = useState<BacktestResponse | null>(null)
@@ -82,21 +82,7 @@ export const BacktestRunner = () => {
   const watchedCryptoId = watch('cryptoId');
   const { data: cryptoStatus } = useCryptoStatus(watchedCryptoId);
 
-  const { data: backtestHistoryData } = useQuery({
-    queryKey: ['backtestHistory', watchedCryptoId],
-    queryFn: () => getBacktestHistory(watchedCryptoId),
-    enabled: !!watchedCryptoId,
-  });
-
-  const backtestHistory = backtestHistoryData?.backtests?.map(b => {
-    if (b.backtest_result) {
-      return b;
-    }
-    return {
-      ...b,
-      backtest_result: b
-    }
-  }) || [];
+  
 
   useEffect(() => {
     if (cryptos?.cryptos?.length > 0) {
@@ -210,32 +196,7 @@ export const BacktestRunner = () => {
     return <ErrorDisplay error="403 Forbidden" onRetry={handleRetry} is403={true} onDismiss={() => {}} />
   }
 
-  // Check if optimization results are invalid - only check for undefined values
-  const hasValidOptimization = cryptoStatus?.has_optimization_results && 
-    backtestHistory.every((backtest: any) => 
-      backtest.backtest_result && 
-      backtest.backtest_result.total_trades !== null && backtest.backtest_result.total_trades !== undefined &&
-      backtest.backtest_result.total_profit_percentage !== null && backtest.backtest_result.total_profit_percentage !== undefined
-    );
-
-  const getInvalidReason = () => {
-    if (!cryptoStatus?.has_optimization_results) return null;
-    
-    const invalidBacktests = backtestHistory.filter((backtest: any) => 
-      !backtest.backtest_result || 
-      backtest.backtest_result.total_trades === undefined ||
-      backtest.backtest_result.total_profit_percentage === undefined
-    );
-    
-    if (invalidBacktests.length === 0) return null;
-    
-    const reasons = [];
-    if (invalidBacktests.some((b: any) => !b.backtest_result)) reasons.push("Missing results");
-    if (invalidBacktests.some((b: any) => b.backtest_result?.total_trades === undefined)) reasons.push("Missing trade count");
-    if (invalidBacktests.some((b: any) => b.backtest_result?.total_profit_percentage === undefined)) reasons.push("Missing profit data");
-    
-    return reasons.join(", ");
-  };
+  
 
   return (
     <Box sx={{ my: 3 }}>
@@ -271,10 +232,10 @@ export const BacktestRunner = () => {
                   />
                   {cryptoStatus?.has_optimization_results && (
                     <Chip
-                      icon={hasValidOptimization ? <CheckCircle /> : <Error />}
-                      label={hasValidOptimization ? "Optimized" : `Invalid: ${getInvalidReason()}`}
+                      icon={<CheckCircle />}
+                      label="Optimized"
                       size="small"
-                      color={hasValidOptimization ? "success" : "error"}
+                      color="success"
                       variant="outlined"
                       sx={{ mt: 1 }}
                     />
