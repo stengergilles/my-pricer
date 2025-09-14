@@ -24,6 +24,7 @@ sudo rsync -av --delete \
     --exclude '*.log' \
     --exclude '*.coverage' \
     --exclude '.env' \
+    --exclude 'venv/' \
     "$SOURCE_DIR/" "$DEST_DIR"
 
 # Restart production service (this will be called by deploy_backend.sh, so it's commented out here)
