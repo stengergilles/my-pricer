@@ -45,6 +45,7 @@ WorkingDirectory=$DEPLOY_DIR/web/backend
 EnvironmentFile=$DEPLOY_DIR/web/backend/.env
 Environment=PYTHONPATH=$DEPLOY_DIR
 Environment=PATH=$DEPLOY_DIR/venv/bin:$PATH
+Environment=API_PORT=5001
 ExecStart=$DEPLOY_DIR/venv/bin/python app.py
 Restart=always
 RestartSec=10
