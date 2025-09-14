@@ -22,9 +22,19 @@ class BacktestAPI(Resource):
 
     @requires_auth('read:backtest')
     def get(self, backtest_id=None):
-        """Get backtest results."""
+        """Get backtest results or optimized parameters."""
         try:
-            if backtest_id:
+            crypto_id = request.args.get('crypto_id')
+            strategy_name = request.args.get('strategy_name')
+
+            if crypto_id and strategy_name and request.args.get('optimized_params'):
+                # Get optimized parameters for a specific crypto and strategy
+                optimized_params = self.engine.get_optimized_parameters(crypto_id, strategy_name)
+                if optimized_params:
+                    return {'optimized_params': optimized_params}
+                else:
+                    return {'message': 'No optimized parameters found for this crypto and strategy'}, 404
+            elif backtest_id:
                 # Get specific backtest
                 result = self.engine.get_backtest(backtest_id)
                 if not result:
@@ -32,14 +42,12 @@ class BacktestAPI(Resource):
                 return {'backtest': result}
             else:
                 # Get backtest history
-                crypto_id = request.args.get('crypto_id')
-                strategy_name = request.args.get('strategy_name')
                 limit = int(request.args.get('limit', 50))
                 results = self.engine.get_backtest_history(crypto_id, strategy_name, limit)
                 return {'backtests': results}
         except Exception as e:
-            logger.error(f"Error getting backtest: {e}")
-            return {'error': 'Failed to get backtest'}, 500
+            logger.error(f"Error getting backtest or optimized parameters: {e}")
+            return {'error': 'Failed to retrieve data'}, 500
 
     @requires_auth('execute:backtest')
     def post(self):

@@ -147,11 +147,12 @@ export class ApiClient {
     return this.request('GET', `/api/backtest/${backtestId}`);
   }
 
-  async getBacktestHistory(cryptoId?: string, strategyName?: string, limit = 50) {
+  async getBacktestHistory(cryptoId?: string, strategyName?: string, limit = 50, optimized_params?: boolean) {
     const params = new URLSearchParams();
     if (cryptoId) params.append('crypto_id', cryptoId);
     if (strategyName) params.append('strategy_name', strategyName);
     params.append('limit', limit.toString());
+    if (optimized_params) params.append('optimized_params', 'true');
     return this.request('GET', `/api/backtest?${params.toString()}`);
   }
 

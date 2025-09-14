@@ -113,6 +113,43 @@ export const BacktestRunner = () => {
     }
   }, [selectedStrategy, strategyDetails, setValue]);
 
+  // Fetch and apply optimized parameters if they exist
+  useEffect(() => {
+    if (watchedCryptoId && selectedStrategy) {
+      const fetchOptimizedParams = async () => {
+        try {
+          const response = await apiClient.getBacktestHistory(
+            watchedCryptoId,
+            selectedStrategy,
+            50, // Default limit, can be adjusted if needed
+            true // Request optimized parameters
+          );
+          if (response.optimized_params) {
+            setValue('parameters', { ...response.optimized_params }); // Use optimized params
+            setError(null); // Clear any previous errors
+          } else {
+            // If no optimized params, fall back to strategy defaults
+            if (strategyDetails) {
+              setValue('parameters', strategyDetails.defaults);
+            }
+            setError(null); // Clear any previous errors
+          }
+        } catch (err: any) {
+          // If there's an error (e.g., 404 for no optimized params), fall back to defaults
+          if (strategyDetails) {
+            setValue('parameters', strategyDetails.defaults);
+          }
+          if (err.response && err.response.status !== 404) {
+            handleError(err);
+          } else {
+            setError(null); // Clear error if it's just a 404
+          }
+        }
+      };
+      fetchOptimizedParams();
+    }
+  }, [watchedCryptoId, selectedStrategy, setValue, apiClient, handleError, watch, strategyDetails]);
+
   const backtestMutation = useMutation({
     mutationFn: (data: BacktestFormData) => {
       const requestData = {
@@ -297,7 +334,7 @@ export const BacktestRunner = () => {
                       fullWidth
                       label={paramKey.replace(/_/g, ' ')}
                       type="number"
-                      defaultValue={strategyDetails.defaults[paramKey]}
+                      value={watch('parameters')[paramKey] ?? ''}
                       {...register(`parameters.${paramKey}` as any)}
                       sx={{ mt: 2 }}
                     />

@@ -379,6 +379,13 @@ class TradingEngine:
     def get_optimization_results(self, crypto_id: str, strategy_name: str) -> Optional[Dict]:
         """Get optimization results for a specific crypto/strategy pair."""
         return self.optimizer.load_optimization_results(crypto_id, strategy_name)
+
+    def get_optimized_parameters(self, crypto_id: str, strategy_name: str) -> Optional[Dict]:
+        """Get only the best parameters from optimization results for a specific crypto/strategy pair."""
+        optimization_result = self.optimizer.load_optimization_results(crypto_id, strategy_name)
+        if optimization_result and optimization_result.get('best_params'):
+            return optimization_result['best_params']
+        return None
     
     def get_all_results(self) -> List[Dict]:
         """Get all optimization results."""
