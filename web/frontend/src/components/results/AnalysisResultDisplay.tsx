@@ -12,6 +12,7 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  Chip,
 } from '@mui/material'
 import { styled } from '@mui/system'
 import { AnalysisResult, Line, BacktestResponse } from '../../utils/types'
@@ -88,12 +89,6 @@ export const AnalysisResultDisplay = ({
     backtest_result,
   } = result;
 
-  const {
-    total_profit_percentage,
-    total_trades,
-    win_rate,
-  } = backtest_result || {};
-
   const uniqueStrategies = backtestHistory.reduce((acc, backtest) => {
     if (!acc[backtest.strategy] || (backtest.backtest_result?.total_profit_percentage ?? 0) > (acc[backtest.strategy].backtest_result?.total_profit_percentage ?? 0)) {
       acc[backtest.strategy] = backtest;
@@ -110,6 +105,15 @@ export const AnalysisResultDisplay = ({
       onBacktestSelect(selectedBacktest);
     }
   };
+
+  const backtestToDisplay = backtest_result || (bestBacktests.length > 0 ? bestBacktests[0].backtest_result : null);
+  const backtestSource = backtest_result ? 'optimized' : (bestBacktests.length > 0 ? 'manual' : null);
+
+  const {
+    total_profit_percentage,
+    total_trades,
+    win_rate,
+  } = backtestToDisplay || {};
 
   return (
     <Box>
@@ -131,48 +135,59 @@ export const AnalysisResultDisplay = ({
             </CardContent>
           </StyledCard>
         </Grid>
-        {backtest_result && backtest_result.total_trades > 0 && (
-          <Grid item xs={12} md={6}>
+        <Grid item xs={12} md={6}>
             <StyledCard>
               <CardContent>
                 <Typography variant="h6" gutterBottom>
                   Backtest Performance
                 </Typography>
-                <List dense>
-                  <ListItem>
-                    <FormControl fullWidth>
-                      <InputLabel id="backtest-select-label">Strategy</InputLabel>
-                      <Select
-                        labelId="backtest-select-label"
-                        value={result.analysis_id || ''}
-                        onChange={handleSelectChange}
-                        label="Strategy"
-                      >
-                        {bestBacktests.map((backtest) => (
-                          <MenuItem key={backtest.backtest_id} value={backtest.backtest_id}>
-                            {backtest.strategy}
-                          </MenuItem>
-                        ))}
-                      </Select>
-                    </FormControl>
-                  </ListItem>
-                  <MetricItem
-                    label="Total Profit"
-                    value={total_profit_percentage !== undefined && total_profit_percentage !== null ? `${total_profit_percentage.toFixed(2)}%` : 'N/A'}
-                  />
-                  {result.analysis_timestamp && (
+                {backtestToDisplay && backtestToDisplay.total_trades !== undefined ? (
+                  <List dense>
+                    {backtestSource && (
+                        <ListItem>
+                            <Chip 
+                                label={backtestSource === 'optimized' ? 'Optimized Result' : 'Manual Backtest'} 
+                                color={backtestSource === 'optimized' ? 'success' : 'info'}
+                                size="small" 
+                            />
+                        </ListItem>
+                    )}
+                    <ListItem>
+                      <FormControl fullWidth>
+                        <InputLabel id="backtest-select-label">Strategy</InputLabel>
+                        <Select
+                          labelId="backtest-select-label"
+                          value={result.analysis_id || ''}
+                          onChange={handleSelectChange}
+                          label="Strategy"
+                        >
+                          {bestBacktests.map((backtest) => (
+                            <MenuItem key={backtest.backtest_id} value={backtest.backtest_id}>
+                              {backtest.strategy}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
+                    </ListItem>
                     <MetricItem
-                      label="Backtest Date"
-                      value={new Date(result.analysis_timestamp).toLocaleString()}
+                      label="Total Profit"
+                      value={total_profit_percentage !== undefined && total_profit_percentage !== null ? `${total_profit_percentage.toFixed(2)}%` : 'N/A'}
                     />
-                  )}
-                  <MetricItem label="Total Trades" value={total_trades !== undefined && total_trades !== null ? total_trades : 'N/A'} />
-                  <MetricItem label="Win Rate" value={win_rate !== undefined && win_rate !== null ? `${win_rate.toFixed(1)}%` : 'N/A'} />
-                </List>
+                    {result.analysis_timestamp && (
+                      <MetricItem
+                        label="Backtest Date"
+                        value={new Date(result.analysis_timestamp).toLocaleString()}
+                      />
+                    )}
+                    <MetricItem label="Total Trades" value={total_trades !== undefined && total_trades !== null ? total_trades : 'N/A'} />
+                    <MetricItem label="Win Rate" value={win_rate !== undefined && win_rate !== null ? `${win_rate.toFixed(1)}%` : 'N/A'} />
+                  </List>
+                ) : (
+                  <Typography>No backtest results available.</Typography>
+                )}
               </CardContent>
             </StyledCard>
           </Grid>
-        )}
       </Grid>
 
       {result.next_move_prediction && (

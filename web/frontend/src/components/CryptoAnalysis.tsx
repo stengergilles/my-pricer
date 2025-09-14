@@ -173,13 +173,11 @@ export const CryptoAnalysis = () => {
     setResult(null)
     setSelectedBacktest(null);
 
-    const analysisData = {
+    analysisMutation.mutate({
       ...data,
       strategyName: cryptoStatus?.best_strategy?.name,
       parameters: cryptoStatus?.best_strategy?.parameters,
-    };
-
-    analysisMutation.mutate(analysisData)
+    })
   }
 
   const handleBacktestSelect = (backtest: BacktestResponse) => {

@@ -248,6 +248,8 @@ class TradingEngine:
             # Enhance result with metadata
             enhanced_result = {
                 **result,
+                'crypto': crypto_id,
+                'strategy': strategy_name,
                 'backtest_id': self._generate_backtest_id(),
                 'timestamp': datetime.now().isoformat(),
                 'engine_version': '2.0.0'
@@ -519,19 +521,13 @@ class TradingEngine:
                         most_profitable_backtest = result
 
             if not most_profitable_backtest:
-                self.logger.warning(f"No existing backtest found for {crypto_id} with strategy {strategy_name}. Cannot perform analysis without running a backtest.")
-                return {
-                    'success': False,
-                    'error': 'No matching backtest found. Please run a backtest first.',
-                    'crypto_id': crypto_id,
-                    'strategy_used': strategy_name,
-                    'parameters_used': parameters,
-                    'timeframe_days': self._timeframe_to_days(timeframe),
-                    'analysis_timestamp': datetime.now().isoformat()
+                self.logger.warning(f"No existing backtest found for {crypto_id} with strategy {strategy_name}. Proceeding with analysis without backtest data.")
+                result = {
+                    'backtest_result': None,
+                    'final_position': 0,
                 }
-
-            # Use the found backtest result to construct the analysis_result
-            result = most_profitable_backtest
+            else:
+                result = most_profitable_backtest
             self.logger.info(f"Using existing backtest result for analysis: {result}")
             self.logger.info(f"Result from run_backtest: {result}")
             

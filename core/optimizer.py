@@ -560,6 +560,7 @@ class BayesianOptimizer:
     def get_all_results(self) -> List[Dict]:
         """Get all optimization results from the results directory."""
         results = []
+        available_strategies = self.param_manager.get_available_strategies()
         
         try:
             for filename in os.listdir(self.results_dir):
@@ -568,9 +569,37 @@ class BayesianOptimizer:
                     try:
                         with open(filepath, 'r') as f:
                             result = json.load(f)
-                            results.append(result)
+                            
+                            # --- Data Validation and Correction ---
+                            strategy = result.get('strategy')
+                            
+                            # 1. Try to correct known typos
+                            if isinstance(strategy, str):
+                                if strategy.lower() == 'emea':
+                                    strategy = 'EMA_Only'
+                                    result['strategy'] = strategy # Correct in memory
+                            
+                            # 2. If strategy is invalid or blank, try to infer from filename
+                            if not strategy or strategy not in available_strategies:
+                                try:
+                                    # Filename format: best_params_{crypto}_{strategy}.json
+                                    parts = filename.replace('best_params_', '').replace('.json', '').split('_')
+                                    if len(parts) > 1:
+                                        strategy_from_filename = parts[1]
+                                        if strategy_from_filename in available_strategies:
+                                            self.logger.warning(f"Correcting strategy for {filename}. Was '{strategy}', now '{strategy_from_filename}'.")
+                                            result['strategy'] = strategy_from_filename
+                                except Exception as e:
+                                    self.logger.error(f"Could not infer strategy from filename {filename}: {e}")
+
+                            # 3. Only append if the strategy is now valid
+                            if result.get('strategy') in available_strategies:
+                                results.append(result)
+                            else:
+                                self.logger.warning(f"Skipping {filename} due to invalid or missing strategy: '{result.get('strategy')}'")
+
                     except (OSError, json.JSONDecodeError) as e:
-                        self.logger.warning(f"Could not load {filename}: {e}")
+                        self.logger.warning(f"Could not load or parse {filename}: {e}")
         except OSError as e:
             self.logger.error(f"Error reading results directory: {e}")
         

@@ -116,10 +116,10 @@ export interface HealthCheck {
 // Form Types
 export interface AnalysisFormData {
   cryptoId: string
-  strategyName: string
+  strategyName?: string
   timeframe: number
-  useCustomParams: boolean
-  parameters: Record<string, any>
+  useCustomParams?: boolean
+  parameters?: Record<string, any>
 }
 
 export interface BacktestFormData {
