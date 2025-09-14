@@ -46,7 +46,7 @@ EnvironmentFile=$DEPLOY_DIR/web/backend/.env
 Environment=PYTHONPATH=$DEPLOY_DIR
 Environment=PATH=$DEPLOY_DIR/venv/bin:$PATH
 Environment=API_PORT=5001
-ExecStart=$DEPLOY_DIR/venv/bin/python app.py
+ExecStart=$DEPLOY_DIR/venv/bin/gunicorn -w 4 -b 0.0.0.0:5001 app:app
 Restart=always
 RestartSec=10
 
