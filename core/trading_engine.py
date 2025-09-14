@@ -48,7 +48,10 @@ class TradingEngine:
         self.optimizer = BayesianOptimizer(self.config.RESULTS_DIR)
         self.backtester = BacktesterWrapper(self.config)
         self._scheduler = None # Initialize scheduler attribute
-    
+        self._exchange_update_lock = threading.Lock()
+        self._last_exchange_update_time = None
+        self._exchange_update_interval = 86400 # 24 hours in seconds
+
     def set_scheduler(self, scheduler_instance):
         """Set the scheduler instance for the engine."""
         self._scheduler = scheduler_instance
@@ -104,17 +107,25 @@ class TradingEngine:
         ]
 
         if highly_volatile_missing_exchanges:
-            ids_to_update = [c['id'] for c in highly_volatile_missing_exchanges]
-            self.logger.info(f"Exchange data missing for {len(ids_to_update)} highly volatile cryptos. Triggering background update for them.")
-            
-            update_thread = threading.Thread(
-                target=self.crypto_discovery.update_exchanges_for_cached_cryptos,
-                kwargs={
-                    'crypto_ids_to_update': ids_to_update,
-                    'force_refresh': True  # Force update as we know data is missing for these IDs
-                }
-            )
-            update_thread.start()
+            with self._exchange_update_lock:
+                current_time = datetime.now()
+                # Only trigger update if enough time has passed since the last one
+                if (self._last_exchange_update_time is None or
+                        (current_time - self._last_exchange_update_time).total_seconds() > self._exchange_update_interval):
+                    ids_to_update = [c['id'] for c in highly_volatile_missing_exchanges]
+                    self.logger.info(f"Exchange data missing for {len(ids_to_update)} highly volatile cryptos. Triggering background update for them.")
+                    
+                    update_thread = threading.Thread(
+                        target=self.crypto_discovery.update_exchanges_for_cached_cryptos,
+                        kwargs={
+                            'crypto_ids_to_update': ids_to_update,
+                            'force_refresh': True  # Force update as we know data is missing for these IDs
+                        }
+                    )
+                    update_thread.start()
+                    self._last_exchange_update_time = current_time
+                else:
+                    self.logger.info("Exchange data update skipped: already updated recently.")
 
         return cryptos
     
