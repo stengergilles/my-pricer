@@ -106,49 +106,43 @@ export const BacktestRunner = () => {
 
   const strategyDetails = strategies?.strategies?.find((s: any) => s.name === selectedStrategy)
 
+  // Fetch optimized parameters using useQuery
+  const { data: optimizedParamsData, isLoading: optimizedParamsLoading } = useQuery(
+    {
+      queryKey: ['optimizedParams', watchedCryptoId, selectedStrategy],
+      queryFn: () =>
+        apiClient.getBacktestHistory(
+          watchedCryptoId,
+          selectedStrategy,
+          50, // Default limit, can be adjusted if needed
+          true // Request optimized parameters
+        ),
+      enabled: !!watchedCryptoId && !!selectedStrategy && !!apiClient,
+      staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+      cacheTime: 10 * 60 * 1000, // Keep in cache for 10 minutes
+      retry: (failureCount, error: any) => {
+        // Only retry if it's not a 404 error
+        if (error.response && error.response.status === 404) {
+          return false;
+        }
+        return failureCount < 3; // Retry up to 3 times for other errors
+      },
+    }
+  );
+
   useEffect(() => {
     if (strategyDetails) {
-      // Reset parameters to defaults when strategy changes
-      setValue('parameters', strategyDetails.defaults);
+      // Prioritize optimized parameters if available
+      if (optimizedParamsData?.optimized_params) {
+        setValue('parameters', { ...optimizedParamsData.optimized_params });
+        setError(null);
+      } else {
+        // Fall back to strategy defaults
+        setValue('parameters', strategyDetails.defaults);
+        setError(null);
+      }
     }
-  }, [selectedStrategy, strategyDetails, setValue]);
-
-  // Fetch and apply optimized parameters if they exist
-  useEffect(() => {
-    if (watchedCryptoId && selectedStrategy) {
-      const fetchOptimizedParams = async () => {
-        try {
-          const response = await apiClient.getBacktestHistory(
-            watchedCryptoId,
-            selectedStrategy,
-            50, // Default limit, can be adjusted if needed
-            true // Request optimized parameters
-          );
-          if (response.optimized_params) {
-            setValue('parameters', { ...response.optimized_params }); // Use optimized params
-            setError(null); // Clear any previous errors
-          } else {
-            // If no optimized params, fall back to strategy defaults
-            if (strategyDetails) {
-              setValue('parameters', strategyDetails.defaults);
-            }
-            setError(null); // Clear any previous errors
-          }
-        } catch (err: any) {
-          // If there's an error (e.g., 404 for no optimized params), fall back to defaults
-          if (strategyDetails) {
-            setValue('parameters', strategyDetails.defaults);
-          }
-          if (err.response && err.response.status !== 404) {
-            handleError(err);
-          } else {
-            setError(null); // Clear error if it's just a 404
-          }
-        }
-      };
-      fetchOptimizedParams();
-    }
-  }, [watchedCryptoId, selectedStrategy, setValue, apiClient, handleError, watch, strategyDetails]);
+  }, [selectedStrategy, strategyDetails, setValue, optimizedParamsData]);
 
   const backtestMutation = useMutation({
     mutationFn: (data: BacktestFormData) => {
@@ -214,7 +208,7 @@ export const BacktestRunner = () => {
 
   
 
-  if (cryptosLoading || strategiesLoading || configLoading) {
+  if (cryptosLoading || strategiesLoading || configLoading || optimizedParamsLoading) {
     return (
       <Box
         sx={{
