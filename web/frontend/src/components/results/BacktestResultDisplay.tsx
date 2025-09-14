@@ -35,6 +35,7 @@ export const BacktestResultDisplay = ({ result }: { result: BacktestResponse }) 
     parameters,
     crypto,
     backtest_result,
+    source, // Destructure source
   } = result
 
   const {
@@ -46,6 +47,13 @@ export const BacktestResultDisplay = ({ result }: { result: BacktestResponse }) 
 
   return (
     <Box>
+      {source && (
+        <Chip
+          label={source === 'optimized' ? 'Optimized Result' : 'Manual Result'}
+          color={source === 'optimized' ? 'primary' : 'default'}
+          sx={{ marginBottom: 2 }}
+        />
+      )}
       <Grid container spacing={3} sx={{ flexDirection: { xs: 'column', md: 'row' } }}>
         <Grid item xs={12} md={6}>
           <StyledCard>

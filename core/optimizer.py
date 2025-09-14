@@ -200,7 +200,8 @@ class BayesianOptimizer:
             'optimization_time': end_time - start_time,
             'timestamp': datetime.now().isoformat(),
             'study_name': study_name,
-            'backtest_result': backtest_result, # Add this line
+            'backtest_result': backtest_result,
+            'source': 'optimized', # Add source for optimized backtests
             'all_trials': [
                 {
                     'number': trial.number,
@@ -392,7 +393,8 @@ class BayesianOptimizer:
             'python', self.backtester_path,
             '--crypto', crypto,
             '--strategy', strategy,
-            '--single-run'
+            '--single-run',
+            '--source', 'optimized'
         ] + cli_args
         
         process = None # Initialize process to None

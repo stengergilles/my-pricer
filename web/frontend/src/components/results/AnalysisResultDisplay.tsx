@@ -111,7 +111,7 @@ export const AnalysisResultDisplay = ({
   };
 
   const backtestToDisplay = backtest_result || (bestBacktests.length > 0 ? bestBacktests[0].backtest_result : null);
-  const backtestSource = backtest_result ? 'optimized' : (bestBacktests.length > 0 ? 'manual' : null);
+  const backtestSource = backtestToDisplay?.source || (bestBacktests.length > 0 ? bestBacktests[0].source : null);
 
   const {
     total_profit_percentage,
@@ -177,10 +177,10 @@ export const AnalysisResultDisplay = ({
                       label="Total Profit"
                       value={total_profit_percentage !== undefined && total_profit_percentage !== null ? `${total_profit_percentage.toFixed(2)}%` : 'N/A'}
                     />
-                    {result.analysis_timestamp && (
+                    {backtestToDisplay?.timestamp && (
                       <MetricItem
                         label="Backtest Date"
-                        value={new Date(result.analysis_timestamp).toLocaleString()}
+                        value={new Date(backtestToDisplay.timestamp).toLocaleString()}
                       />
                     )}
                     <MetricItem label="Total Trades" value={total_trades !== undefined && total_trades !== null ? total_trades : 'N/A'} />

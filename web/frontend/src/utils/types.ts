@@ -86,6 +86,7 @@ export interface BacktestResult {
   sharpe_ratio?: number
   max_drawdown?: number
   note?: string
+  timestamp?: string // Add timestamp here
 }
 
 export interface BacktestResponse {
@@ -99,6 +100,7 @@ export interface BacktestResponse {
   result_path?: string
   chart_data?: string
   backtest_result: BacktestResult
+  source?: 'manual' | 'optimized' // Add source field
 }
 
 // Health Check Types

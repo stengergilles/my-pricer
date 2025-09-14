@@ -213,7 +213,9 @@ def run_single_backtest(args, config):
     if results:
         display_results(results, params)
         # Print results in a machine-readable format for the optimizer
-        print(f"OPTIMIZER_RESULTS:{json.dumps(convert_numpy_types(results))}")
+        results_with_source = convert_numpy_types(results)
+        results_with_source['source'] = args.source
+        print(f"OPTIMIZER_RESULTS:{json.dumps(results_with_source)}")
     else:
         logging.info("No profitable parameters found.")
 
@@ -240,6 +242,7 @@ if __name__ == "__main__":
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument('--param-set', help=f"Run in search mode with a predefined parameter set. Available: {', '.join(available_param_sets)}")
     group.add_argument('--single-run', action='store_true', help='Run a single backtest with the specified parameters.')
+    parser.add_argument('--source', type=str, default='manual', help='Source of the backtest (e.g., "manual", "optimized").')
 
     # --- Search Mode Arguments ---
     parser.add_argument('--num-samples', type=int, default=1000, help='Number of random samples for parameter search.')

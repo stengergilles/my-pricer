@@ -20,7 +20,8 @@ class ResultManager:
         self.config = config
         self.results_dir = self.config.RESULTS_DIR
         os.makedirs(self.results_dir, exist_ok=True)
-        logger.info(f"ResultManager initialized. Results directory: {self.results_dir}")
+        self.logger = logging.getLogger(__name__) # Add this line
+        self.logger.info(f"ResultManager initialized. Results directory: {self.results_dir}")
     
     def save_analysis_result(self, crypto_id: str, result_data: Dict[str, Any]) -> str:
         logger.info(f"Attempting to save analysis result for crypto_id: {crypto_id}")
@@ -111,6 +112,7 @@ class ResultManager:
             pattern = "backtest_*.json"
         
         files = glob.glob(os.path.join(self.results_dir, pattern))
+        self.logger.debug(f"get_backtest_history: Searching for pattern '{pattern}'. Found files: {files}")
         files.sort(reverse=True)  # Most recent first
         
         results = []
@@ -120,8 +122,9 @@ class ResultManager:
                     result = json.load(f)
                     result['file_path'] = filepath
                     results.append(result)
+                    self.logger.debug(f"get_backtest_history: Successfully loaded {filepath}. Content: {result}")
             except Exception as e:
-                print(f"Error loading {filepath}: {e}")
+                self.logger.error(f"get_backtest_history: Error loading {filepath}: {e}")
         
         return results
     

@@ -263,7 +263,8 @@ class TradingEngine:
                 'strategy': strategy_name,
                 'backtest_id': self._generate_backtest_id(),
                 'timestamp': datetime.now().isoformat(),
-                'engine_version': '2.0.0'
+                'engine_version': '2.0.0',
+                'source': 'manual' # Add source for manual backtests
             }
             
             # Save result if requested
@@ -464,28 +465,23 @@ class TradingEngine:
         self.logger.info(f"Starting analysis for {crypto_id}")
         
         try:
-            # If no strategy specified, use best performing strategy for this crypto
-            if not strategy_name:
-                results = self.get_all_results()
-                crypto_results = [r for r in results if r.get('crypto') == crypto_id]
-                if crypto_results:
-                    best_result = max(crypto_results, key=lambda x: x.get('best_value', -999))
-                    strategy_name = best_result.get('strategy') or 'EMA_Only'
-                else:
-                    strategy_name = 'EMA_Only'  # Default strategy
-            
             # Use custom params or load optimized params
             if custom_params:
                 parameters = custom_params
-            else:
+                # If custom_params are provided, strategy_name must be provided as well
                 if not strategy_name:
-                    # This path should not be taken given the logic above, but it satisfies the type checker
-                    raise ValueError("Strategy name could not be determined.")
-                opt_result = self.get_optimization_results(crypto_id, strategy_name)
-                if opt_result and opt_result.get('best_params'):
-                    parameters = opt_result['best_params']
+                    raise ValueError("strategy_name is required when custom_params are provided.")
+            else:
+                # If no custom params, try to load optimized params for the given strategy
+                if strategy_name:
+                    opt_result = self.get_optimization_results(crypto_id, strategy_name)
+                    if opt_result and opt_result.get('best_params'):
+                        parameters = opt_result['best_params']
+                    else:
+                        parameters = self.get_default_parameters(strategy_name)
                 else:
-                    parameters = self.get_default_parameters(strategy_name)
+                    # If no strategy_name and no custom_params, parameters will be determined later
+                    parameters = {}
             
             # Check for existing analysis result (already implemented)
             existing_analyses = self.result_manager.get_analysis_history(crypto_id=crypto_id)
@@ -508,54 +504,81 @@ class TradingEngine:
                     self.logger.info(f"Found existing analysis for {crypto_id} with strategy {strategy_name}. Returning existing result.")
                     return existing_analysis
 
-            # If no existing analysis, search for the most profitable backtest result
-            optimization_history = self.result_manager.get_optimization_history(crypto_id=crypto_id, strategy_name=strategy_name)
-            backtest_history = self.result_manager.get_backtest_history(crypto_id=crypto_id, strategy_name=strategy_name)
-            
-            # Combine optimization and backtest results
-            all_results = optimization_history + backtest_history
-            
-            most_profitable_backtest = None
-            highest_profit = -1000
+            # 1. Find the youngest optimized backtest result
+            optimized_results = self.result_manager.get_optimization_history(crypto_id=crypto_id, strategy_name=strategy_name if strategy_name else None)
+            youngest_optimized_backtest = None
+            latest_optimized_timestamp = datetime.min
 
-            for result in all_results:
-                # Handle different result structures
-                if 'backtest_result' in result:
-                    backtest_data = result.get('backtest_result')
-                else:
-                    backtest_data = result
+            for res in optimized_results:
+                res_timestamp_str = res.get('timestamp')
+                if res_timestamp_str:
+                    try:
+                        res_timestamp = datetime.fromisoformat(res_timestamp_str)
+                        if res_timestamp > latest_optimized_timestamp:
+                            latest_optimized_timestamp = res_timestamp
+                            youngest_optimized_backtest = res
+                    except ValueError:
+                        self.logger.warning(f"Invalid timestamp format in optimized result: {res_timestamp_str}")
 
-                if backtest_data:
-                    profit = backtest_data.get('total_profit_percentage', -1000)
-                    if profit > highest_profit:
-                        highest_profit = profit
-                        most_profitable_backtest = result
+            result_for_analysis = None
 
-            if not most_profitable_backtest:
+            if youngest_optimized_backtest:
+                self.logger.debug(f"Youngest optimized backtest selected: {youngest_optimized_backtest}")
+                result_for_analysis = youngest_optimized_backtest
+            else:
+                # 2. If no optimized, find the youngest manual backtest result
+                manual_backtest_results = self.result_manager.get_backtest_history(crypto_id=crypto_id, strategy_name=strategy_name if strategy_name else None)
+                youngest_manual_backtest = None
+                latest_manual_timestamp = datetime.min
+
+                for res in manual_backtest_results:
+                    res_timestamp_str = res.get('timestamp')
+                    if res_timestamp_str:
+                        try:
+                            res_timestamp = datetime.fromisoformat(res_timestamp_str)
+                            if res_timestamp > latest_manual_timestamp:
+                                latest_manual_timestamp = res_timestamp
+                                youngest_manual_backtest = res
+                        except ValueError:
+                            self.logger.warning(f"Invalid timestamp format in manual backtest result: {res_timestamp_str}")
+
+                if youngest_manual_backtest:
+                    self.logger.debug(f"Youngest manual backtest selected: {youngest_manual_backtest}")
+                    result_for_analysis = youngest_manual_backtest
+
+            # 3. If neither exist, handle no backtest message
+            if not result_for_analysis:
                 self.logger.warning(f"No existing backtest found for {crypto_id} with strategy {strategy_name}. Proceeding with analysis without backtest data.")
-                result = {
+                result_for_analysis = {
                     'backtest_result': None,
                     'final_position': 0,
                 }
-            else:
-                result = most_profitable_backtest
-            self.logger.info(f"Using existing backtest result for analysis: {result}")
-            self.logger.info(f"Result from run_backtest: {result}")
-            
+
+            backtest_result_data = None
+            if result_for_analysis and (result_for_analysis.get('backtest_result') is not None or result_for_analysis.get('total_profit_percentage') is not None):
+                # Determine the actual backtest data, which might be nested
+                actual_backtest_data = result_for_analysis.get('backtest_result', result_for_analysis)
+
+                backtest_result_data = {
+                    'total_profit_percentage': actual_backtest_data.get('total_profit_percentage'),
+                    'total_trades': actual_backtest_data.get('total_trades'),
+                    'win_rate': actual_backtest_data.get('win_rate'),
+                    'source': actual_backtest_data.get('source', result_for_analysis.get('source')),
+                    'timestamp': result_for_analysis.get('timestamp') # Add timestamp here
+                }
+
+            self.logger.debug(f"Backtest result data for analysis: {backtest_result_data}")
+
             # Enhance with analysis metadata
             analysis_result = {
                 'analysis_id': self._generate_analysis_id(),
                 'crypto_id': crypto_id,  # Explicitly add crypto_id
                 'analysis_type': 'backtest_analysis',
-                'strategy_used': strategy_name,
+                'strategy_used': result_for_analysis.get('strategy') if result_for_analysis else 'Unknown',
                 'parameters_source': 'custom' if custom_params else 'optimized',
                 'timeframe_days': self._timeframe_to_days(timeframe),
                 'analysis_timestamp': datetime.now().isoformat(),
-                'backtest_result': result.get('backtest_result', { # Use existing backtest_result if present
-                    'total_profit_percentage': result.get('total_profit_percentage'),
-                    'total_trades': result.get('total_trades'),
-                    'win_rate': result.get('win_rate')
-                })
+                'backtest_result': backtest_result_data
             }
 
             # Add current price
@@ -566,7 +589,7 @@ class TradingEngine:
                 raise ValueError(f"Could not retrieve current price for {crypto_id} from external service.")
 
             # Add current signal based on final position from backtest
-            final_position = result.get('final_position', 0) # 0: None, 1: Long, -1: Short
+            final_position = result_for_analysis.get('final_position', 0) # 0: None, 1: Long, -1: Short
             if final_position == 1:
                 analysis_result['current_signal'] = 'LONG'
             elif final_position == -1:
