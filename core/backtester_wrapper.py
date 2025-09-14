@@ -298,13 +298,13 @@ class BacktesterWrapper:
         # Result is already a dictionary from Cython
         formatted_result = {
             'crypto': crypto,
-            'strategy': strategy,
             'parameters': parameters,
             'success': True,
             'timestamp': datetime.now().isoformat(),
             'timeframe': timeframe # Add timeframe here
         }
         formatted_result.update(result)
+        formatted_result['strategy'] = strategy # Ensure strategy is set from argument
         return formatted_result
     
     def _mock_backtest_result(self, 

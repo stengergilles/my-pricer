@@ -90,6 +90,10 @@ export const AnalysisResultDisplay = ({
   } = result;
 
   const uniqueStrategies = backtestHistory.reduce((acc, backtest) => {
+    if (!backtest.strategy) {
+      console.error('Backtest result missing strategy name:', backtest);
+      return acc; // Skip this entry
+    }
     if (!acc[backtest.strategy] || (backtest.backtest_result?.total_profit_percentage ?? 0) > (acc[backtest.strategy].backtest_result?.total_profit_percentage ?? 0)) {
       acc[backtest.strategy] = backtest;
     }
@@ -163,7 +167,7 @@ export const AnalysisResultDisplay = ({
                         >
                           {bestBacktests.map((backtest) => (
                             <MenuItem key={backtest.backtest_id} value={backtest.backtest_id}>
-                              {backtest.strategy}
+                              {backtest.strategy || 'Error: Strategy Missing'}
                             </MenuItem>
                           ))}
                         </Select>
