@@ -44,6 +44,7 @@ Type=simple
 User=$SERVICE_USER
 WorkingDirectory=$DEPLOY_DIR/web/backend
 EnvironmentFile=$DEPLOY_DIR/web/backend/.env
+Environment=PYTHONPATH=$DEPLOY_DIR
 ExecStart=$DEPLOY_DIR/venv/bin/python app.py
 Restart=always
 RestartSec=10
