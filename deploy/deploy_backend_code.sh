@@ -23,7 +23,7 @@ sudo rsync -av --delete \
     --exclude '*.pyc' \
     --exclude '*.log' \
     --exclude '*.coverage' \
-    --exclude '.env' \
+    --exclude 'web/backend/.env' \
     --exclude 'venv/' \
     "$SOURCE_DIR/" "$DEST_DIR"
 
