@@ -17,18 +17,13 @@ sudo useradd -r -s /bin/false $SERVICE_USER 2>/dev/null || true
 sudo mkdir -p $DEPLOY_DIR
 sudo chown $SERVICE_USER:$SERVICE_USER $DEPLOY_DIR
 
-# Copy application files
-cd ..
-sudo cp -r setup.py backtester_cython.pyx web requirements.txt core lines.py indicators.py data.py magnitude.py chart.py pricer.py manage_results_v2.py pricer_compatibility_fix.py strategy.py backtester.py optimize_bayesian_v2.py volatile_crypto_optimizer_v2.py get_volatile_cryptos_v2.py config.py $DEPLOY_DIR/
-sudo mkdir -p $DEPLOY_DIR/backtest_results
-sudo chown -R $SERVICE_USER:$SERVICE_USER $DEPLOY_DIR
+# Call the dedicated code deployment script
+sudo "$(dirname "$0")"/deploy_backend_code.sh
 
 # Link backend environment file if it doesn't exist
 if [ ! -e "$DEPLOY_DIR/web/backend/.env" ]; then
     sudo ln -s /etc/my-pricer/secrets/backend.env $DEPLOY_DIR/web/backend/.env
 fi
-
-cd -
 
 # Install Python dependencies
 cd $DEPLOY_DIR
@@ -36,7 +31,6 @@ sudo -u $SERVICE_USER python$PYTHON_VERSION -m venv venv
 sudo -u $SERVICE_USER ./venv/bin/pip install -r requirements.txt
 
 # Build cython module
-
 sudo -u $SERVICE_USER ./venv/bin/python setup.py build_ext --inplace
 
 # Create systemd service
@@ -48,11 +42,9 @@ After=network.target
 [Service]
 Type=simple
 User=$SERVICE_USER
-WorkingDirectory=$DEPLOY_DIR
-Environment=PATH=$DEPLOY_DIR/venv/bin
-Environment=API_PORT=5001
-Environment=CORS_ORIGINS=https://my-pricer.gillesstenger.fr
-ExecStart=$DEPLOY_DIR/venv/bin/python $DEPLOY_DIR/web/backend/app.py
+WorkingDirectory=$DEPLOY_DIR/web/backend
+EnvironmentFile=$DEPLOY_DIR/web/backend/.env
+ExecStart=$DEPLOY_DIR/venv/bin/python app.py
 Restart=always
 RestartSec=10
 

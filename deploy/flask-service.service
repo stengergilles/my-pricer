@@ -7,7 +7,7 @@ Type=simple
 User=www-data
 WorkingDirectory=$DEPLOY_DIR/web/backend
 EnvironmentFile=/etc/my-pricer/secrets/backend.env
-ExecStart=/usr/bin/python3 app.py
+ExecStart=/opt/crypto-pricer/venv/bin/python app.py
 Restart=always
 RestartSec=3
 

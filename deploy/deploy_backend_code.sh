@@ -1,12 +1,5 @@
 #!/bin/bash
 
-# Copy backend code to production
-sudo rsync -av --delete web/backend/ /opt/crypto-pricer/backend/
-sudo rsync -av --delete core/ /opt/crypto-pricer/core/
-
-# Restart production service
-#!/bin/bash
-
 # Determine the absolute path to the project root dynamically
 # This script is in deploy/, so project root is one level up
 SOURCE_DIR="$(cd "$(dirname "$0")" && pwd -P)/.."
@@ -33,5 +26,5 @@ sudo rsync -av --delete \
     --exclude '.env' \
     "$SOURCE_DIR/" "$DEST_DIR"
 
-# Restart production service
-sudo systemctl restart crypto-pricer 
+# Restart production service (this will be called by deploy_backend.sh, so it's commented out here)
+# sudo systemctl restart crypto-pricer
