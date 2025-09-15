@@ -52,6 +52,8 @@ class Config:
         # Paper Trading configuration
         self.PAPER_TRADING_TOTAL_CAPITAL = float(os.getenv('PAPER_TRADING_TOTAL_CAPITAL', 470))
         self.PAPER_TRADING_MIN_POSITION_VALUE = float(os.getenv('PAPER_TRADING_MIN_POSITION_VALUE', 50))
+        self.PAPER_TRADING_ANALYSIS_INTERVAL_MINUTES = int(os.getenv('PAPER_TRADING_ANALYSIS_INTERVAL_MINUTES', 30))
+        self.PAPER_TRADING_MONITORING_INTERVAL_SECONDS = int(os.getenv('PAPER_TRADING_MONITORING_INTERVAL_SECONDS', 60))
         
         # Ensure directories exist
         self._create_directories()
