@@ -51,6 +51,7 @@ def get_crypto_data(crypto_id, days, config):
     logging.info(f"Cache miss or stale for {crypto_id} ({days} days, {granularity_label}). Fetching from CoinGecko.")
     url = f"https://api.coingecko.com/api/v3/coins/{crypto_id}/ohlc?vs_currency=usd&days={days}"
     try:
+        time.sleep(1.11) # Enforce CoinGecko API rate limit
         response = requests.get(url)
         response.raise_for_status()
         data = response.json()
@@ -101,6 +102,7 @@ def get_current_price(crypto_id):
     """Fetches the current price of a crypto from CoinGecko."""
     url = f"https://api.coingecko.com/api/v3/simple/price?ids={crypto_id}&vs_currencies=usd"
     try:
+        time.sleep(1.11) # Enforce CoinGecko API rate limit
         response = requests.get(url)
         response.raise_for_status()
         data = response.json()

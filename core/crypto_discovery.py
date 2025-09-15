@@ -94,7 +94,7 @@ class CryptoDiscovery:
 
     def update_exchanges_for_cached_cryptos(self,
                                           crypto_ids_to_update: Optional[List[str]] = None,
-                                          delay_seconds: int = 15,
+                                          delay_seconds: float = 1.11,
                                           cache_hours: int = 24,
                                           force_refresh: bool = False) -> None:
         """
