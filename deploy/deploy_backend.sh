@@ -18,6 +18,10 @@ sudo "$(dirname "$0")"/deploy_backend_code.sh
 # Create deployment directory
 sudo chown -R $SERVICE_USER:$SERVICE_USER $DEPLOY_DIR
 
+# Copy the master startup script
+sudo cp "$(dirname "$0")/start.sh" "$DEPLOY_DIR/start.sh"
+sudo chmod +x "$DEPLOY_DIR/start.sh"
+sudo chown $SERVICE_USER:$SERVICE_USER "$DEPLOY_DIR/start.sh"
 
 # Link backend environment file if it doesn't exist
 if [ ! -e "$DEPLOY_DIR/web/backend/.env" ]; then
@@ -32,7 +36,7 @@ sudo -u $SERVICE_USER ./venv/bin/pip install -r requirements.txt
 # Build cython module
 sudo -u $SERVICE_USER ./venv/bin/python setup.py build_ext --inplace
 
-# Create systemd service
+# Create a single systemd service for the entire application
 sudo tee /etc/systemd/system/$APP_NAME.service > /dev/null <<EOF
 [Unit]
 Description=Crypto Trading System Backend
@@ -41,12 +45,8 @@ After=network.target
 [Service]
 Type=simple
 User=$SERVICE_USER
-WorkingDirectory=$DEPLOY_DIR/web/backend
-EnvironmentFile=$DEPLOY_DIR/web/backend/.env
-Environment=PYTHONPATH=$DEPLOY_DIR
-Environment=PATH=$DEPLOY_DIR/venv/bin:$PATH
-Environment=API_PORT=5001
-ExecStart=$DEPLOY_DIR/venv/bin/gunicorn -w 4 -b 0.0.0.0:5001 app:app
+WorkingDirectory=$DEPLOY_DIR
+ExecStart=$DEPLOY_DIR/start.sh
 Restart=always
 RestartSec=10
 
@@ -54,10 +54,17 @@ RestartSec=10
 WantedBy=multi-user.target
 EOF
 
-# Enable and start service
+# Stop old services if they exist
+sudo systemctl stop $APP_NAME-scheduler 2>/dev/null || true
+sudo systemctl stop $APP_NAME-paper-trader 2>/dev/null || true
+sudo systemctl disable $APP_NAME-scheduler 2>/dev/null || true
+sudo systemctl disable $APP_NAME-paper-trader 2>/dev/null || true
+
+
+# Enable and start the new single service
 sudo systemctl daemon-reload
 sudo systemctl enable $APP_NAME
-sudo systemctl start $APP_NAME
+sudo systemctl restart $APP_NAME
 
 echo "Backend deployed successfully to $DEPLOY_DIR"
 echo "Service status: $(sudo systemctl is-active $APP_NAME)"

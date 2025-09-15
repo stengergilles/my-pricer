@@ -371,7 +371,6 @@ class PaperTradingEngine:
 
 def run_paper_trader():
     config = Config()
-    setup_logging(config)
     logger = logging.getLogger(__name__)
 
     engine = PaperTradingEngine(config)

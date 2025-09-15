@@ -46,7 +46,7 @@ init_scheduler(config)
 from core.logger_config import setup_logging
 
 # Set up logging
-setup_logging(config)
+setup_logging(config, component_name='flask_app')
 logger = logging.getLogger(__name__)
 
 logger.info(f"Scheduler DB URI: {config.get_db_uri()}")
@@ -226,12 +226,6 @@ if __name__ == '__main__':
     logger.info(f"Auth0 Domain: {os.getenv('AUTH0_DOMAIN')}")
     logger.info(f"API Audience: {os.getenv('AUTH0_API_AUDIENCE')}")
 
-    # Start the paper trading engine in a background thread
-    import threading
-    engine_thread = threading.Thread(target=paper_trading_engine.run, daemon=True)
-    engine_thread.start()
-    logger.info("Paper trading engine started in background thread.")
-    
     app.run(
         host=os.getenv('API_HOST', 'localhost'),
         port=int(os.getenv('API_PORT', 5000)),

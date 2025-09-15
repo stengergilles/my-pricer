@@ -6,10 +6,11 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).parent.parent
 LOG_DIR = PROJECT_ROOT / "data" / "logs"
 
-def LOG_FILE():
-    return LOG_DIR / 'app.log'
+def LOG_FILE(component_name='app'):
+    """Returns the log file path for a given component."""
+    return LOG_DIR / f'{component_name}.log'
 
-def setup_logging(config=None):
+def setup_logging(config=None, component_name='app'):
     """Configures logging to write to a file in data/logs."""
     os.makedirs(LOG_DIR, exist_ok=True)
     
@@ -21,7 +22,7 @@ def setup_logging(config=None):
         level=logging.DEBUG,
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
         handlers=[
-            logging.FileHandler(LOG_FILE()),
+            logging.FileHandler(LOG_FILE(component_name)),
             logging.StreamHandler() # Also log to console
         ]
     )
