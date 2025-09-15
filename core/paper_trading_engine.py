@@ -207,6 +207,8 @@ class PaperTradingEngine:
                 logging.error(f"No data for {crypto_id}. Skipping.")
                 continue
 
+            time.sleep(self.config.DATA_FETCH_DELAY_SECONDS)
+
             # Get signal
             strategy_config = strategy_configs[strategy_name]
             indicators = Indicators()
