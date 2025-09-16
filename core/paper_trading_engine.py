@@ -112,14 +112,19 @@ class PaperTradingEngine:
         else:
             logging.info(f"No trade executed for {crypto_id}. Signal: {signal}")
 
+    def _is_trading_hours(self) -> bool:
+        now = datetime.now().time()
+        start_time = time(7, 0, 0)  # 7 AM
+        end_time = time(19, 0, 0)  # 7 PM
+        return start_time <= now <= end_time
+
     def _run_scheduled_tasks(self):
         logging.info("Paper trading scheduled tasks runner started.")
-        # Run analysis task once at the beginning
-        self.analysis_task()
-
-        # Schedule tasks
+        
+        # Schedule tasks once
         schedule.every(self.config.PAPER_TRADING_ANALYSIS_INTERVAL_MINUTES).minutes.do(self.analysis_task)
         schedule.every(self.config.PAPER_TRADING_MONITORING_INTERVAL_SECONDS).seconds.do(self.price_monitoring_task)
+        schedule.every().day.at("19:00").do(self._close_all_positions)
 
         while self._running:
             schedule.run_pending()
@@ -131,6 +136,17 @@ class PaperTradingEngine:
         volatile_cryptos_data = self.crypto_discovery.get_volatile_cryptos()
         # Extract just the IDs (symbols) for now
         return [crypto['id'] for crypto in volatile_cryptos_data]
+
+    def _close_all_positions(self):
+        logging.info("--- Closing all open positions at 7 PM ---")
+        positions_to_close = self.open_positions[:]
+        for position in positions_to_close:
+            current_price = get_current_price(position['crypto_id'])
+            if current_price:
+                self._close_position(position, current_price, "end-of-day-close")
+            else:
+                logging.warning(f"Could not fetch current price for {position['crypto_id']} to close position at end of day.")
+        logging.info("All open positions closed.")
 
     
 
@@ -216,6 +232,10 @@ class PaperTradingEngine:
         return "HOLD"
 
     def analysis_task(self):
+        if not self._is_trading_hours():
+            logging.debug("Skipping analysis task: outside trading hours.")
+            return
+
         logging.info("--- Running Analysis Task ---")
         
         volatile_cryptos = self._get_volatile_cryptos()
@@ -285,6 +305,10 @@ class PaperTradingEngine:
 
 
     def price_monitoring_task(self):
+        if not self._is_trading_hours():
+            logging.debug("Skipping price monitoring task: outside trading hours.")
+            return
+
         if not self.open_positions:
             return
 
