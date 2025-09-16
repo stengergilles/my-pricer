@@ -27,6 +27,7 @@ class PaperTradingEngine:
         self.open_positions = []
         self.trade_history = []
         self.portfolio_value = self.total_capital
+        self.analysis_history = []
         
         # Ensure results directory exists
         os.makedirs(self.config.RESULTS_DIR, exist_ok=True)
@@ -219,6 +220,15 @@ class PaperTradingEngine:
             signal = self._get_trade_signal_for_latest(df, strategy, params, open_position_signal=open_position_signal_type)
 
             logging.info(f"Signal for {crypto_id}: {signal}")
+
+            self.analysis_history.append({
+                'crypto_id': crypto_id,
+                'signal': signal,
+                'timestamp': datetime.now().isoformat()
+            })
+
+            # Limit the size of the analysis history
+            self.analysis_history = self.analysis_history[-100:]
 
             # Execute trade based on signal
             if signal != "HOLD":

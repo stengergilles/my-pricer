@@ -31,6 +31,9 @@ def setup_logging(config=None, component_name='app'):
     logging.getLogger('auth.middleware').setLevel(logging.DEBUG)
     logging.getLogger('web.backend.auth.middleware').setLevel(logging.DEBUG)
 
+    # Configure apscheduler logging
+    logging.getLogger('apscheduler').setLevel(logging.INFO)
+
 def setup_job_logging(job_id: str):
     """Creates a new logger for a given job ID and adds a file handler to it."""
     os.makedirs(LOG_DIR, exist_ok=True)

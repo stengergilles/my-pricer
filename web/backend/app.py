@@ -199,16 +199,22 @@ def serve_frontend(path):
             'frontend_url': os.getenv('FRONTEND_URL', 'http://localhost:3000')
         })
 
+
 if __name__ == '__main__':
     import signal
     import sys
 
     def signal_handler(sig, frame):
-        logger.info("SIGINT received. Shutting down scheduler...")
+        logger.info("SIGINT received. Shutting down services...")
         try:
+            # Stop paper trader
+            if paper_trading_engine and paper_trading_engine.is_running():
+                paper_trading_engine.stop()
+                logger.info("Paper trading engine stopped.")
+
+            # Stop scheduler
             scheduler_instance = get_scheduler()
             if scheduler_instance:
-                # Stop all running jobs first
                 jobs = scheduler_instance.get_jobs()
                 for job in jobs:
                     logger.info(f"Requesting stop for job {job.id}")
@@ -217,12 +223,46 @@ if __name__ == '__main__':
                 scheduler_instance.shutdown()
                 logger.info("Scheduler shut down gracefully.")
         except Exception as e:
-            logger.error(f"Error during scheduler shutdown: {e}")
+            logger.error(f"Error during service shutdown: {e}")
         sys.exit(0)
 
     signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
 
-    logger.info("Starting Crypto Trading Backend...")
+    logger.info("--- Starting Crypto Trading Backend Services ---")
+    
+    # Verify and start scheduler
+    try:
+        scheduler_instance = get_scheduler()
+        if scheduler_instance and not scheduler_instance.scheduler.running:
+            logger.info("Scheduler is not running, starting it now...")
+            scheduler_instance.start()
+            if scheduler_instance.scheduler.running:
+                logger.info("✅ Scheduler started successfully.")
+            else:
+                logger.error("❌ Scheduler failed to start.")
+        elif scheduler_instance:
+            logger.info("✅ Scheduler is already running.")
+        else:
+            logger.error("❌ Could not get scheduler instance.")
+    except Exception as e:
+        logger.error(f"❌ Failed to get or start scheduler: {e}")
+
+    # Start Paper Trading Engine
+    try:
+        if os.getenv('ENABLE_PAPER_TRADER', 'true').lower() == 'true':
+            logger.info("Starting Paper Trading Engine...")
+            paper_trading_engine.start()
+            if paper_trading_engine.is_running():
+                logger.info("✅ Paper Trading Engine started successfully.")
+            else:
+                logger.error("❌ Paper Trading Engine failed to start.")
+        else:
+            logger.info("Paper Trading Engine is disabled via environment variable.")
+    except Exception as e:
+        logger.error(f"❌ Failed to start Paper Trading Engine: {e}")
+
+    logger.info("--- Backend services started, launching Flask app ---")
     logger.info(f"Auth0 Domain: {os.getenv('AUTH0_DOMAIN')}")
     logger.info(f"API Audience: {os.getenv('AUTH0_API_AUDIENCE')}")
 

@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Paper, Typography, Grid, CircularProgress, Alert, Box } from '@mui/material';
+import { Paper, Typography, Grid, CircularProgress, Alert, Box, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material';
 import { useApiClient } from '../hooks/useApiClient.ts';
 
 const PaperTradingStatus = () => {
@@ -58,6 +58,60 @@ const PaperTradingStatus = () => {
           </Typography>
         </Grid>
       </Grid>
+
+      {data.analysis_history && data.analysis_history.length > 0 && (
+        <Box sx={{ mt: 2 }}>
+          <Typography variant="h6">Analysis and Positions</Typography>
+          <TableContainer component={Paper}>
+            <Table sx={{ minWidth: 650 }} aria-label="simple table">
+              <TableHead>
+                <TableRow>
+                  <TableCell>Crypto</TableCell>
+                  <TableCell align="right">Signal</TableCell>
+                  <TableCell align="right">Timestamp</TableCell>
+                  <TableCell align="right">Entry Price</TableCell>
+                  <TableCell align="right">Current Price</TableCell>
+                  <TableCell align="right">Size (USD)</TableCell>
+                  <TableCell align="right">Current Value (USD)</TableCell>
+                  <TableCell align="right">PnL (USD)</TableCell>
+                  <TableCell align="right">Opened Date</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {data.analysis_history.map((analysis) => {
+                  const openPosition = data.open_positions.find(p => p.crypto_id === analysis.crypto_id);
+                  return (
+                    <TableRow
+                      key={analysis.crypto_id}
+                      sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
+                    >
+                      <TableCell component="th" scope="row">
+                        {analysis.crypto_id}
+                      </TableCell>
+                      <TableCell align="right">{analysis.signal}</TableCell>
+                      <TableCell align="right">{new Date(analysis.timestamp).toLocaleString()}</TableCell>
+                      {openPosition ? (
+                        <>
+                          <TableCell align="right">${openPosition.entry_price.toFixed(2)}</TableCell>
+                          <TableCell align="right">${openPosition.current_price.toFixed(2)}</TableCell>
+                          <TableCell align="right">${openPosition.size_usd.toFixed(2)}</TableCell>
+                          <TableCell align="right">${openPosition.current_value_usd.toFixed(2)}</TableCell>
+                          <TableCell align="right" sx={{ color: openPosition.pnl_usd >= 0 ? 'success.main' : 'error.main' }}>
+                            ${openPosition.pnl_usd.toFixed(2)}
+                          </TableCell>
+                          <TableCell align="right">{new Date(openPosition.timestamp).toLocaleString()}</TableCell>
+                        </>
+                      ) : (
+                        <TableCell colSpan={6} />
+                      )}
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </Box>
+      )}
     </Paper>
   );
 };

@@ -48,7 +48,8 @@ class PaperTradingAPI(Resource):
                 'trade_history': self.paper_trading_engine.trade_history,
                 'max_concurrent_positions': self.paper_trading_engine.max_concurrent_positions,
                 'capital_per_trade': self.paper_trading_engine.capital_per_trade,
-                'initial_capital': self.paper_trading_engine.total_capital
+                'initial_capital': self.paper_trading_engine.total_capital,
+                'analysis_history': self.paper_trading_engine.analysis_history
             }
             return jsonify(status)
         except Exception as e:
