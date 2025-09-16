@@ -42,6 +42,7 @@ class PaperTradingAPI(Resource):
                 open_positions_with_current_value.append(position_data)
 
             status = {
+                'is_running': self.paper_trading_engine.is_running(),
                 'monitored_cryptos': self.paper_trading_engine._get_volatile_cryptos(),
                 'open_positions': open_positions_with_current_value,
                 'portfolio_value': self.paper_trading_engine.portfolio_value or 0,

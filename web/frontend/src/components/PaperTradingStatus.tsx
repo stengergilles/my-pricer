@@ -33,9 +33,23 @@ const PaperTradingStatus = () => {
   return (
     <Paper elevation={3} sx={{ p: 2, mb: 2 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-        <Typography variant="h6">
-          Paper Trading Status
-        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+          <Typography variant="h6" sx={{ mr: 1 }}>
+            Paper Trading Status
+          </Typography>
+          <Box
+            sx={{
+              width: 12,
+              height: 12,
+              borderRadius: '50%',
+              bgcolor: data.is_running ? 'success.main' : 'error.main',
+              mr: 0.5,
+            }}
+          />
+          <Typography variant="subtitle2" color="text.secondary">
+            {data.is_running ? 'Running' : 'Stopped'}
+          </Typography>
+        </Box>
         {dataUpdatedAt && (
           <Typography variant="caption" color="text.secondary">
             Last updated: {new Date(dataUpdatedAt).toLocaleTimeString()}
