@@ -33,7 +33,7 @@ const PaperTradingStatus = () => {
   return (
     <Paper elevation={3} sx={{ p: 2, mb: 2 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', flexGrow: 1 }}>
           <Typography variant="h6" sx={{ mr: 1 }}>
             Paper Trading Status
           </Typography>
