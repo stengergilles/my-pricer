@@ -188,3 +188,30 @@ class ResultManager:
                 print(f"Error loading {filepath}: {e}")
         
         return None
+
+    def get_profitable_backtest_results(self, crypto_id: str, fiat_id: str) -> List[Dict[str, Any]]:
+        """
+        Retrieves all profitable backtest results for a given crypto and fiat pair.
+        A backtest result is considered profitable if its 'net_profit' is positive.
+        """
+        crypto_id = crypto_id.replace(' ', '-').lower()
+        fiat_id = fiat_id.replace(' ', '-').lower() # Assuming fiat_id is also part of the filename pattern if needed
+
+        # Get all backtest history for the crypto_id
+        # The pattern needs to be flexible enough to catch all strategies for the crypto_id
+        pattern = f"backtest_{crypto_id}_*.json"
+        files = glob.glob(os.path.join(self.results_dir, pattern))
+        
+        profitable_results = []
+        for filepath in files:
+            try:
+                with open(filepath, 'r') as f:
+                    result = json.load(f)
+                    # Check if the result is for the correct fiat_id (if applicable in the result content)
+                    # And if it's profitable
+                    if result.get('net_profit', 0) > 0: # Assuming 'net_profit' is a key in the result
+                        profitable_results.append(result)
+            except Exception as e:
+                self.logger.error(f"Error loading backtest result from {filepath}: {e}")
+        
+        return profitable_results

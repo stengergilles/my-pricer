@@ -132,37 +132,34 @@ class PaperTradingEngine:
         # Extract just the IDs (symbols) for now
         return [crypto['id'] for crypto in volatile_cryptos_data]
 
-    def _get_best_strategy_and_params(self, crypto_id):
-        best_strategy_name = None
-        best_params = None
-        highest_profit = -float('inf')
+    
 
+    def _get_profitable_strategies_for_crypto(self, crypto_id: str) -> List[Strategy]:
+        profitable_strategies = []
         available_strategies = self.trading_engine.get_strategies()
-        
+
         for strategy_info in available_strategies:
             strategy_name = strategy_info['name']
-            
-            # Get the full optimization result to check profit
             optimization_result = self.trading_engine.get_optimization_results(crypto_id, strategy_name)
-            
+
             if optimization_result and optimization_result.get('best_params'):
                 profit = optimization_result.get('backtest_result', {}).get('total_profit_percentage', 0)
-                
-                if profit > highest_profit:
-                    highest_profit = profit
-                    best_strategy_name = strategy_name
-                    best_params = optimization_result['best_params']
+                if profit > 0:
+                    logging.info(f"Found profitable strategy for {crypto_id}: {strategy_name} with profit {profit:.2f}%")
+                    strategy_config = strategy_configs[strategy_name]
+                    indicators = Indicators()
+                    strategy_instance = Strategy(indicators, strategy_config)
+                    strategy_instance.set_params(optimization_result['best_params'])
+                    profitable_strategies.append(strategy_instance)
         
-        if best_strategy_name and best_params:
-            logging.info(f"Found best optimized strategy for {crypto_id}: {best_strategy_name} with profit {highest_profit:.2f}%")
-            return best_strategy_name, best_params
-        
-        logging.warning(f"No best optimized strategy found for {crypto_id}. Skipping.")
-        return None, None
+        if not profitable_strategies:
+            logging.warning(f"No profitable strategies found for {crypto_id}.")
 
-    def _get_trade_signal_for_latest(self, df: pd.DataFrame, strategy: Strategy, params: dict, open_position_signal: str = None):
+        return profitable_strategies
+
+    def _get_trade_signal_for_latest(self, df: pd.DataFrame, strategy: Strategy, open_position_signal: str = None):
         try:
-            long_entry, short_entry, long_exit, short_exit = strategy.generate_signals(df, params)
+            long_entry, short_entry, long_exit, short_exit = strategy.generate_signals(df, strategy.params)
 
             # Prioritize exit signals
             if open_position_signal == "LONG" and not long_exit.empty and long_exit.iloc[-1]:
@@ -181,6 +178,43 @@ class PaperTradingEngine:
             logging.error(f"Error generating trade signal: {e}")
             return "HOLD"
 
+    def _get_aggregated_trade_signal(self, df: pd.DataFrame, profitable_strategies: List[Strategy], open_position_signal: str = None):
+        if not profitable_strategies:
+            return "HOLD"
+
+        buy_signals = 0
+        sell_signals = 0
+        exit_long_signals = 0
+        exit_short_signals = 0
+        
+        for strategy in profitable_strategies:
+            signal = self._get_trade_signal_for_latest(df, strategy, open_position_signal)
+            if signal == "LONG":
+                buy_signals += 1
+            elif signal == "SHORT":
+                sell_signals += 1
+            elif signal == "EXIT_LONG":
+                exit_long_signals += 1
+            elif signal == "EXIT_SHORT":
+                exit_short_signals += 1
+        
+        num_strategies = len(profitable_strategies)
+        majority_threshold = num_strategies / 2
+
+        # Prioritize exit signals
+        if open_position_signal == "LONG" and exit_long_signals > majority_threshold:
+            return "EXIT_LONG"
+        elif open_position_signal == "SHORT" and exit_short_signals > majority_threshold:
+            return "EXIT_SHORT"
+        
+        # Then check entry signals
+        if buy_signals > 0: # Any profitable strategy says buy
+            return "LONG"
+        elif sell_signals > 0: # Any profitable strategy says sell
+            return "SHORT"
+        
+        return "HOLD"
+
     def analysis_task(self):
         logging.info("--- Running Analysis Task ---")
         
@@ -194,8 +228,9 @@ class PaperTradingEngine:
                 logging.info(f"Max concurrent positions reached. Skipping new analysis for {crypto_id}.")
                 continue
 
-            strategy_name, params = self._get_best_strategy_and_params(crypto_id)
-            if not strategy_name or not params:
+            # Get profitable strategies for the crypto
+            profitable_strategies = self._get_profitable_strategies_for_crypto(crypto_id)
+            if not profitable_strategies:
                 continue
 
             # Fetch data (1 day of minute-level data)
@@ -210,16 +245,11 @@ class PaperTradingEngine:
 
             time.sleep(self.config.DATA_FETCH_DELAY_SECONDS)
 
-            # Get signal
-            strategy_config = strategy_configs[strategy_name]
-            indicators = Indicators()
-            strategy = Strategy(indicators, strategy_config)
-            
-            # Pass open_position_signal if there's an open position
+            # Get aggregated signal
             open_position_signal_type = open_position['signal'] if open_position else None
-            signal = self._get_trade_signal_for_latest(df, strategy, params, open_position_signal=open_position_signal_type)
+            signal = self._get_aggregated_trade_signal(df, profitable_strategies, open_position_signal=open_position_signal_type)
 
-            logging.info(f"Signal for {crypto_id}: {signal}")
+            logging.info(f"Aggregated Signal for {crypto_id}: {signal}")
 
             self.analysis_history.append({
                 'crypto_id': crypto_id,
@@ -232,7 +262,12 @@ class PaperTradingEngine:
 
             # Execute trade based on signal
             if signal != "HOLD":
-                self.execute_trade(crypto_id, signal, params)
+                # For execution, we need params. Since we are using multiple strategies,
+                # we can use the params of the first profitable strategy as a representative,
+                # or refine this to be an average/median of params if applicable.
+                # For now, let's use the params of the first profitable strategy.
+                representative_params = profitable_strategies[0].params
+                self.execute_trade(crypto_id, signal, representative_params)
 
     def _open_position(self, crypto_id, signal, params):
         current_price = get_current_price(crypto_id)
