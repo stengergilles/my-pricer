@@ -5,8 +5,33 @@ from datetime import datetime, timedelta
 import os
 import json
 import time
+from functools import wraps
 
 from core.optimizer import CoinGeckoRateLimitError
+
+def retry_on_exception(retries=3, delay=5, backoff=2, exception_to_check=Exception):
+    """
+    A decorator to retry a function call on exception with exponential backoff.
+    Re-raises the exception on failure.
+    """
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            _delay = delay
+            last_exception = None
+            for i in range(retries):
+                try:
+                    return func(*args, **kwargs)
+                except exception_to_check as e:
+                    last_exception = e
+                    logging.warning(f"Caught {e}, retrying in {_delay} seconds... ({i+1}/{retries})")
+                    time.sleep(_delay)
+                    _delay *= backoff
+            logging.error(f"Function {func.__name__} failed after {retries} retries.")
+            if last_exception:
+                raise last_exception
+        return wrapper
+    return decorator
 
 def get_crypto_data(crypto_id, days, config):
     """Fetches OHLC data from CoinGecko, with caching based on implicit granularity."""
@@ -98,15 +123,29 @@ def get_crypto_data_merged(crypto_id, days, config):
 
     return ohlc_df
 
-def get_current_price(crypto_id):
-    """Fetches the current price of a crypto from CoinGecko."""
+@retry_on_exception(retries=3, delay=5, backoff=2, exception_to_check=requests.exceptions.RequestException)
+def get_current_price_from_api(crypto_id):
+    """Fetches the current price of a crypto from CoinGecko with retries."""
     url = f"https://api.coingecko.com/api/v3/simple/price?ids={crypto_id}&vs_currencies=usd"
+    time.sleep(1.11) # Enforce CoinGecko API rate limit
+    response = requests.get(url)
+    response.raise_for_status()
+    data = response.json()
+    return data[crypto_id]['usd']
+
+def get_current_price(crypto_id):
+    """
+    Fetches the current price of a crypto from CoinGecko.
+    Handles rate limiting and other request errors.
+    """
     try:
-        time.sleep(1.11) # Enforce CoinGecko API rate limit
-        response = requests.get(url)
-        response.raise_for_status()
-        data = response.json()
-        return data[crypto_id]['usd']
+        return get_current_price_from_api(crypto_id)
+    except requests.exceptions.HTTPError as e:
+        if e.response.status_code == 429:
+            raise CoinGeckoRateLimitError(f"CoinGecko API rate limit exceeded for {crypto_id}.") from e
+        else:
+            logging.error(f"HTTP Error fetching current price for {crypto_id}: {e}")
+            return None
     except requests.exceptions.RequestException as e:
         logging.error(f"Error fetching current price for {crypto_id}: {e}")
         return None

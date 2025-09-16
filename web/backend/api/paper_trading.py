@@ -44,7 +44,7 @@ class PaperTradingAPI(Resource):
             status = {
                 'monitored_cryptos': self.paper_trading_engine._get_volatile_cryptos(),
                 'open_positions': open_positions_with_current_value,
-                'portfolio_value': self.paper_trading_engine.portfolio_value,
+                'portfolio_value': self.paper_trading_engine.portfolio_value or 0,
                 'trade_history': self.paper_trading_engine.trade_history,
                 'max_concurrent_positions': self.paper_trading_engine.max_concurrent_positions,
                 'capital_per_trade': self.paper_trading_engine.capital_per_trade,

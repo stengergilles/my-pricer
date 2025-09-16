@@ -10,6 +10,31 @@ import time
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Tuple
 import os
+from functools import wraps
+
+def retry_on_exception(retries=3, delay=5, backoff=2, exception_to_check=Exception):
+    """
+    A decorator to retry a function call on exception with exponential backoff.
+    Re-raises the exception on failure.
+    """
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            _delay = delay
+            last_exception = None
+            for i in range(retries):
+                try:
+                    return func(*args, **kwargs)
+                except exception_to_check as e:
+                    last_exception = e
+                    logging.warning(f"Caught {e}, retrying in {_delay} seconds... ({i+1}/{retries})")
+                    time.sleep(_delay)
+                    _delay *= backoff
+            logging.error(f"Function {func.__name__} failed after {retries} retries.")
+            if last_exception:
+                raise last_exception
+        return wrapper
+    return decorator
 
 class CoinGeckoAPIError(Exception):
     """Custom exception for CoinGecko API errors."""
@@ -33,6 +58,13 @@ class CryptoDiscovery:
         # CoinGecko API configuration
         self.base_url = "https://api.coingecko.com/api/v3"
         self.rate_limit_delay = 1.1  # Seconds between API calls
+
+    @retry_on_exception(retries=3, delay=5, backoff=2, exception_to_check=requests.exceptions.RequestException)
+    def _make_api_request(self, url, params=None):
+        time.sleep(self.rate_limit_delay)
+        response = requests.get(url, params=params, timeout=30)
+        response.raise_for_status()
+        return response.json()
         
     def get_volatile_cryptos(self, 
                            limit: int = 100, 
@@ -41,14 +73,6 @@ class CryptoDiscovery:
                            force_refresh: bool = False) -> List[Dict]:
         """
         Fetch volatile cryptocurrencies based on 24h price change.
-        
-        Args:
-            limit: Maximum number of cryptos to fetch
-            min_volatility: Minimum absolute price change percentage
-            cache_hours: Hours to cache results
-            
-        Returns:
-            List of crypto dictionaries with volatility data
         """
         cache_file = os.path.join(self.cache_dir, "volatile_cryptos.json")
         all_cryptos = []
@@ -70,20 +94,18 @@ class CryptoDiscovery:
             }
             
             try:
-                response = requests.get(url, params=params, timeout=30)
-                response.raise_for_status()
-                data = response.json()
-                
+                data = self._make_api_request(url, params=params)
                 all_cryptos = self._process_crypto_data(data)
-                
                 self._save_cache(cache_file, all_cryptos)
-                
                 self.logger.info(f"Found and cached {len(all_cryptos)} cryptos")
                 
-            except requests.exceptions.RequestException as e:
-                self.logger.error(f"Error fetching data from CoinGecko: {e}")
+            except requests.exceptions.HTTPError as e:
                 status_code = e.response.status_code if e.response else None
-                raise CoinGeckoAPIError(f"Failed to fetch data from CoinGecko: {e}", status_code=status_code)
+                if status_code == 429:
+                    raise CoinGeckoAPIError(f"Rate limit exceeded: {e}", status_code=status_code) from e
+                raise CoinGeckoAPIError(f"Failed to fetch data from CoinGecko: {e}", status_code=status_code) from e
+            except requests.exceptions.RequestException as e:
+                raise CoinGeckoAPIError(f"Failed to fetch data from CoinGecko: {e}") from e
 
         volatile_cryptos = [
             crypto for crypto in all_cryptos
@@ -94,17 +116,10 @@ class CryptoDiscovery:
 
     def update_exchanges_for_cached_cryptos(self,
                                           crypto_ids_to_update: Optional[List[str]] = None,
-                                          delay_seconds: float = 1.11,
                                           cache_hours: int = 24,
                                           force_refresh: bool = False) -> None:
         """
         Updates the cached volatile cryptos with exchange information.
-
-        Args:
-            crypto_ids_to_update: A specific list of crypto IDs to update. If None, checks all.
-            delay_seconds: Delay between API calls to avoid rate limiting.
-            cache_hours: The number of hours to consider the cache valid.
-            force_refresh: If True, forces the update even if the cache is valid.
         """
         cache_file = os.path.join(self.cache_dir, "volatile_cryptos.json")
 
@@ -121,7 +136,6 @@ class CryptoDiscovery:
             self.logger.info("No cryptos in cache to update.")
             return
 
-        # Determine which cryptos to check
         cryptos_to_check = all_cryptos
         if crypto_ids_to_update is not None:
             self.logger.info(f"Updating exchanges for a specific list of {len(crypto_ids_to_update)} cryptos.")
@@ -136,10 +150,8 @@ class CryptoDiscovery:
                 try:
                     crypto['exchanges'] = self.get_crypto_exchanges(crypto['id'])
                     updated_count += 1
-                    # Save after each successful update to make the process resumable
                     self._save_cache(cache_file, all_cryptos)
                     self.logger.info(f"Updated and saved exchanges for {crypto.get('name', 'N/A')}")
-                    time.sleep(delay_seconds)
                 except CoinGeckoAPIError as e:
                     self.logger.error(f"Could not fetch exchanges for {crypto.get('name', 'N/A')}: {e}")
                     if e.status_code == 429:
@@ -157,21 +169,12 @@ class CryptoDiscovery:
                       include_losers: bool = True) -> Dict[str, List[Dict]]:
         """
         Get top gaining and losing cryptocurrencies.
-        
-        Args:
-            count: Number of top movers in each category
-            include_gainers: Include top gainers
-            include_losers: Include top losers
-            
-        Returns:
-            Dictionary with 'gainers' and 'losers' lists
         """
         volatile_cryptos = self.get_volatile_cryptos()
         
         if not volatile_cryptos:
             return {'gainers': [], 'losers': []}
         
-        # Sort by price change
         sorted_cryptos = sorted(volatile_cryptos, 
                               key=lambda x: x.get('price_change_percentage_24h', 0), 
                               reverse=True)
@@ -179,28 +182,20 @@ class CryptoDiscovery:
         result = {}
         
         if include_gainers:
-            # Top gainers (positive change)
             gainers = [crypto for crypto in sorted_cryptos 
                       if crypto.get('price_change_percentage_24h', 0) > 0]
             result['gainers'] = gainers[:count]
         
         if include_losers:
-            # Top losers (negative change)
             losers = [crypto for crypto in sorted_cryptos 
                      if crypto.get('price_change_percentage_24h', 0) < 0]
-            result['losers'] = losers[-count:]  # Take from end (most negative)
+            result['losers'] = losers[-count:]
         
         return result
     
     def get_crypto_by_volatility(self, min_volatility: float = 20.0) -> List[Dict]:
         """
         Get cryptocurrencies above a specific volatility threshold.
-        
-        Args:
-            min_volatility: Minimum absolute price change percentage
-            
-        Returns:
-            List of cryptos meeting volatility criteria
         """
         volatile_cryptos = self.get_volatile_cryptos()
         
@@ -209,7 +204,6 @@ class CryptoDiscovery:
             if abs(crypto.get('price_change_percentage_24h', 0)) >= min_volatility
         ]
         
-        # Sort by absolute volatility
         high_volatility.sort(
             key=lambda x: abs(x.get('price_change_percentage_24h', 0)), 
             reverse=True
@@ -220,12 +214,6 @@ class CryptoDiscovery:
     def get_crypto_info(self, crypto_id: str) -> Optional[Dict]:
         """
         Get detailed information for a specific cryptocurrency.
-        
-        Args:
-            crypto_id: CoinGecko crypto ID
-            
-        Returns:
-            Crypto information dictionary or None if not found
         """
         url = f"{self.base_url}/coins/{crypto_id}"
         params = {
@@ -238,39 +226,34 @@ class CryptoDiscovery:
         }
         
         try:
-            time.sleep(self.rate_limit_delay)  # Rate limiting
-            response = requests.get(url, params=params, timeout=30)
-            response.raise_for_status()
-            return response.json()
-            
+            return self._make_api_request(url, params=params)
+        except requests.exceptions.HTTPError as e:
+            status_code = e.response.status_code if e.response else None
+            if status_code == 429:
+                raise CoinGeckoAPIError(f"Rate limit exceeded for {crypto_id}: {e}", status_code=status_code) from e
+            self.logger.error(f"Error fetching info for {crypto_id}: {e}")
+            return None
         except requests.exceptions.RequestException as e:
             self.logger.error(f"Error fetching info for {crypto_id}: {e}")
             return None
 
     def get_crypto_exchanges(self, crypto_id: str) -> List[str]:
         """
-        Get the list of exchanges (markets) for a specific cryptocurrency.
-        
-        Args:
-            crypto_id: CoinGecko crypto ID
-            
-        Returns:
-            List of exchange names
+        Get the list of exchanges for a specific cryptocurrency.
         """
         url = f"{self.base_url}/coins/{crypto_id}/tickers"
         
         try:
-            time.sleep(self.rate_limit_delay)  # Rate limiting
-            response = requests.get(url, timeout=30)
-            response.raise_for_status()
-            data = response.json()
-            
+            data = self._make_api_request(url)
             if 'tickers' in data:
-                # Extract unique exchange names
-                exchanges = list(set([ticker['market']['name'] for ticker in data['tickers']]))
-                return exchanges
+                return list(set([ticker['market']['name'] for ticker in data['tickers']]))
             return []
-            
+        except requests.exceptions.HTTPError as e:
+            status_code = e.response.status_code if e.response else None
+            if status_code == 429:
+                raise CoinGeckoAPIError(f"Rate limit exceeded for {crypto_id}: {e}", status_code=status_code) from e
+            self.logger.error(f"Error fetching exchanges for {crypto_id}: {e}")
+            return []
         except requests.exceptions.RequestException as e:
             self.logger.error(f"Error fetching exchanges for {crypto_id}: {e}")
             return []
@@ -278,27 +261,19 @@ class CryptoDiscovery:
     def search_cryptos(self, query: str, limit: int = 10) -> List[Dict]:
         """
         Search for cryptocurrencies by name or symbol.
-        
-        Args:
-            query: Search query (name or symbol)
-            limit: Maximum results to return
-            
-        Returns:
-            List of matching cryptocurrencies
         """
         url = f"{self.base_url}/search"
         params = {'query': query}
         
         try:
-            time.sleep(self.rate_limit_delay)
-            response = requests.get(url, params=params, timeout=30)
-            response.raise_for_status()
-            data = response.json()
-            
-            # Return coins only (not exchanges or categories)
-            coins = data.get('coins', [])[:limit]
-            return coins
-            
+            data = self._make_api_request(url, params=params)
+            return data.get('coins', [])[:limit]
+        except requests.exceptions.HTTPError as e:
+            status_code = e.response.status_code if e.response else None
+            if status_code == 429:
+                raise CoinGeckoAPIError(f"Rate limit exceeded for search '{query}': {e}", status_code=status_code) from e
+            self.logger.error(f"Error searching for '{query}': {e}")
+            return []
         except requests.exceptions.RequestException as e:
             self.logger.error(f"Error searching for '{query}': {e}")
             return []
@@ -310,11 +285,9 @@ class CryptoDiscovery:
         for coin in raw_data:
             price_change = coin.get('price_change_percentage_24h')
             
-            # Skip coins without price change data
             if price_change is None:
                 continue
             
-            # Extract relevant data
             crypto_data = {
                 'id': coin.get('id'),
                 'symbol': coin.get('symbol', '').upper(),
@@ -326,14 +299,13 @@ class CryptoDiscovery:
                 'total_volume': coin.get('total_volume'),
                 'circulating_supply': coin.get('circulating_supply'),
                 'last_updated': coin.get('last_updated'),
-                'volatility_score': abs(price_change),  # Add volatility score
+                'volatility_score': abs(price_change),
                 'fetch_timestamp': datetime.now().isoformat(),
                 'exchanges': []
             }
             
             processed.append(crypto_data)
         
-        # Sort by volatility (highest first)
         processed.sort(key=lambda x: x['volatility_score'], reverse=True)
         
         return processed
