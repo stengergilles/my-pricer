@@ -222,7 +222,7 @@ def optimize_crypto_with_existing_system(crypto_id, config: dict, timeframe=DEFA
         backtest_result = run_backtest_using_existing_system(df, strategy_name, params, config)
         
         # Get current price
-        current_price = get_current_price(crypto_id)
+        current_price = get_current_price(crypto_id, config)
         
         # Analyze support/resistance lines (keeping this unique functionality)
         try:

@@ -1,0 +1,6 @@
+fix: Align "Last updated" timestamp to the right in PaperTradingStatus
+
+This commit ensures that the "Last updated" timestamp in the PaperTradingStatus component is consistently aligned to the right.
+
+Key changes:
+- `web/frontend/src/components/PaperTradingStatus.tsx`: Added `flexGrow: 1` to the Box containing the "Paper Trading Status" title and running indicator, which pushes the "Last updated" timestamp to the far right within its parent container.

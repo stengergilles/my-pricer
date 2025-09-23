@@ -180,6 +180,10 @@ class Strategy:
     def __init__(self, indicators, config):
         self.indicators = indicators
         self.config = config
+        self.params = {}
+
+    def set_params(self, params):
+        self.params = params
 
     def generate_signals(self, data, params):
         return get_trade_signal(data, self.config, params)

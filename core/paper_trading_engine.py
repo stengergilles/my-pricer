@@ -1,12 +1,14 @@
 import logging
 import time
-import schedule
 import threading
-from datetime import datetime
+from datetime import datetime, timedelta, time as dt_time
+from decimal import Decimal
+from typing import List, Dict, Any
 import pandas as pd
+import uuid # Import uuid for generating unique IDs
 
 from core.app_config import Config
-from core.data_fetcher import get_crypto_data_merged, get_current_price
+from core.data_fetcher import get_crypto_data_merged, get_current_prices
 from pricer_compatibility_fix import find_best_result_file
 from strategy import Strategy
 from indicators import Indicators
@@ -15,7 +17,10 @@ import json
 import os
 from core.crypto_discovery import CryptoDiscovery
 from core.trading_engine import TradingEngine
-from core.optimizer import CoinGeckoRateLimitError # Add this import # Add this import
+from core.optimizer import CoinGeckoRateLimitError
+from core.result_manager import ResultManager # Import ResultManager
+
+from core.scheduler import get_scheduler
 
 class PaperTradingEngine:
     def __init__(self, config: Config):
@@ -28,13 +33,22 @@ class PaperTradingEngine:
         self.trade_history = []
         self.portfolio_value = self.total_capital
         self.analysis_history = []
+        self.current_analysis_state: Dict[str, Any] = {}
         
         # Ensure results directory exists
         os.makedirs(self.config.RESULTS_DIR, exist_ok=True)
         self.trades_log_path = os.path.join(self.config.RESULTS_DIR, 'paper_trades.json')
+        self.analysis_history_path = os.path.join(self.config.RESULTS_DIR, 'paper_analysis_history.json')
 
-        self._running = False
-        self._engine_thread = None
+        # Load existing analysis history if available
+        if os.path.exists(self.analysis_history_path):
+            try:
+                with open(self.analysis_history_path, 'r') as f:
+                    self.analysis_history = json.load(f)
+                logging.info(f"Loaded {len(self.analysis_history)} entries into analysis history from {self.analysis_history_path}")
+            except Exception as e:
+                logging.error(f"Failed to load analysis history from {self.analysis_history_path}: {e}")
+
         self.crypto_discovery = CryptoDiscovery(cache_dir=self.config.CACHE_DIR)
         self.trading_engine = TradingEngine(config=self.config) # Instantiate TradingEngine
 
@@ -43,33 +57,86 @@ class PaperTradingEngine:
         logging.info(f"Capital per Trade: ${self.capital_per_trade:.2f}")
         logging.info(f"Max Concurrent Positions: {self.max_concurrent_positions}")
 
-    def start(self):
-        if self._running:
-            logging.info("Paper trading engine is already running.")
-            return
+    def check_optimization_status(self):
+        """
+        Checks if optimization results are available for the monitored cryptos.
+        """
+        volatile_cryptos = self._get_volatile_cryptos()
+        if not volatile_cryptos:
+            return {
+                "status": "no_volatile_cryptos",
+                "message": "No volatile cryptocurrencies found."
+            }
 
-        self._running = True
-        self._engine_thread = threading.Thread(target=self._run_scheduled_tasks, daemon=True)
-        self._engine_thread.start()
-        logging.info("Paper trading engine started.")
+        total_volatile_cryptos = len(volatile_cryptos)
+        cryptos_with_optimization_files = 0
+        cryptos_with_profitable_strategies = 0
+
+        available_strategies = self.trading_engine.get_strategies()
+        for crypto_id in volatile_cryptos:
+            has_optimization_file_for_crypto = False
+            has_profitable_strategy_for_crypto = False
+
+            for strategy_info in available_strategies:
+                strategy_name = strategy_info['name']
+                filename = f"best_params_{crypto_id}_{strategy_name}.json"
+                filepath = os.path.join(self.config.RESULTS_DIR, filename)
+
+                if os.path.exists(filepath):
+                    has_optimization_file_for_crypto = True
+                    optimization_result = self.trading_engine.get_optimization_results(crypto_id, strategy_name)
+                    if optimization_result and optimization_result.get('best_params'):
+                        profit = optimization_result.get('backtest_result', {}).get('total_profit_percentage', 0)
+                        if profit > 0:
+                            has_profitable_strategy_for_crypto = True
+                            break # Found a profitable strategy for this crypto, move to next crypto
+
+            if has_optimization_file_for_crypto:
+                cryptos_with_optimization_files += 1
+            if has_profitable_strategy_for_crypto:
+                cryptos_with_profitable_strategies += 1
+
+        if cryptos_with_profitable_strategies > 0:
+            return {
+                "status": "found",
+                "message": f"Optimization results found for {cryptos_with_profitable_strategies} out of {total_volatile_cryptos} volatile cryptocurrencies with profitable strategies."
+            }
+        elif cryptos_with_optimization_files == total_volatile_cryptos and cryptos_with_profitable_strategies == 0:
+            return {
+                "status": "no_profitable_strategies",
+                "message": f"Optimization results found for all {total_volatile_cryptos} volatile cryptos, but none are profitable. Please run the optimizer again."
+            }
+        elif cryptos_with_optimization_files > 0 and cryptos_with_profitable_strategies < total_volatile_cryptos:
+            return {
+                "status": "some_optimized_some_not",
+                "message": f"Optimization results found for {cryptos_with_optimization_files} out of {total_volatile_cryptos} volatile cryptos, but not all. Please run the optimizer again."
+            }
+        else: # This covers the case where cryptos_with_optimization_files is 0
+            return {
+                "status": "not_found",
+                "message": "No optimization results found for any of the volatile cryptocurrencies. Please run the optimizer."
+            }
+
+    
 
     def stop(self):
-        if not self._running:
-            logging.info("Paper trading engine is not running.")
-            return
-
         logging.info("Stopping paper trading engine...")
-        self._running = False
-        if self._engine_thread and self._engine_thread.is_alive():
-            self._engine_thread.join(timeout=5) # Wait for the thread to finish
-            if self._engine_thread.is_alive():
-                logging.warning("Paper trading engine thread did not terminate gracefully.")
+        scheduler = get_scheduler()
+        scheduler.remove_job('analysis_task')
+        scheduler.remove_job('price_monitoring_task')
         logging.info("Paper trading engine stopped.")
 
     def is_running(self):
-        return self._running
+        scheduler = get_scheduler()
+        analysis_job = scheduler.get_job('analysis_task')
+        monitoring_job = scheduler.get_job('price_monitoring_task')
+        return analysis_job is not None and monitoring_job is not None
 
-    def execute_trade(self, crypto_id, signal, params):
+    def get_current_analysis_state(self) -> List[Dict[str, Any]]:
+        """Returns the latest analysis state for all monitored cryptos."""
+        return list(self.current_analysis_state.values())
+
+    def execute_trade(self, crypto_id, signal, params, prices):
         # Check if there's an open position for this crypto
         open_position = next((p for p in self.open_positions if p['crypto_id'] == crypto_id), None)
 
@@ -77,7 +144,7 @@ class PaperTradingEngine:
             if not open_position:
                 # Check if enough capital is available
                 if self.portfolio_value >= self.capital_per_trade:
-                    self._open_position(crypto_id, signal, params)
+                    self._open_position(crypto_id, signal, params, prices)
                 else:
                     logging.info(f"Insufficient capital to open LONG position for {crypto_id}. Capital: ${self.portfolio_value:.2f}")
             else:
@@ -86,14 +153,14 @@ class PaperTradingEngine:
             if not open_position:
                 # Check if enough capital is available
                 if self.portfolio_value >= self.capital_per_trade:
-                    self._open_position(crypto_id, signal, params)
+                    self._open_position(crypto_id, signal, params, prices)
                 else:
                     logging.info(f"Insufficient capital to open SHORT position for {crypto_id}. Capital: ${self.portfolio_value:.2f}")
             else:
                 logging.info(f"Already have an open position for {crypto_id}. Not opening another SHORT.")
         elif signal == "EXIT_LONG":
             if open_position and open_position['signal'] == "LONG":
-                current_price = get_current_price(crypto_id)
+                current_price = prices.get(crypto_id)
                 if current_price:
                     self._close_position(open_position, current_price, "exit-signal")
                 else:
@@ -102,7 +169,7 @@ class PaperTradingEngine:
                 logging.info(f"No active LONG position for {crypto_id} to exit.")
         elif signal == "EXIT_SHORT":
             if open_position and open_position['signal'] == "SHORT":
-                current_price = get_current_price(crypto_id)
+                current_price = prices.get(crypto_id)
                 if current_price:
                     self._close_position(open_position, current_price, "exit-signal")
                 else:
@@ -114,22 +181,9 @@ class PaperTradingEngine:
 
     def _is_trading_hours(self) -> bool:
         now = datetime.now().time()
-        start_time = time(7, 0, 0)  # 7 AM
-        end_time = time(19, 0, 0)  # 7 PM
+        start_time = dt_time(7, 0, 0)  # 7 AM
+        end_time = dt_time(19, 0, 0)  # 7 PM
         return start_time <= now <= end_time
-
-    def _run_scheduled_tasks(self):
-        logging.info("Paper trading scheduled tasks runner started.")
-        
-        # Schedule tasks once
-        schedule.every(self.config.PAPER_TRADING_ANALYSIS_INTERVAL_MINUTES).minutes.do(self.analysis_task)
-        schedule.every(self.config.PAPER_TRADING_MONITORING_INTERVAL_SECONDS).seconds.do(self.price_monitoring_task)
-        schedule.every().day.at("19:00").do(self._close_all_positions)
-
-        while self._running:
-            schedule.run_pending()
-            time.sleep(1)
-        logging.info("Paper trading scheduled tasks runner stopped.")
 
     def _get_volatile_cryptos(self):
         # Use the crypto_discovery module to get volatile cryptos
@@ -140,8 +194,14 @@ class PaperTradingEngine:
     def _close_all_positions(self):
         logging.info("--- Closing all open positions at 7 PM ---")
         positions_to_close = self.open_positions[:]
+        if not positions_to_close:
+            return
+        
+        crypto_ids_to_fetch = [p['crypto_id'] for p in positions_to_close]
+        prices = get_current_prices(crypto_ids_to_fetch, self.config)
+
         for position in positions_to_close:
-            current_price = get_current_price(position['crypto_id'])
+            current_price = prices.get(position['crypto_id'])
             if current_price:
                 self._close_position(position, current_price, "end-of-day-close")
             else:
@@ -239,6 +299,10 @@ class PaperTradingEngine:
         logging.info("--- Running Analysis Task ---")
         
         volatile_cryptos = self._get_volatile_cryptos()
+        logging.info(f"Found {len(volatile_cryptos)} volatile cryptos: {volatile_cryptos}")
+
+        # Batch fetch prices for all volatile cryptos
+        prices = get_current_prices(volatile_cryptos, self.config)
         
         for crypto_id in volatile_cryptos:
             open_position = next((p for p in self.open_positions if p['crypto_id'] == crypto_id), None)
@@ -250,8 +314,22 @@ class PaperTradingEngine:
 
             # Get profitable strategies for the crypto
             profitable_strategies = self._get_profitable_strategies_for_crypto(crypto_id)
+            current_price = prices.get(crypto_id)
+
             if not profitable_strategies:
+                logging.info(f"No profitable strategies found for {crypto_id}. Skipping.")
+                self.current_analysis_state[crypto_id] = {
+                    'analysis_id': str(uuid.uuid4()),
+                    'crypto_id': crypto_id,
+                    'strategy_used': "N/A",
+                    'current_signal': "HOLD",
+                    'current_price': current_price if current_price else 0,
+                    'analysis_timestamp': datetime.now().isoformat(),
+                    'backtest_result': { 'total_profit_percentage': 0 } # Default to 0 if no profitable strategy
+                }
                 continue
+
+            logging.info(f"Found {len(profitable_strategies)} profitable strategies for {crypto_id}.")
 
             # Fetch data (1 day of minute-level data)
             try:
@@ -271,14 +349,40 @@ class PaperTradingEngine:
 
             logging.info(f"Aggregated Signal for {crypto_id}: {signal}")
 
-            self.analysis_history.append({
+            if not current_price:
+                logging.warning(f"Could not fetch current price for {crypto_id} during analysis task. Skipping analysis history save.")
+                continue
+
+            # Get the backtest result from the first profitable strategy, if available
+            backtest_result = None
+            strategy_used = "N/A"
+            if profitable_strategies:
+                # Assuming the first profitable strategy is representative
+                strategy_used = profitable_strategies[0].config.get('name', 'N/A')
+                optimization_result = self.trading_engine.get_optimization_results(crypto_id, strategy_used)
+                if optimization_result and optimization_result.get('backtest_result'):
+                    backtest_result = optimization_result['backtest_result']
+
+            analysis_entry = {
+                'analysis_id': str(uuid.uuid4()),
                 'crypto_id': crypto_id,
-                'signal': signal,
-                'timestamp': datetime.now().isoformat()
-            })
+                'strategy_used': strategy_used,
+                'current_signal': signal,
+                'current_price': current_price,
+                'analysis_timestamp': datetime.now().isoformat(),
+                'active_resistance_lines': [], # Placeholder for now
+                'active_support_lines': [],    # Placeholder for now
+                'parameters_used': representative_params if 'representative_params' in locals() else {},
+                'timeframe_days': 1, # Based on get_crypto_data_merged(days=1)
+                'engine_version': "1.0.0-paper-trader", # Placeholder
+                'backtest_result': backtest_result
+            }
+            self.current_analysis_state[crypto_id] = analysis_entry # Update current state
 
             # Limit the size of the analysis history
+            self.analysis_history.append(analysis_entry) # Still append to history for logging/storage
             self.analysis_history = self.analysis_history[-100:]
+            self._save_analysis_history()
 
             # Execute trade based on signal
             if signal != "HOLD":
@@ -287,10 +391,10 @@ class PaperTradingEngine:
                 # or refine this to be an average/median of params if applicable.
                 # For now, let's use the params of the first profitable strategy.
                 representative_params = profitable_strategies[0].params
-                self.execute_trade(crypto_id, signal, representative_params)
+                self.execute_trade(crypto_id, signal, representative_params, prices)
 
-    def _open_position(self, crypto_id, signal, params):
-        current_price = get_current_price(crypto_id)
+    def _open_position(self, crypto_id, signal, params, prices):
+        current_price = prices.get(crypto_id)
         if not current_price:
             logging.error(f"Could not fetch current price for {crypto_id} to open position.")
             return
@@ -314,8 +418,11 @@ class PaperTradingEngine:
 
         logging.info("--- Running Price Monitoring Task ---")
         
+        crypto_ids_to_monitor = [p['crypto_id'] for p in self.open_positions]
+        prices = get_current_prices(crypto_ids_to_monitor, self.config)
+
         for position in self.open_positions[:]: # Iterate over a copy
-            current_price = get_current_price(position['crypto_id'])
+            current_price = prices.get(position['crypto_id'])
             if not current_price:
                 logging.warning(f"Could not fetch price for {position['crypto_id']} during monitoring.")
                 continue
@@ -423,20 +530,13 @@ class PaperTradingEngine:
         except Exception as e:
             logging.error(f"Failed to save trades log: {e}")
 
-    def run(self):
-        logging.info("Starting paper trading engine...")
-        
-        # Run analysis task once at the beginning
-        self.analysis_task()
-
-        # Schedule tasks
-        schedule.every(self.config.PAPER_TRADING_ANALYSIS_INTERVAL_MINUTES).minutes.do(self.analysis_task)
-        schedule.every(self.config.PAPER_TRADING_MONITORING_INTERVAL_SECONDS).seconds.do(self.price_monitoring_task)
-
-        while self._running:
-            schedule.run_pending()
-            time.sleep(1)
-        logging.info("Paper trading scheduled tasks runner stopped.")
+    def _save_analysis_history(self):
+        try:
+            analysis_history_path = os.path.join(self.config.RESULTS_DIR, 'paper_analysis_history.json')
+            with open(analysis_history_path, 'w') as f:
+                json.dump(self.analysis_history, f, indent=4)
+        except Exception as e:
+            logging.error(f"Failed to save analysis history: {e}")
 
 def run_paper_trader():
     config = Config()
@@ -463,3 +563,33 @@ def run_paper_trader():
     finally:
         engine.stop()
         logger.info("Paper trading engine stopped.")
+
+
+def run_analysis_task(job_id, config):
+    """Wrapper function to run the analysis task as a job."""
+    from core.logger_config import setup_job_logging
+    log_path = setup_job_logging(job_id)
+    logger = logging.getLogger(job_id)
+    logger.info(f"Starting analysis task job (id: {job_id})... Log file: {log_path}")
+
+    try:
+        engine = PaperTradingEngine(config)
+        engine.analysis_task()
+        logger.info("Analysis task job finished.")
+    except Exception as e:
+        logger.error(f"An error occurred during the analysis task job: {e}", exc_info=True)
+
+
+def run_price_monitoring_task(job_id, config):
+    """Wrapper function to run the price monitoring task as a job."""
+    from core.logger_config import setup_job_logging
+    log_path = setup_job_logging(job_id)
+    logger = logging.getLogger(job_id)
+    logger.info(f"Starting price monitoring task job (id: {job_id})... Log file: {log_path}")
+
+    try:
+        engine = PaperTradingEngine(config)
+        engine.price_monitoring_task()
+        logger.info("Price monitoring task job finished.")
+    except Exception as e:
+        logger.error(f"An error occurred during the price monitoring task job: {e}", exc_info=True)

@@ -7,6 +7,8 @@ import sys
 import logging
 import sqlite3
 from datetime import datetime
+import threading
+import uuid
 from flask import Flask, jsonify, request, send_from_directory, g
 from flask_cors import CORS
 from flask_restful import Api
@@ -32,7 +34,7 @@ from api.results import ResultsAPI
 from api.scheduler import ScheduleJobAPI, JobsAPI, JobAPI, JobLogsAPI
 from api.paper_trading import PaperTradingAPI
 from utils.error_handlers import register_error_handlers
-from core.paper_trading_engine import PaperTradingEngine
+from core.paper_trading_engine import PaperTradingEngine, run_analysis_task, run_price_monitoring_task
 
 # Initialize scheduler
 from core.scheduler import init_scheduler, get_scheduler
@@ -73,7 +75,14 @@ trading_engine = TradingEngine(config)
 trading_engine.set_scheduler(get_scheduler()) # Link the scheduler to the engine
 
 # Initialize Paper Trading Engine
-paper_trading_engine = PaperTradingEngine(config)
+paper_trading_engine = None
+
+# Function to initialize and start the Paper Trading Engine
+def get_paper_trading_engine():
+    global paper_trading_engine
+    if paper_trading_engine is None:
+        paper_trading_engine = PaperTradingEngine(config)
+    return paper_trading_engine
 
 # Register error handlers
 register_error_handlers(app)
@@ -164,7 +173,7 @@ api.add_resource(JobsAPI, '/api/scheduler/jobs', resource_class_kwargs={'engine'
 api.add_resource(JobAPI, '/api/scheduler/jobs/<string:job_id>', resource_class_kwargs={'engine': trading_engine})
 api.add_resource(JobLogsAPI, '/api/scheduler/jobs/<string:job_id>/logs', resource_class_kwargs={'engine': trading_engine})
 
-api.add_resource(PaperTradingAPI, '/api/paper-trading/status', resource_class_kwargs={'engine': paper_trading_engine})
+api.add_resource(PaperTradingAPI, '/api/paper-trading/status', resource_class_kwargs={'engine': get_paper_trading_engine()})
 
 
 # Serve frontend static files (for production)
@@ -200,72 +209,46 @@ def serve_frontend(path):
         })
 
 
-if __name__ == '__main__':
-    import signal
-    import sys
-
-    def signal_handler(sig, frame):
-        logger.info("SIGINT received. Shutting down services...")
-        try:
-            # Stop paper trader
-            if paper_trading_engine and paper_trading_engine.is_running():
-                paper_trading_engine.stop()
-                logger.info("Paper trading engine stopped.")
-
-            # Stop scheduler
-            scheduler_instance = get_scheduler()
-            if scheduler_instance:
-                jobs = scheduler_instance.get_jobs()
-                for job in jobs:
-                    logger.info(f"Requesting stop for job {job.id}")
-                    job_status_manager.request_job_stop(job.id)
-                
-                scheduler_instance.shutdown()
-                logger.info("Scheduler shut down gracefully.")
-        except Exception as e:
-            logger.error(f"Error during service shutdown: {e}")
-        sys.exit(0)
-
-    signal.signal(signal.SIGINT, signal_handler)
-    signal.signal(signal.SIGTERM, signal_handler)
-
-    logger.info("--- Starting Crypto Trading Backend Services ---")
+def start_background_services():
+    """Starts the background services using APScheduler."""
+    logger.info("--- Scheduling Crypto Trading Backend Services ---")
     
-    # Verify and start scheduler
-    try:
-        scheduler_instance = get_scheduler()
-        if scheduler_instance and not scheduler_instance.scheduler.running:
-            logger.info("Scheduler is not running, starting it now...")
-            scheduler_instance.start()
-            if scheduler_instance.scheduler.running:
-                logger.info("✅ Scheduler started successfully.")
-            else:
-                logger.error("❌ Scheduler failed to start.")
-        elif scheduler_instance:
-            logger.info("✅ Scheduler is already running.")
-        else:
-            logger.error("❌ Could not get scheduler instance.")
-    except Exception as e:
-        logger.error(f"❌ Failed to get or start scheduler: {e}")
+    scheduler_instance = get_scheduler()
+    get_paper_trading_engine()
 
-    # Start Paper Trading Engine
-    try:
-        if os.getenv('ENABLE_PAPER_TRADER', 'true').lower() == 'true':
-            logger.info("Starting Paper Trading Engine...")
-            paper_trading_engine.start()
-            if paper_trading_engine.is_running():
-                logger.info("✅ Paper Trading Engine started successfully.")
-            else:
-                logger.error("❌ Paper Trading Engine failed to start.")
-        else:
-            logger.info("Paper Trading Engine is disabled via environment variable.")
-    except Exception as e:
-        logger.error(f"❌ Failed to start Paper Trading Engine: {e}")
+    # Schedule analysis task
+    if os.getenv('ENABLE_PAPER_TRADER', 'true').lower() == 'true':
+        logger.info("Scheduling analysis task...")
+        job_id = str(uuid.uuid4())
+        scheduler_instance.add_job(
+            func=run_analysis_task,
+            trigger='interval',
+            minutes=config.PAPER_TRADING_ANALYSIS_INTERVAL_MINUTES,
+            id='analysis_task',
+            replace_existing=True,
+            kwargs={'job_id': job_id, 'config': config}
+        )
 
-    logger.info("--- Backend services started, launching Flask app ---")
+    # Schedule price monitoring task
+    if os.getenv('ENABLE_PAPER_TRADER', 'true').lower() == 'true':
+        logger.info("Scheduling price monitoring task...")
+        job_id = str(uuid.uuid4())
+        scheduler_instance.add_job(
+            func=run_price_monitoring_task,
+            trigger='interval',
+            seconds=config.PAPER_TRADING_MONITORING_INTERVAL_SECONDS,
+            id='price_monitoring_task',
+            replace_existing=True,
+            kwargs={'job_id': job_id, 'config': config}
+        )
+
+if __name__ == '__main__':
+    logger.info("--- Launching Flask app (main) ---")
     logger.info(f"Auth0 Domain: {os.getenv('AUTH0_DOMAIN')}")
     logger.info(f"API Audience: {os.getenv('AUTH0_API_AUDIENCE')}")
 
+    start_background_services()
+    
     app.run(
         host=os.getenv('API_HOST', 'localhost'),
         port=int(os.getenv('API_PORT', 5000)),

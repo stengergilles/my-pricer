@@ -130,3 +130,27 @@ export interface BacktestFormData {
   timeframe: number
   parameters: Record<string, any>
 }
+
+export interface Analysis {
+  analysis_id: string;
+  crypto_id: string;
+  strategy_used: string;
+  current_signal: string;
+  current_price: number;
+  analysis_timestamp: string;
+  backtest_result?: {
+    total_profit_percentage?: number;
+  };
+}
+
+export interface PaperTradingStatus {
+  is_running: boolean;
+  portfolio_value: number;
+  open_positions: any[];
+  trade_history: any[];
+  analysis_history: Analysis[];
+  optimization_status: {
+    status: string;
+    message: string;
+  };
+}

@@ -4,6 +4,7 @@ from core.scheduler import get_scheduler # Keep for now, might remove later if e
 from pricer import optimize_crypto_with_existing_system
 from web.backend.auth.middleware import requires_auth
 from core.trading_engine import TradingEngine # Import TradingEngine
+from core.paper_trading_engine import run_analysis_task
 from core.optimize_cryptos_job import run_optimize_cryptos_job # Import the new job function
 import uuid
 from core.single_strategy_optimizer_job import run_single_strategy_optimization_job # Import the new single strategy job
@@ -13,7 +14,8 @@ import os
 # this mapping might need to be adjusted or moved.
 schedulable_functions = {
     'optimize_crypto': run_single_strategy_optimization_job, # Map to the new single strategy job
-    'optimize_cryptos_job': run_optimize_cryptos_job # Add the new job
+    'optimize_cryptos_job': run_optimize_cryptos_job, # Add the new job
+    'analysis_task': run_analysis_task
 }
 
 class ScheduleJobAPI(Resource):
@@ -35,7 +37,7 @@ class ScheduleJobAPI(Resource):
             return {'error': 'Function not allowed'}, 400
 
         # Special handling for 'optimize_cryptos_job' to pass its specific kwargs
-        if func_path in ['optimize_cryptos_job', 'optimize_crypto']: # Handle both optimization jobs
+        if func_path in ['optimize_cryptos_job', 'optimize_crypto', 'analysis_task']: # Handle both optimization jobs
             job_func = schedulable_functions[func_path]
             # Construct kwargs for the scheduled function
             # Generate a unique job_id before adding the job

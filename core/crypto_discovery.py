@@ -313,13 +313,17 @@ class CryptoDiscovery:
     def _is_cache_valid(self, cache_file: str, cache_hours: int) -> bool:
         """Check if cache file exists and is within the cache period."""
         if not os.path.exists(cache_file):
+            self.logger.info(f"Cache file not found: {cache_file}")
             return False
         
         try:
             file_time = datetime.fromtimestamp(os.path.getmtime(cache_file))
             cache_expiry = datetime.now() - timedelta(hours=cache_hours)
-            return file_time > cache_expiry
-        except OSError:
+            is_valid = file_time > cache_expiry
+            self.logger.info(f"Cache file: {cache_file}, File time: {file_time}, Expiry: {cache_expiry}, Valid: {is_valid}")
+            return is_valid
+        except OSError as e:
+            self.logger.error(f"Error checking cache validity: {e}")
             return False
     
     def _load_cache(self, cache_file: str) -> List[Dict]:

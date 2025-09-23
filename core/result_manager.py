@@ -215,3 +215,14 @@ class ResultManager:
                 self.logger.error(f"Error loading backtest result from {filepath}: {e}")
         
         return profitable_results
+
+    def load_paper_analysis_history(self) -> List[Dict[str, Any]]:
+        """Loads the paper trading analysis history."""
+        filepath = os.path.join(self.results_dir, 'paper_analysis_history.json')
+        if os.path.exists(filepath):
+            try:
+                with open(filepath, 'r') as f:
+                    return json.load(f)
+            except Exception as e:
+                self.logger.error(f"Error loading paper analysis history from {filepath}: {e}")
+        return []

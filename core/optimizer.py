@@ -551,12 +551,22 @@ class BayesianOptimizer:
         """Load optimization results for a specific crypto/strategy pair."""
         filename = f"best_params_{crypto}_{strategy}.json"
         filepath = os.path.join(self.results_dir, filename)
-        
+
+        if not os.path.exists(filepath):
+            return None
+
         try:
             with open(filepath, 'r') as f:
+                # Check if file is empty
+                if os.fstat(f.fileno()).st_size == 0:
+                    self.logger.warning(f"Optimization results file is empty: {filepath}")
+                    return None
                 return json.load(f)
-        except (OSError, json.JSONDecodeError) as e:
-            self.logger.warning(f"Could not load results for {crypto}/{strategy}: {e}")
+        except json.JSONDecodeError as e:
+            self.logger.error(f"Error decoding JSON from {filepath}: {e}")
+            return None
+        except OSError as e:
+            self.logger.error(f"Error reading file {filepath}: {e}")
             return None
     
     def get_all_results(self) -> List[Dict]:

@@ -33,51 +33,37 @@ def retry_on_exception(retries=3, delay=5, backoff=2, exception_to_check=Excepti
         return wrapper
     return decorator
 
-def get_crypto_data(crypto_id, days, config):
-    """Fetches OHLC data from CoinGecko, with caching based on implicit granularity."""
-    days = int(days)
+from core.rate_limiter import coingecko_rate_limiter
 
-    # Determine implicit granularity and TTL from the 'days' parameter based on CoinGecko API behavior.
-    if days == 1:
-        # For days=1, CoinGecko returns minute-level data. Per user, TTL is 30 minutes.
-        ttl_seconds = 30 * 60
-        granularity_label = "minutes"
-    elif 2 <= days <= 90:
-        # For 2-90 days, CoinGecko returns hourly data. TTL is 1 hour.
-        ttl_seconds = 60 * 60
-        granularity_label = "hourly"
-    else:  # days > 90
-        # For >90 days, CoinGecko returns daily data. TTL is 24 hours.
-        ttl_seconds = 24 * 60 * 60
-        granularity_label = "daily"
+def get_crypto_data(crypto_id, days, config):
+    """Fetches OHLC data from CoinGecko, with a 30-minute cache."""
+    days = int(days)
+    ttl_seconds = 30 * 60  # 30 minutes
 
     cache_dir = config.CACHE_DIR
     safe_crypto_id = crypto_id.replace(" ", "_").lower()
-    # Use a more descriptive cache filename
-    cache_filename = f"{safe_crypto_id}_{days}d_{granularity_label}.json"
+    cache_filename = f"{safe_crypto_id}_{days}d_ohlc.json"
     cache_filepath = os.path.join(cache_dir, cache_filename)
 
     os.makedirs(cache_dir, exist_ok=True)
 
-    # Check cache for freshness
     if os.path.exists(cache_filepath):
         file_mod_time = os.path.getmtime(cache_filepath)
         age_seconds = time.time() - file_mod_time
         if age_seconds < ttl_seconds:
-            logging.info(f"Cache hit for {crypto_id} ({days} days, {granularity_label}). Reading from {cache_filepath}")
+            logging.info(f"Cache hit for {crypto_id} (OHLC). Reading from {cache_filepath}")
             try:
                 with open(cache_filepath, 'r') as f:
                     return json.load(f)
             except (json.JSONDecodeError, IOError) as e:
                 logging.warning(f"Failed to read cache file {cache_filepath}: {e}. Re-fetching.")
         else:
-            logging.info(f"Cache stale for {crypto_id} ({days} days, {granularity_label}).")
+            logging.info(f"Cache stale for {crypto_id} (OHLC).")
 
-    logging.info(f"Cache miss or stale for {crypto_id} ({days} days, {granularity_label}). Fetching from CoinGecko.")
+    logging.info(f"Cache miss or stale for {crypto_id} (OHLC). Fetching from CoinGecko.")
     url = f"https://api.coingecko.com/api/v3/coins/{crypto_id}/ohlc?vs_currency=usd&days={days}"
     try:
-        time.sleep(1.11) # Enforce CoinGecko API rate limit
-        response = requests.get(url)
+        response = coingecko_rate_limiter.make_request(requests.get, url)
         response.raise_for_status()
         data = response.json()
         logging.info(f"Successfully fetched OHLC data for {crypto_id} from CoinGecko.")
@@ -124,28 +110,68 @@ def get_crypto_data_merged(crypto_id, days, config):
     return ohlc_df
 
 @retry_on_exception(retries=3, delay=5, backoff=2, exception_to_check=requests.exceptions.RequestException)
-def get_current_price_from_api(crypto_id):
-    """Fetches the current price of a crypto from CoinGecko with retries."""
-    url = f"https://api.coingecko.com/api/v3/simple/price?ids={crypto_id}&vs_currencies=usd"
-    time.sleep(1.11) # Enforce CoinGecko API rate limit
-    response = requests.get(url)
+def get_current_prices_from_api(crypto_ids):
+    """Fetches the current prices of cryptos from CoinGecko with retries."""
+    ids_string = ",".join(crypto_ids)
+    url = f"https://api.coingecko.com/api/v3/simple/price?ids={ids_string}&vs_currencies=usd"
+    response = coingecko_rate_limiter.make_request(requests.get, url)
     response.raise_for_status()
     data = response.json()
-    return data[crypto_id]['usd']
+    return {crypto_id: data.get(crypto_id, {}).get('usd') for crypto_id in crypto_ids}
 
-def get_current_price(crypto_id):
-    """
-    Fetches the current price of a crypto from CoinGecko.
-    Handles rate limiting and other request errors.
-    """
+def get_current_prices(crypto_ids, config):
+    """Fetches the current prices of a list of cryptos from CoinGecko, with 1-minute caching."""
+    if not crypto_ids:
+        return {}
+
+    # Sort IDs to ensure consistent cache key
+    sorted_ids = sorted(crypto_ids)
+    cache_key = ",".join(sorted_ids)
+    cache_dir = config.CACHE_DIR
+    cache_filename = f"prices_{hash(cache_key)}.json"
+    cache_filepath = os.path.join(cache_dir, cache_filename)
+    ttl_seconds = 60  # 1 minute
+
+    os.makedirs(cache_dir, exist_ok=True)
+
+    if os.path.exists(cache_filepath):
+        file_mod_time = os.path.getmtime(cache_filepath)
+        age_seconds = time.time() - file_mod_time
+        if age_seconds < ttl_seconds:
+            logging.info(f"Cache hit for prices of {len(crypto_ids)} cryptos.")
+            try:
+                with open(cache_filepath, 'r') as f:
+                    return json.load(f)
+            except (json.JSONDecodeError, IOError) as e:
+                logging.warning(f"Failed to read price cache file: {e}. Re-fetching.")
+
+    logging.info(f"Cache miss for prices of {len(crypto_ids)} cryptos. Fetching from API.")
     try:
-        return get_current_price_from_api(crypto_id)
+        prices = get_current_prices_from_api(crypto_ids)
+        with open(cache_filepath, 'w') as f:
+            json.dump(prices, f)
+        return prices
     except requests.exceptions.HTTPError as e:
         if e.response.status_code == 429:
-            raise CoinGeckoRateLimitError(f"CoinGecko API rate limit exceeded for {crypto_id}.") from e
+            raise CoinGeckoRateLimitError(f"CoinGecko API rate limit exceeded for cryptos: {",".join(crypto_ids)}.") from e
         else:
-            logging.error(f"HTTP Error fetching current price for {crypto_id}: {e}")
-            return None
+            logging.error(f"HTTP Error fetching current prices for {",".join(crypto_ids)}: {e}")
+            return {crypto_id: None for crypto_id in crypto_ids}
     except requests.exceptions.RequestException as e:
-        logging.error(f"Error fetching current price for {crypto_id}: {e}")
-        return None
+        logging.error(f"Error fetching current prices for {",".join(crypto_ids)}: {e}")
+        return {crypto_id: None for crypto_id in crypto_ids}
+
+@retry_on_exception(retries=3, delay=5, backoff=2, exception_to_check=requests.exceptions.RequestException)
+def get_current_price_from_api(crypto_id):
+    """DEPRECATED: Fetches the current price of a single crypto. Use get_current_prices for batching."""
+    logging.warning("DEPRECATED: get_current_price_from_api is deprecated. Use get_current_prices.")
+    prices = get_current_prices_from_api([crypto_id])
+    return prices.get(crypto_id)
+
+def get_current_price(crypto_id, config):
+    """
+    DEPRECATED: Fetches the current price of a single crypto from CoinGecko.
+    Use get_current_prices for batch operations to avoid rate limiting.
+    """
+    logging.warning("DEPRECATED: get_current_price is deprecated. Use get_current_prices.")
+    return get_current_prices([crypto_id], config).get(crypto_id)
