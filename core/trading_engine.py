@@ -52,6 +52,17 @@ class TradingEngine:
         self._last_exchange_update_time = None
         self._exchange_update_interval = 86400 # 24 hours in seconds
 
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        # Remove the unpicklable entries.
+        del state['_exchange_update_lock']
+        return state
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        # Add the lock back since it doesn't exist in the pickle.
+        self._exchange_update_lock = threading.Lock()
+
     def set_scheduler(self, scheduler_instance):
         """Set the scheduler instance for the engine."""
         self._scheduler = scheduler_instance

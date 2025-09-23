@@ -49,6 +49,7 @@ from core.logger_config import setup_logging
 
 # Set up logging
 setup_logging(config, component_name='flask_app')
+logging.getLogger('api.paper_trading').setLevel(logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 logger.info(f"Scheduler DB URI: {config.get_db_uri()}")
@@ -75,14 +76,7 @@ trading_engine = TradingEngine(config)
 trading_engine.set_scheduler(get_scheduler()) # Link the scheduler to the engine
 
 # Initialize Paper Trading Engine
-paper_trading_engine = None
-
-# Function to initialize and start the Paper Trading Engine
-def get_paper_trading_engine():
-    global paper_trading_engine
-    if paper_trading_engine is None:
-        paper_trading_engine = PaperTradingEngine(config)
-    return paper_trading_engine
+# The singleton instance will be created on first access
 
 # Register error handlers
 register_error_handlers(app)
@@ -173,7 +167,7 @@ api.add_resource(JobsAPI, '/api/scheduler/jobs', resource_class_kwargs={'engine'
 api.add_resource(JobAPI, '/api/scheduler/jobs/<string:job_id>', resource_class_kwargs={'engine': trading_engine})
 api.add_resource(JobLogsAPI, '/api/scheduler/jobs/<string:job_id>/logs', resource_class_kwargs={'engine': trading_engine})
 
-api.add_resource(PaperTradingAPI, '/api/paper-trading/status', resource_class_kwargs={'engine': get_paper_trading_engine()})
+api.add_resource(PaperTradingAPI, '/api/paper-trading/status', resource_class_kwargs={'engine': PaperTradingEngine(config=config)})
 
 
 # Serve frontend static files (for production)
@@ -214,19 +208,18 @@ def start_background_services():
     logger.info("--- Scheduling Crypto Trading Backend Services ---")
     
     scheduler_instance = get_scheduler()
-    get_paper_trading_engine()
 
     # Schedule analysis task
     if os.getenv('ENABLE_PAPER_TRADER', 'true').lower() == 'true':
         logger.info("Scheduling analysis task...")
         job_id = str(uuid.uuid4())
         scheduler_instance.add_job(
-            func=run_analysis_task,
+            func='core.paper_trading_engine:run_analysis_task',
             trigger='interval',
             minutes=config.PAPER_TRADING_ANALYSIS_INTERVAL_MINUTES,
             id='analysis_task',
             replace_existing=True,
-            kwargs={'job_id': job_id, 'config': config}
+            kwargs={'job_id': job_id}
         )
 
     # Schedule price monitoring task
@@ -234,12 +227,12 @@ def start_background_services():
         logger.info("Scheduling price monitoring task...")
         job_id = str(uuid.uuid4())
         scheduler_instance.add_job(
-            func=run_price_monitoring_task,
+            func='core.paper_trading_engine:run_price_monitoring_task',
             trigger='interval',
             seconds=config.PAPER_TRADING_MONITORING_INTERVAL_SECONDS,
             id='price_monitoring_task',
             replace_existing=True,
-            kwargs={'job_id': job_id, 'config': config}
+            kwargs={'job_id': job_id}
         )
 
 if __name__ == '__main__':

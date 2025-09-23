@@ -23,7 +23,21 @@ from core.result_manager import ResultManager # Import ResultManager
 from core.scheduler import get_scheduler
 
 class PaperTradingEngine:
+    _instance = None
+
+    def __new__(cls, config: Config = None):
+        if cls._instance is None:
+            if config is None:
+                raise ValueError("Config must be provided for the first instantiation of PaperTradingEngine.")
+            cls._instance = super(PaperTradingEngine, cls).__new__(cls)
+            cls._instance._initialized = False # Use a flag to prevent re-initialization
+        return cls._instance
+
     def __init__(self, config: Config):
+        if self._initialized:
+            return
+        self._initialized = True
+
         self.config = config
         self.total_capital = config.PAPER_TRADING_TOTAL_CAPITAL
         self.capital_per_trade = config.PAPER_TRADING_MIN_POSITION_VALUE
@@ -34,6 +48,7 @@ class PaperTradingEngine:
         self.portfolio_value = self.total_capital
         self.analysis_history = []
         self.current_analysis_state: Dict[str, Any] = {}
+        self.last_analysis_run_time: Optional[datetime] = None
         
         # Ensure results directory exists
         os.makedirs(self.config.RESULTS_DIR, exist_ok=True)
@@ -48,6 +63,18 @@ class PaperTradingEngine:
                 logging.info(f"Loaded {len(self.analysis_history)} entries into analysis history from {self.analysis_history_path}")
             except Exception as e:
                 logging.error(f"Failed to load analysis history from {self.analysis_history_path}: {e}")
+
+        # Load existing trades if available
+        if os.path.exists(self.trades_log_path):
+            try:
+                with open(self.trades_log_path, 'r') as f:
+                    trades_data = json.load(f)
+                    self.open_positions = trades_data.get('open_positions', [])
+                    self.trade_history = trades_data.get('trade_history', [])
+                    self.portfolio_value = trades_data.get('portfolio_value', self.total_capital)
+                logging.info(f"Loaded {len(self.open_positions)} open positions and {len(self.trade_history)} trade history entries from {self.trades_log_path}")
+            except Exception as e:
+                logging.error(f"Failed to load trades from {self.trades_log_path}: {e}")
 
         self.crypto_discovery = CryptoDiscovery(cache_dir=self.config.CACHE_DIR)
         self.trading_engine = TradingEngine(config=self.config) # Instantiate TradingEngine
@@ -180,14 +207,16 @@ class PaperTradingEngine:
             logging.info(f"No trade executed for {crypto_id}. Signal: {signal}")
 
     def _is_trading_hours(self) -> bool:
+        if not self.config.PAPER_TRADING_ENFORCE_TRADING_HOURS:
+            return True
         now = datetime.now().time()
         start_time = dt_time(7, 0, 0)  # 7 AM
-        end_time = dt_time(19, 0, 0)  # 7 PM
+        end_time = dt_time(23, 0, 0)  # 11 PM
         return start_time <= now <= end_time
 
     def _get_volatile_cryptos(self):
         # Use the crypto_discovery module to get volatile cryptos
-        volatile_cryptos_data = self.crypto_discovery.get_volatile_cryptos()
+        volatile_cryptos_data = self.crypto_discovery.get_volatile_cryptos(limit=10)
         # Extract just the IDs (symbols) for now
         return [crypto['id'] for crypto in volatile_cryptos_data]
 
@@ -297,6 +326,7 @@ class PaperTradingEngine:
             return
 
         logging.info("--- Running Analysis Task ---")
+        self.last_analysis_run_time = datetime.now().isoformat()
         
         volatile_cryptos = self._get_volatile_cryptos()
         logging.info(f"Found {len(volatile_cryptos)} volatile cryptos: {volatile_cryptos}")
@@ -538,34 +568,8 @@ class PaperTradingEngine:
         except Exception as e:
             logging.error(f"Failed to save analysis history: {e}")
 
-def run_paper_trader():
-    config = Config()
-    logger = logging.getLogger(__name__)
 
-    engine = PaperTradingEngine(config)
-    
-    def signal_handler(sig, frame):
-        logger.info("Shutdown signal received. Stopping paper trading engine...")
-        engine.stop()
-        sys.exit(0)
-
-    signal.signal(signal.SIGINT, signal_handler)
-    signal.signal(signal.SIGTERM, signal_handler)
-
-    try:
-        engine.start()
-        logger.info("Paper trading engine started. Press Ctrl+C to stop.")
-        # Keep the main thread alive while the engine thread runs
-        while engine.is_running():
-            time.sleep(1)
-    except Exception as e:
-        logger.error(f"An error occurred in the main paper trading process: {e}")
-    finally:
-        engine.stop()
-        logger.info("Paper trading engine stopped.")
-
-
-def run_analysis_task(job_id, config):
+def run_analysis_task(job_id):
     """Wrapper function to run the analysis task as a job."""
     from core.logger_config import setup_job_logging
     log_path = setup_job_logging(job_id)
@@ -573,14 +577,14 @@ def run_analysis_task(job_id, config):
     logger.info(f"Starting analysis task job (id: {job_id})... Log file: {log_path}")
 
     try:
-        engine = PaperTradingEngine(config)
+        engine = PaperTradingEngine(config=Config())
         engine.analysis_task()
         logger.info("Analysis task job finished.")
     except Exception as e:
         logger.error(f"An error occurred during the analysis task job: {e}", exc_info=True)
 
 
-def run_price_monitoring_task(job_id, config):
+def run_price_monitoring_task(job_id):
     """Wrapper function to run the price monitoring task as a job."""
     from core.logger_config import setup_job_logging
     log_path = setup_job_logging(job_id)
@@ -588,7 +592,7 @@ def run_price_monitoring_task(job_id, config):
     logger.info(f"Starting price monitoring task job (id: {job_id})... Log file: {log_path}")
 
     try:
-        engine = PaperTradingEngine(config)
+        engine = PaperTradingEngine(config=Config())
         engine.price_monitoring_task()
         logger.info("Price monitoring task job finished.")
     except Exception as e:

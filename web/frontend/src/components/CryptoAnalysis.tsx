@@ -146,6 +146,7 @@ export const CryptoAnalysis = () => {
       }
       queryClient.invalidateQueries({ queryKey: ['analysis-history'] })
       queryClient.invalidateQueries({ queryKey: ['cryptoStatus', variables.cryptoId] })
+      queryClient.invalidateQueries({ queryKey: ['paperTradingStatus'] })
     },
     onError: (error: any) => {
       // console.error('Analysis mutation error:', error) // Removed for production

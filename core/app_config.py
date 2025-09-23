@@ -51,7 +51,8 @@ class Config:
 
         # Paper Trading configuration
         self.PAPER_TRADING_TOTAL_CAPITAL = float(os.getenv('PAPER_TRADING_TOTAL_CAPITAL', 470))
-        self.PAPER_TRADING_MIN_POSITION_VALUE = float(os.getenv('PAPER_TRADING_MIN_POSITION_VALUE', 50))
+        self.PAPER_TRADING_MIN_POSITION_VALUE = self.get_env_var('PAPER_TRADING_MIN_POSITION_VALUE', 50, type=float)
+        self.PAPER_TRADING_ENFORCE_TRADING_HOURS = self.get_env_var('PAPER_TRADING_ENFORCE_TRADING_HOURS', False, type=bool)
         self.PAPER_TRADING_ANALYSIS_INTERVAL_MINUTES = int(os.getenv('PAPER_TRADING_ANALYSIS_INTERVAL_MINUTES', 1))
         self.PAPER_TRADING_MONITORING_INTERVAL_SECONDS = int(os.getenv('PAPER_TRADING_MONITORING_INTERVAL_SECONDS', 60))
         self.DATA_FETCH_DELAY_SECONDS = int(os.getenv('DATA_FETCH_DELAY_SECONDS', 10))
@@ -60,6 +61,16 @@ class Config:
         # Ensure directories exist
         self._create_directories()
     
+    def get_env_var(self, var_name, default=None, type=str):
+        """Get environment variable with type casting."""
+        value = os.getenv(var_name, default)
+        if type == bool:
+            return str(value).lower() in ['true', '1', 'yes']
+        try:
+            return type(value)
+        except (ValueError, TypeError):
+            return default
+
     def get_db_uri(self):
         return self.DB_URI
 

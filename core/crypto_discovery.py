@@ -112,6 +112,7 @@ class CryptoDiscovery:
             if abs(crypto.get('price_change_percentage_24h', 0)) >= min_volatility
         ]
         
+        volatile_cryptos.sort(key=lambda x: x['volatility_score'], reverse=True)
         return volatile_cryptos[:limit]
 
     def update_exchanges_for_cached_cryptos(self,

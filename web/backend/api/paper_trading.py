@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify
+from flask import jsonify, current_app
 from flask_restful import Resource, Api
 import logging
 
@@ -44,6 +44,7 @@ class PaperTradingAPI(Resource):
                 }
                 open_positions_with_current_value.append(position_data)
 
+            logging.root.info(f"Last analysis run time from engine: {self.paper_trading_engine.last_analysis_run_time}")
             status = {
                 'is_running': self.paper_trading_engine.is_running(),
                 'monitored_cryptos': self.paper_trading_engine._get_volatile_cryptos(),
@@ -54,11 +55,12 @@ class PaperTradingAPI(Resource):
                 'capital_per_trade': self.paper_trading_engine.capital_per_trade,
                 'initial_capital': self.paper_trading_engine.total_capital,
                 'analysis_history': self.paper_trading_engine.get_current_analysis_state(),
-                'optimization_status': self.paper_trading_engine.check_optimization_status()
+                'optimization_status': self.paper_trading_engine.check_optimization_status(),
+                'last_analysis_run': self.paper_trading_engine.last_analysis_run_time
             }
             return jsonify(status)
         except Exception as e:
-            self.logger.error(f"Error getting paper trading status: {e}")
+            logging.root.error(f"Error getting paper trading status: {e}")
             if "'Strategy' object has no attribute 'set_params'" in str(e):
                 return jsonify({'error': 'No analysis data available. Please run the optimizer.'}), 500
             return jsonify({'error': 'Failed to get paper trading status'}), 500

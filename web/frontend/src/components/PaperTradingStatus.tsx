@@ -79,6 +79,16 @@ const PaperTradingStatus = () => {
         </Grid>
       </Grid>
 
+      <Box sx={{ mt: 2 }}>
+        <Typography variant="subtitle1">Monitoring</Typography>
+        <Typography variant="body2" color="text.secondary">
+          Last analysis run: {data.last_analysis_run ? new Date(data.last_analysis_run).toLocaleString() : 'Never'}
+        </Typography>
+        <Typography variant="body2" color="text.secondary">
+          Monitored cryptos: {data.monitored_cryptos.join(', ')}
+        </Typography>
+      </Box>
+
       {data.optimization_status && data.optimization_status.status === 'no_profitable_strategies' && (
         <Alert severity="info" sx={{ mt: 2 }}>
           {data.optimization_status.message}
