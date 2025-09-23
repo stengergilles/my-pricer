@@ -253,6 +253,7 @@ class PaperTradingEngine:
                     logging.info(f"Found profitable strategy for {crypto_id}: {strategy_name} with profit {profit:.2f}%")
                     strategy_config = strategy_configs[strategy_name]
                     indicators = Indicators()
+                    strategy_config['name'] = strategy_name # Add the strategy name to the config
                     strategy_instance = Strategy(indicators, strategy_config)
                     strategy_instance.set_params(optimization_result['best_params'])
                     profitable_strategies.append(strategy_instance)
@@ -348,15 +349,6 @@ class PaperTradingEngine:
 
             if not profitable_strategies:
                 logging.info(f"No profitable strategies found for {crypto_id}. Skipping.")
-                self.current_analysis_state[crypto_id] = {
-                    'analysis_id': str(uuid.uuid4()),
-                    'crypto_id': crypto_id,
-                    'strategy_used': "N/A",
-                    'current_signal': "HOLD",
-                    'current_price': current_price if current_price else 0,
-                    'analysis_timestamp': datetime.now().isoformat(),
-                    'backtest_result': { 'total_profit_percentage': 0 } # Default to 0 if no profitable strategy
-                }
                 continue
 
             logging.info(f"Found {len(profitable_strategies)} profitable strategies for {crypto_id}.")
