@@ -42,6 +42,13 @@ from core.scheduler import init_scheduler, get_scheduler
 # Initialize core components
 config = Config()
 
+from core.logger_config import setup_logging
+
+# Set up logging
+setup_logging(config, component_name='flask_app')
+logging.getLogger('api.paper_trading').setLevel(logging.DEBUG)
+logger = logging.getLogger(__name__)
+
 # Initialize scheduler globally
 try:
     logger.info("Attempting to initialize scheduler...")
@@ -49,13 +56,6 @@ try:
     logger.info("Scheduler initialized successfully.")
 except Exception as e:
     logger.error(f"Error initializing scheduler: {e}")
-
-from core.logger_config import setup_logging
-
-# Set up logging
-setup_logging(config, component_name='flask_app')
-logging.getLogger('api.paper_trading').setLevel(logging.DEBUG)
-logger = logging.getLogger(__name__)
 
 logger.info(f"Scheduler DB URI: {config.get_db_uri()}")
 
