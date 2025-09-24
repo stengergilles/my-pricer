@@ -89,29 +89,22 @@ export const AnalysisResultDisplay = ({
     backtest_result,
   } = result;
 
-  const uniqueStrategies = backtestHistory.reduce((acc, backtest) => {
-    if (!backtest.strategy) {
-      console.error('Backtest result missing strategy name:', backtest);
-      return acc; // Skip this entry
-    }
-    if (!acc[backtest.strategy] || (backtest.backtest_result?.total_profit_percentage ?? 0) > (acc[backtest.strategy].backtest_result?.total_profit_percentage ?? 0)) {
-      acc[backtest.strategy] = backtest;
-    }
-    return acc;
-  }, {} as Record<string, BacktestResponse>);
-
-  const bestBacktests = Object.values(uniqueStrategies);
+  const sortedBacktests = [...backtestHistory].sort((a, b) => {
+    const profitA = a.backtest_result?.total_profit_percentage ?? -Infinity;
+    const profitB = b.backtest_result?.total_profit_percentage ?? -Infinity;
+    return profitB - profitA;
+  });
 
   const handleSelectChange = (event: any) => {
     const selectedId = event.target.value;
-    const selectedBacktest = bestBacktests.find(b => b.backtest_id === selectedId);
+    const selectedBacktest = sortedBacktests.find(b => b.backtest_id === selectedId);
     if (selectedBacktest) {
       onBacktestSelect(selectedBacktest);
     }
   };
 
-  const backtestToDisplay = backtest_result || (bestBacktests.length > 0 ? bestBacktests[0].backtest_result : null);
-  const backtestSource = backtestToDisplay?.source || (bestBacktests.length > 0 ? bestBacktests[0].source : null);
+  const backtestToDisplay = backtest_result || (sortedBacktests.length > 0 ? sortedBacktests[0].backtest_result : null);
+  const backtestSource = backtestToDisplay?.source || (sortedBacktests.length > 0 ? sortedBacktests[0].source : null);
 
   const {
     total_profit_percentage,
@@ -165,7 +158,7 @@ export const AnalysisResultDisplay = ({
                           onChange={handleSelectChange}
                           label="Strategy"
                         >
-                          {bestBacktests.map((backtest) => (
+                          {sortedBacktests.map((backtest) => (
                             <MenuItem key={backtest.backtest_id} value={backtest.backtest_id}>
                               {backtest.strategy || 'Error: Strategy Missing'}
                             </MenuItem>
