@@ -29,4 +29,4 @@ cd "web/backend"
 
 echo "Launching Flask backend (which starts all services) on port $API_PORT..."
 # Execute the Flask application. This is expected to start all services.
-python -u app.py > /tmp/start.log
+exec python -u app.py
