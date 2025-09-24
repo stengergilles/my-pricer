@@ -88,6 +88,8 @@ class ResultManager:
                 with open(filepath, 'r') as f:
                     result = json.load(f)
                     result['file_path'] = filepath
+                    if 'strategy_used' in result:
+                        result['strategy'] = result['strategy_used']
                     results.append(result)
             except Exception as e:
                 print(f"Error loading {filepath}: {e}")
@@ -121,6 +123,14 @@ class ResultManager:
                 with open(filepath, 'r') as f:
                     result = json.load(f)
                     result['file_path'] = filepath
+                    # Extract strategy from filename
+                    try:
+                        filename = os.path.basename(filepath)
+                        parts = filename.split('_')
+                        if len(parts) > 2 and parts[0] == 'backtest':
+                            result['strategy'] = parts[2]
+                    except Exception as e:
+                        self.logger.warning(f"Could not parse strategy from filename {filepath}: {e}")
                     results.append(result)
                     self.logger.debug(f"get_backtest_history: Successfully loaded {filepath}. Content: {result}")
             except Exception as e:
@@ -151,6 +161,14 @@ class ResultManager:
                 with open(filepath, 'r') as f:
                     result = json.load(f)
                     result['file_path'] = filepath
+                    # Extract strategy from filename
+                    try:
+                        filename = os.path.basename(filepath)
+                        parts = filename.split('_')
+                        if len(parts) > 3 and parts[0] == 'best' and parts[1] == 'params':
+                            result['strategy'] = parts[3].replace('.json', '')
+                    except Exception as e:
+                        self.logger.warning(f"Could not parse strategy from filename {filepath}: {e}")
                     results.append(result)
             except Exception as e:
                 print(f"Error loading {filepath}: {e}")
