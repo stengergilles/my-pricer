@@ -43,7 +43,12 @@ from core.scheduler import init_scheduler, get_scheduler
 config = Config()
 
 # Initialize scheduler globally
-init_scheduler(config)
+try:
+    logger.info("Attempting to initialize scheduler...")
+    init_scheduler(config)
+    logger.info("Scheduler initialized successfully.")
+except Exception as e:
+    logger.error(f"Error initializing scheduler: {e}")
 
 from core.logger_config import setup_logging
 

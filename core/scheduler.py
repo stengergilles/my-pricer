@@ -12,18 +12,23 @@ logging.getLogger('apscheduler').setLevel(logging.INFO)
 
 class Scheduler:
     def __init__(self, app_config: Config):
+        logging.info("Scheduler: Initializing Scheduler instance.")
         self.app_config = app_config
         self.scheduler = BackgroundScheduler(jobstores=self._get_jobstores())
+        logging.info("Scheduler: BackgroundScheduler created.")
 
     def _get_jobstores(self):
         db_uri = self.app_config.get_db_uri()
+        logging.info(f"Scheduler: Configuring job store with DB URI: {db_uri}")
         engine = create_engine(db_uri)
         return {
             'default': SQLAlchemyJobStore(engine=engine)
         }
 
     def start(self):
+        logging.info("Scheduler: Starting the APScheduler.")
         self.scheduler.start()
+        logging.info("Scheduler: APScheduler started.")
 
     def shutdown(self):
         self.scheduler.shutdown()
@@ -65,10 +70,15 @@ scheduler = None
 
 def init_scheduler(app_config: Config):
     global scheduler
+    logging.info("init_scheduler: Function called.")
     if scheduler is None:
+        logging.info("init_scheduler: Scheduler is None, creating new instance.")
         scheduler = Scheduler(app_config)
         scheduler.add_listener(job_listener, EVENT_JOB_EXECUTED | EVENT_JOB_ERROR)
         scheduler.start()
+        logging.info("init_scheduler: New scheduler instance created and started.")
+    else:
+        logging.info("init_scheduler: Scheduler already initialized, returning existing instance.")
     return scheduler
 
 def get_scheduler():
