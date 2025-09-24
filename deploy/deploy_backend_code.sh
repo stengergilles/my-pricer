@@ -1,31 +1,26 @@
 #!/bin/bash
+#
+set -x
 
 # Determine the absolute path to the project root dynamically
 # This script is in deploy/, so project root is one level up
 SOURCE_DIR="$(cd "$(dirname "$0")" && pwd -P)/.."
 DEST_DIR="/opt/crypto-pricer/"
+SERVICE_USER="crypto-pricer"
 
 # Ensure destination exists
 sudo mkdir -p "$DEST_DIR"
 
-# Copy all necessary Python code
-# Exclude development-only files/folders, frontend build artifacts, and the 'data' directory
-sudo rsync -av --delete \
-    --exclude '.git/' \
-    --exclude '.github/' \
-    --exclude '.ruff_cache/' \
-    --exclude 'build/' \
-    --exclude 'node_modules/' \
-    --exclude '__pycache__/' \
-    --exclude 'tests/' \
-    --exclude 'web/frontend/' \
-    --exclude 'data/' \
-    --exclude '*.pyc' \
-    --exclude '*.log' \
-    --exclude '*.coverage' \
-    --exclude 'web/backend/.env' \
-    --exclude 'venv/' \
-    "$SOURCE_DIR/" "$DEST_DIR"
+sudo rm -rf $DEST_DIR/*
+sudo rsync -av "$SOURCE_DIR"/*.py "$DEST_DIR"/ || true
+sudo rsync -av "$SOURCE_DIR"/*.pyx "$DEST_DIR"/ || true
 
-# Restart production service (this will be called by deploy_backend.sh, so it's commented out here)
-# sudo systemctl restart crypto-pricer
+# Recursively copy core and web/backend directories using rsync
+sudo rsync -av "$SOURCE_DIR"/core/ "$DEST_DIR"/core/
+sudo mkdir -p $DEST_DIR/web/backend
+sudo rsync -av "$SOURCE_DIR"/web/backend/ "$DEST_DIR"/web/backend/
+
+rm "$DEST_DIR"/web/backend/.env 
+# Ensure all copied files are owned by the service user
+sudo chown -R $SERVICE_USER:$SERVICE_USER "$DEST_DIR"
+
