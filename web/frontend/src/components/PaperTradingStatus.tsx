@@ -127,7 +127,10 @@ const PaperTradingStatus = () => {
       {data.analysis_history && data.analysis_history.length > 0 && (
         <Box sx={{ mt: 2 }}>
           <Typography variant="h6">Current Analysis</Typography>
-          <CurrentAnalysisTable currentAnalysis={data.analysis_history} />
+          <CurrentAnalysisTable
+            currentAnalysis={data.analysis_history}
+            openPositions={data.open_positions}
+          />
         </Box>
       )}
     </Paper>

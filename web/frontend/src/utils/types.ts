@@ -146,11 +146,25 @@ export interface Analysis {
 export interface PaperTradingStatus {
   is_running: boolean;
   portfolio_value: number;
-  open_positions: any[];
+  open_positions: OpenPosition[];
   trade_history: any[];
   analysis_history: Analysis[];
   optimization_status: {
     status: string;
     message: string;
   };
+}
+
+export interface OpenPosition {
+  crypto_id: string;
+  signal: string;
+  entry_price: number;
+  stop_loss_price: number;
+  size_usd: number;
+  size_crypto: number;
+  timestamp: string;
+  status: string;
+  current_price?: number; // Added in backend for display
+  current_value_usd?: number; // Added in backend for display
+  pnl_usd?: number; // Added in backend for display
 }

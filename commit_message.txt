@@ -1,6 +1,12 @@
-fix: Align "Last updated" timestamp to the right in PaperTradingStatus
+feat: Implement volatile crypto reconciliation and frontend display improvements
 
-This commit ensures that the "Last updated" timestamp in the PaperTradingStatus component is consistently aligned to the right.
+This commit introduces the following changes:
 
-Key changes:
-- `web/frontend/src/components/PaperTradingStatus.tsx`: Added `flexGrow: 1` to the Box containing the "Paper Trading Status" title and running indicator, which pushes the "Last updated" timestamp to the far right within its parent container.
+- **Backend (PaperTradingEngine):**
+  - Added logic to `analysis_task` to identify cryptos that are no longer in the volatile list.
+  - For such cryptos, any open positions are closed, and they are removed from the `current_analysis_state`.
+  - Modified the call to `get_volatile_cryptos` to refresh the cache every 1 hour, ensuring more up-to-date volatile crypto data.
+
+- **Frontend (CurrentAnalysisTable):**
+  - Replaced the "Position Size" column with "Position Value" to display the real-time value of open positions.
+  - Changed the "Daily Change" column header to "Expected Profit (Backtest)" for clarity, as it reflects the backtest profit percentage.
