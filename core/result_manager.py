@@ -65,8 +65,9 @@ class ResultManager:
     def save_backtest_result(self, crypto_id: str, strategy_name: str, result: Dict[str, Any]) -> str:
         """Save backtest result to file."""
         crypto_id = crypto_id.replace(' ', '-').lower()
+        strategy_name_safe = strategy_name.replace(' ', '-')
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        filename = f"backtest_{crypto_id}_{strategy_name}_{timestamp}.json"
+        filename = f"backtest_{crypto_id}_{strategy_name_safe}_{timestamp}.json"
         filepath = os.path.join(self.results_dir, filename)
         
         with open(filepath, 'w') as f:
@@ -130,7 +131,8 @@ class ResultManager:
                         parts = filename_no_ext.split('_')
                         if len(parts) > 3 and parts[0] == 'backtest':
                             strategy_parts = parts[2:-2]
-                            result['strategy'] = '_'.join(strategy_parts)
+                            strategy_name_safe = '_'.join(strategy_parts)
+                            result['strategy'] = strategy_name_safe.replace('-', ' ')
                     except Exception as e:
                         self.logger.warning(f"Could not parse strategy from filename {filepath}: {e}")
                     results.append(result)
