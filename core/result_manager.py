@@ -126,9 +126,11 @@ class ResultManager:
                     # Extract strategy from filename
                     try:
                         filename = os.path.basename(filepath)
-                        parts = filename.split('_')
-                        if len(parts) > 2 and parts[0] == 'backtest':
-                            result['strategy'] = parts[2]
+                        filename_no_ext = filename[:-5]
+                        parts = filename_no_ext.split('_')
+                        if len(parts) > 3 and parts[0] == 'backtest':
+                            strategy_parts = parts[2:-2]
+                            result['strategy'] = '_'.join(strategy_parts)
                     except Exception as e:
                         self.logger.warning(f"Could not parse strategy from filename {filepath}: {e}")
                     results.append(result)

@@ -158,7 +158,7 @@ export const AnalysisResultDisplay = ({
                           onChange={handleSelectChange}
                           label="Strategy"
                         >
-                          {sortedBacktests.map((backtest) => (
+                          {[...new Map(sortedBacktests.map(item => [item.strategy, item])).values()].map((backtest) => (
                             <MenuItem key={backtest.backtest_id} value={backtest.backtest_id}>
                               {backtest.strategy || 'Error: Strategy Missing'}
                             </MenuItem>
