@@ -216,7 +216,7 @@ class PaperTradingEngine:
 
     def _get_volatile_cryptos(self):
         # Use the crypto_discovery module to get volatile cryptos
-        volatile_cryptos_data = self.crypto_discovery.get_volatile_cryptos(limit=10)
+        volatile_cryptos_data = self.crypto_discovery.get_volatile_cryptos(limit=10, cache_hours=1)
         # Extract just the IDs (symbols) for now
         return [crypto['id'] for crypto in volatile_cryptos_data]
 
@@ -331,6 +331,34 @@ class PaperTradingEngine:
         
         volatile_cryptos = self._get_volatile_cryptos()
         logging.info(f"Found {len(volatile_cryptos)} volatile cryptos: {volatile_cryptos}")
+
+        # Convert volatile_cryptos to a set for efficient lookup
+        volatile_crypto_ids = {crypto_id for crypto_id in volatile_cryptos}
+
+        # Reconcile open positions and monitored cryptos with the latest volatile list
+        cryptos_to_remove_from_monitoring = []
+        for crypto_id in list(self.current_analysis_state.keys()): # Iterate over a copy of keys
+            if crypto_id not in volatile_crypto_ids:
+                cryptos_to_remove_from_monitoring.append(crypto_id)
+
+        for crypto_id in cryptos_to_remove_from_monitoring:
+            logging.info(f"Crypto {crypto_id} is no longer volatile. Stopping monitoring and closing positions.")
+            # Close any open positions for this crypto
+            positions_to_close = [p for p in self.open_positions if p['crypto_id'] == crypto_id]
+            if positions_to_close:
+                # Fetch current price to close position
+                prices = get_current_prices([crypto_id], self.config)
+                current_price = prices.get(crypto_id)
+                if current_price:
+                    for position in positions_to_close:
+                        self._close_position(position, current_price, "no-longer-volatile")
+                else:
+                    logging.warning(f"Could not fetch current price for {crypto_id} to close position as it's no longer volatile.")
+            
+            # Remove from current analysis state
+            if crypto_id in self.current_analysis_state:
+                del self.current_analysis_state[crypto_id]
+            logging.info(f"Stopped monitoring {crypto_id}.")
 
         # Batch fetch prices for all volatile cryptos
         prices = get_current_prices(volatile_cryptos, self.config)
