@@ -154,11 +154,11 @@ export const AnalysisResultDisplay = ({
                         <InputLabel id="backtest-select-label">Strategy</InputLabel>
                         <Select
                           labelId="backtest-select-label"
-                          value={result.analysis_id || ''}
+                          value={result.backtest_result?.backtest_id || result.analysis_id || ''}
                           onChange={handleSelectChange}
                           label="Strategy"
                         >
-                          {[...new Map(sortedBacktests.map(item => [item.strategy, item])).values()].map((backtest) => (
+                          {sortedBacktests.map((backtest) => (
                             <MenuItem key={backtest.backtest_id} value={backtest.backtest_id}>
                               {backtest.strategy || 'Error: Strategy Missing'}
                             </MenuItem>

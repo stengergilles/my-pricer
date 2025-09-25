@@ -242,20 +242,41 @@ class PaperTradingEngine:
     def _get_profitable_strategies_for_crypto(self, crypto_id: str) -> List[Strategy]:
         profitable_strategies = []
         available_strategies = self.trading_engine.get_strategies()
+        result_manager = ResultManager(self.config)
 
         for strategy_info in available_strategies:
             strategy_name = strategy_info['name']
-            optimization_result = self.trading_engine.get_optimization_results(crypto_id, strategy_name)
+            
+            # Use the ResultManager to get the most recent backtest, whether from optimization or manual run
+            backtest_history = result_manager.get_backtest_history(crypto_id, strategy_name, limit=1)
+            optimization_history = result_manager.get_optimization_history(crypto_id, strategy_name, limit=1)
 
-            if optimization_result and optimization_result.get('best_params'):
-                profit = optimization_result.get('backtest_result', {}).get('total_profit_percentage', 0)
+            latest_result = None
+            if backtest_history and optimization_history:
+                latest_result = backtest_history[0] if backtest_history[0]['timestamp'] > optimization_history[0]['timestamp'] else optimization_history[0]
+            elif backtest_history:
+                latest_result = backtest_history[0]
+            elif optimization_history:
+                latest_result = optimization_history[0]
+
+            if latest_result:
+                backtest_result = latest_result.get('backtest_result', latest_result)
+                profit = backtest_result.get('total_profit_percentage', 0)
+
                 if profit > 0:
+                    # In optimization results, parameters are at the top level
+                    params = latest_result.get('best_params') or backtest_result.get('parameters')
+
+                    if not params:
+                        logging.warning(f"No parameters found for profitable strategy {strategy_name} for {crypto_id}. Skipping.")
+                        continue
+
                     logging.info(f"Found profitable strategy for {crypto_id}: {strategy_name} with profit {profit:.2f}%")
                     strategy_config = strategy_configs[strategy_name]
                     indicators = Indicators()
-                    strategy_config['name'] = strategy_name # Add the strategy name to the config
+                    strategy_config['name'] = strategy_name
                     strategy_instance = Strategy(indicators, strategy_config)
-                    strategy_instance.set_params(optimization_result['best_params'])
+                    strategy_instance.set_params(params)
                     profitable_strategies.append(strategy_instance)
         
         if not profitable_strategies:

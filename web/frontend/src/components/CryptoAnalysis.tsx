@@ -41,9 +41,7 @@ export const CryptoAnalysis = () => {
   const { getCryptos, runAnalysis, apiClient, getBacktestHistory } = useApiClient()
   const { is403Error, handleError, reset403Error } = useErrorHandler()
   const queryClient = useQueryClient()
-  const [result, setResult] = useState<AnalysisResult | null>(null)
-  const [selectedBacktest, setSelectedBacktest] = useState<AnalysisResult | null>(null);
-  const [error, setError] = useState<string | null>(null)
+  const [displayResult, setDisplayResult] = useState<AnalysisResult | null>(null)
 
   const { data: cryptos, isLoading: cryptosLoading, error: cryptosError } = useQuery<{
     cryptos: Crypto[]
@@ -113,11 +111,9 @@ export const CryptoAnalysis = () => {
     onSuccess: (data, variables) => {
       if (data.result && data.result.success === false) {
         setError(data.result.error || 'Analysis failed')
-        setResult(null)
-        setSelectedBacktest(null);
+        setDisplayResult(null)
       } else {
-        setResult(data.result)
-        setSelectedBacktest(data.result);
+        setDisplayResult(data.result)
 
         // Manually update the backtest history query cache
         queryClient.setQueryData(['backtestHistory', variables.cryptoId], (oldData) => {
@@ -171,8 +167,7 @@ export const CryptoAnalysis = () => {
 
   const onSubmit = (data: AnalysisFormData) => {
     setError(null)
-    setResult(null)
-    setSelectedBacktest(null);
+    setDisplayResult(null)
 
     analysisMutation.mutate({
       ...data,
@@ -198,7 +193,7 @@ export const CryptoAnalysis = () => {
       chart_data: backtest.chart_data,
       backtest_result: backtest.backtest_result,
     };
-    setSelectedBacktest(analysisResult);
+    setDisplayResult(analysisResult);
   };
 
   if (cryptosLoading || configLoading || backtestHistoryLoading) {
@@ -308,12 +303,12 @@ export const CryptoAnalysis = () => {
         </StyledPaper>
       )}
 
-      {result && (
+      {displayResult && (
         <StyledPaper>
           <Typography variant="h5" component="h3" gutterBottom>
             Analysis Results
           </Typography>
-          <AnalysisResultDisplay result={selectedBacktest || result} backtestHistory={backtestHistory} onBacktestSelect={handleBacktestSelect} />
+          <AnalysisResultDisplay result={displayResult} backtestHistory={backtestHistory} onBacktestSelect={handleBacktestSelect} />
         </StyledPaper>
       )}
     </Box>
