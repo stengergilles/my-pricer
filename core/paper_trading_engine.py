@@ -244,6 +244,14 @@ class PaperTradingEngine:
         available_strategies = self.trading_engine.get_strategies()
         result_manager = ResultManager(self.config)
 
+        def get_timestamp_from_result(result_dict: Dict[str, Any]) -> datetime:
+            timestamp_str = result_dict.get('timestamp')
+            if not timestamp_str and result_dict.get('backtest_result'):
+                timestamp_str = result_dict['backtest_result'].get('timestamp')
+            if timestamp_str:
+                return datetime.fromisoformat(timestamp_str)
+            return datetime.min # Return a very old date if no timestamp is found
+
         for strategy_info in available_strategies:
             strategy_name = strategy_info['name']
             
@@ -253,7 +261,10 @@ class PaperTradingEngine:
 
             latest_result = None
             if backtest_history and optimization_history:
-                latest_result = backtest_history[0] if backtest_history[0]['timestamp'] > optimization_history[0]['timestamp'] else optimization_history[0]
+                if get_timestamp_from_result(backtest_history[0]) > get_timestamp_from_result(optimization_history[0]):
+                    latest_result = backtest_history[0]
+                else:
+                    latest_result = optimization_history[0]
             elif backtest_history:
                 latest_result = backtest_history[0]
             elif optimization_history:
