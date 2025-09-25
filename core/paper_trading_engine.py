@@ -8,7 +8,9 @@ import pandas as pd
 import uuid # Import uuid for generating unique IDs
 
 from core.app_config import Config
-from core.data_fetcher import get_crypto_data_merged, get_current_prices
+from core.data_fetcher import DataFetcher # New import
+from core.rate_limiter import RateLimiter, coingecko_rate_limiter # New import, added coingecko_rate_limiter
+
 from pricer_compatibility_fix import find_best_result_file
 from strategy import Strategy
 from indicators import Indicators
@@ -25,7 +27,7 @@ from core.scheduler import get_scheduler
 class PaperTradingEngine:
     _instance = None
 
-    def __new__(cls, config: Config = None):
+    def __new__(cls, config: Config = None, data_fetcher: DataFetcher = None): # Added data_fetcher
         if cls._instance is None:
             if config is None:
                 raise ValueError("Config must be provided for the first instantiation of PaperTradingEngine.")
@@ -33,12 +35,18 @@ class PaperTradingEngine:
             cls._instance._initialized = False # Use a flag to prevent re-initialization
         return cls._instance
 
-    def __init__(self, config: Config):
+    def __init__(self, config: Config, data_fetcher: DataFetcher = None): # Added data_fetcher
         if self._initialized:
             return
         self._initialized = True
 
         self.config = config
+        self.data_fetcher = data_fetcher # Store data_fetcher
+        
+        # If data_fetcher is not provided, create a default one using the global coingecko_rate_limiter
+        if self.data_fetcher is None:
+            self.data_fetcher = DataFetcher(coingecko_rate_limiter, config) # Use global coingecko_rate_limiter
+
         self.total_capital = config.PAPER_TRADING_TOTAL_CAPITAL
         self.capital_per_trade = config.PAPER_TRADING_MIN_POSITION_VALUE
         self.max_concurrent_positions = int(self.total_capital / self.capital_per_trade)
@@ -76,8 +84,8 @@ class PaperTradingEngine:
             except Exception as e:
                 logging.error(f"Failed to load trades from {self.trades_log_path}: {e}")
 
-        self.crypto_discovery = CryptoDiscovery(cache_dir=self.config.CACHE_DIR)
-        self.trading_engine = TradingEngine(config=self.config) # Instantiate TradingEngine
+        self.crypto_discovery = CryptoDiscovery(cache_dir=self.config.CACHE_DIR, data_fetcher=self.data_fetcher) # Pass data_fetcher
+        self.trading_engine = TradingEngine(config=self.config, data_fetcher=self.data_fetcher) # Pass data_fetcher
 
         logging.info("--- Paper Trading Engine Initialized ---")
         logging.info(f"Total Capital: ${self.total_capital:.2f}")
@@ -226,8 +234,12 @@ class PaperTradingEngine:
         if not positions_to_close:
             return
         
+        if self.data_fetcher is None:
+            logging.error("DataFetcher not initialized. Cannot close positions.")
+            return
+
         crypto_ids_to_fetch = [p['crypto_id'] for p in positions_to_close]
-        prices = get_current_prices(crypto_ids_to_fetch, self.config)
+        prices = self.data_fetcher.get_current_prices(crypto_ids_to_fetch)
 
         for position in positions_to_close:
             current_price = prices.get(position['crypto_id'])
@@ -379,7 +391,7 @@ class PaperTradingEngine:
             positions_to_close = [p for p in self.open_positions if p['crypto_id'] == crypto_id]
             if positions_to_close:
                 # Fetch current price to close position
-                prices = get_current_prices([crypto_id], self.config)
+                prices = self.data_fetcher.get_current_prices([crypto_id]) # Use data_fetcher
                 current_price = prices.get(crypto_id)
                 if current_price:
                     for position in positions_to_close:
@@ -393,7 +405,7 @@ class PaperTradingEngine:
             logging.info(f"Stopped monitoring {crypto_id}.")
 
         # Batch fetch prices for all volatile cryptos
-        prices = get_current_prices(volatile_cryptos, self.config)
+        prices = self.data_fetcher.get_current_prices(volatile_cryptos) # Use data_fetcher
         
         for crypto_id in volatile_cryptos:
             open_position = next((p for p in self.open_positions if p['crypto_id'] == crypto_id), None)
@@ -415,7 +427,7 @@ class PaperTradingEngine:
 
             # Fetch data (1 day of minute-level data)
             try:
-                df = get_crypto_data_merged(crypto_id, days=1, config=self.config)
+                df = self.data_fetcher.get_crypto_data_merged(crypto_id, days=1) # Use data_fetcher
             except CoinGeckoRateLimitError as e:
                 logging.warning(f"Rate limit hit for {crypto_id}: {e}. Skipping this crypto for now.")
                 continue
@@ -500,8 +512,12 @@ class PaperTradingEngine:
 
         logging.info("--- Running Price Monitoring Task ---")
         
+        if self.data_fetcher is None:
+            logging.error("DataFetcher not initialized. Cannot monitor prices.")
+            return
+
         crypto_ids_to_monitor = [p['crypto_id'] for p in self.open_positions]
-        prices = get_current_prices(crypto_ids_to_monitor, self.config)
+        prices = self.data_fetcher.get_current_prices(crypto_ids_to_monitor) # Use data_fetcher
 
         for position in self.open_positions[:]: # Iterate over a copy
             current_price = prices.get(position['crypto_id'])
@@ -629,7 +645,9 @@ def run_analysis_task(job_id):
     logger.info(f"Starting analysis task job (id: {job_id})... Log file: {log_path}")
 
     try:
-        engine = PaperTradingEngine(config=Config())
+        config = Config()
+        data_fetcher = DataFetcher(coingecko_rate_limiter, config) # Use global coingecko_rate_limiter
+        engine = PaperTradingEngine(config=config, data_fetcher=data_fetcher)
         engine.analysis_task()
         logger.info("Analysis task job finished.")
     except Exception as e:
@@ -644,7 +662,9 @@ def run_price_monitoring_task(job_id):
     logger.info(f"Starting price monitoring task job (id: {job_id})... Log file: {log_path}")
 
     try:
-        engine = PaperTradingEngine(config=Config())
+        config = Config()
+        data_fetcher = DataFetcher(coingecko_rate_limiter, config) # Use global coingecko_rate_limiter
+        engine = PaperTradingEngine(config=config, data_fetcher=data_fetcher)
         engine.price_monitoring_task()
         logger.info("Price monitoring task job finished.")
     except Exception as e:

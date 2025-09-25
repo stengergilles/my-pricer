@@ -20,7 +20,7 @@ from core.app_config import Config
 try:
     from backtester import Backtester
     from config import strategy_configs, DEFAULT_SPREAD_PERCENTAGE, DEFAULT_SLIPPAGE_PERCENTAGE
-    from core.data_fetcher import get_crypto_data_merged
+    
     from strategy import Strategy
     BACKTESTER_AVAILABLE = True
     logging.info("Backtester modules imported successfully")
@@ -58,9 +58,10 @@ class BacktesterWrapper:
     Eliminates subprocess calls and provides better error handling.
     """
     
-    def __init__(self, config: Config):
+    def __init__(self, config: Config, data_fetcher=None): # Added data_fetcher parameter
         """Initialize backtester wrapper."""
         self.config = config
+        self.data_fetcher = data_fetcher # Store the data_fetcher
         self.logger = logging.getLogger(__name__)
         
         if not BACKTESTER_AVAILABLE:
@@ -89,20 +90,6 @@ class BacktesterWrapper:
             return self._mock_backtest_result(crypto, strategy, parameters)
         
         try:
-            # Get crypto data - convert timeframe to days
-            timeframe_days = self._timeframe_to_days(timeframe)
-            data = get_crypto_data_merged(crypto, timeframe_days, self.config)
-            if data is None or len(data) == 0:
-                self.logger.error(f"No data available for {crypto}")
-                return {
-                    'crypto': crypto,
-                    'strategy': strategy,
-                    'parameters': parameters,
-                    'success': False,
-                    'error': 'No data available',
-                    'timestamp': datetime.now().isoformat()
-                }
-            
             # Get strategy configuration
             if strategy not in strategy_configs:
                 self.logger.error(f"Unknown strategy: {strategy}")
@@ -120,8 +107,27 @@ class BacktesterWrapper:
             # Create strategy instance
             strategy_instance = Strategy(strategy, strategy_config)
             
-            # Create backtester instance
-            backtester = Backtester(data, strategy_instance, strategy_config)
+            # Create backtester instance, passing the data_fetcher
+            backtester = Backtester(strategy_instance, strategy_config, data_fetcher=self.data_fetcher)
+            
+            # Determine start and end dates for data fetching
+            end_date = datetime.now()
+            timeframe_days = self._timeframe_to_days(timeframe)
+            start_date = end_date - timedelta(days=timeframe_days)
+
+            # Fetch data using the backtester's internal DataFetcher
+            data = backtester.fetch_data(crypto, interval, start_date, end_date)
+            if data is None or len(data) == 0:
+                self.logger.error(f"No data available for {crypto} for timeframe {timeframe}")
+                return {
+                    'crypto': crypto,
+                    'strategy': strategy,
+                    'parameters': parameters,
+                    'success': False,
+                    'error': 'No data available',
+                    'timestamp': datetime.now().isoformat()
+                }
+            backtester.set_data(data) # Set the fetched data
             
             # Add required parameters for backtester
             backtest_params = parameters.copy()
@@ -245,13 +251,14 @@ class BacktesterWrapper:
         
         return strategy_configs.get(strategy, {})
     
-    def test_crypto_data_availability(self, crypto: str, timeframe: str = "7d") -> bool:
+    def test_crypto_data_availability(self, crypto: str, timeframe: str = "7d", interval: str = "1h") -> bool: # Added interval
         """
         Test if data is available for a cryptocurrency.
         
         Args:
             crypto: Cryptocurrency identifier
             timeframe: Data timeframe to test
+            interval: Data interval to test (e.g., "1h")
             
         Returns:
             True if data is available, False otherwise
@@ -260,8 +267,18 @@ class BacktesterWrapper:
             return True  # Mock availability
         
         try:
-            data = get_crypto_data_merged(crypto, self._timeframe_to_days(timeframe), self.config)
-            return data is not None and len(data) > 0
+            if self.data_fetcher is None:
+                self.logger.warning("DataFetcher not initialized in BacktesterWrapper. Cannot test data availability.")
+                return False
+
+            end_date = datetime.now()
+            timeframe_days = self._timeframe_to_days(timeframe)
+            start_date = end_date - timedelta(days=timeframe_days)
+
+            # Fetch a small amount of data to check availability
+            # Using a fixed interval like "1h" for this check
+            klines_data = self.data_fetcher.fetch_klines(crypto, interval, int(start_date.timestamp() * 1000), int(end_date.timestamp() * 1000))
+            return klines_data is not None and len(klines_data) > 0
         except Exception as e:
             self.logger.warning(f"Data not available for {crypto}: {e}")
             return False

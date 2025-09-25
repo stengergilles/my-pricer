@@ -1,6 +1,6 @@
 import logging
-from flask import request, jsonify
-from flask_restful import Resource
+from flask import request, jsonify, Blueprint
+from flask_restful import Resource, Api
 from datetime import datetime
 import sys
 import os
@@ -139,3 +139,10 @@ class BacktestAPI(Resource):
         except Exception as e:
             logger.error(f"Error in backtest API: {e}")
             return {'error': f'Operation failed: {str(e)}'}, 500
+
+def bp(data_fetcher):
+    bp = Blueprint('backtest', __name__)
+    api = Api(bp)
+    engine = TradingEngine(data_fetcher=data_fetcher)
+    api.add_resource(BacktestAPI, '/backtest', '/backtest/<string:backtest_id>', resource_class_kwargs={'engine': engine})
+    return bp

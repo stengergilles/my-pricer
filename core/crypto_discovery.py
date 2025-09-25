@@ -12,6 +12,8 @@ from typing import Dict, List, Optional, Tuple
 import os
 from functools import wraps
 
+from .data_fetcher import DataFetcher # New import
+
 def retry_on_exception(retries=3, delay=5, backoff=2, exception_to_check=Exception):
     """
     A decorator to retry a function call on exception with exponential backoff.
@@ -36,35 +38,25 @@ def retry_on_exception(retries=3, delay=5, backoff=2, exception_to_check=Excepti
         return wrapper
     return decorator
 
-class CoinGeckoAPIError(Exception):
-    """Custom exception for CoinGecko API errors."""
-    def __init__(self, message, status_code=None):
-        super().__init__(message)
-        self.status_code = status_code
+from .exceptions import CoinGeckoAPIError # Import from exceptions.py
 
 class CryptoDiscovery:
     """
     Handles cryptocurrency discovery, volatility analysis, and data caching.
     """
     
-    def __init__(self, cache_dir: str = "backtest_results"):
+    def __init__(self, cache_dir: str = "backtest_results", data_fetcher: DataFetcher = None): # Added data_fetcher parameter
         """Initialize crypto discovery with caching directory."""
         self.cache_dir = cache_dir
         self.logger = logging.getLogger(__name__)
+        self.data_fetcher = data_fetcher # Store the data_fetcher
         
         # Ensure cache directory exists
         os.makedirs(cache_dir, exist_ok=True)
         
-        # CoinGecko API configuration
-        self.base_url = "https://api.coingecko.com/api/v3"
-        self.rate_limit_delay = 1.1  # Seconds between API calls
-
-    @retry_on_exception(retries=3, delay=5, backoff=2, exception_to_check=requests.exceptions.RequestException)
-    def _make_api_request(self, url, params=None):
-        time.sleep(self.rate_limit_delay)
-        response = requests.get(url, params=params, timeout=30)
-        response.raise_for_status()
-        return response.json()
+        # CoinGecko API configuration (now handled by DataFetcher)
+        # self.base_url = "https://api.coingecko.com/api/v3"
+        # self.rate_limit_delay = 1.1  # Seconds between API calls
         
     def get_volatile_cryptos(self, 
                            limit: int = 100, 
@@ -82,7 +74,7 @@ class CryptoDiscovery:
             all_cryptos = self._load_cache(cache_file)
         else:
             self.logger.info("Fetching volatile cryptos from CoinGecko")
-            url = f"{self.base_url}/coins/markets"
+            url = "https://api.coingecko.com/api/v3/coins/markets" # Base URL is now hardcoded or managed by DataFetcher
             params = {
                 'vs_currency': 'usd',
                 'order': 'market_cap_desc',
@@ -94,7 +86,9 @@ class CryptoDiscovery:
             }
             
             try:
-                data = self._make_api_request(url, params=params)
+                if self.data_fetcher is None:
+                    raise ValueError("DataFetcher not initialized in CryptoDiscovery.")
+                data = self.data_fetcher.make_coingecko_request(url, params=params) # Assuming DataFetcher has this method
                 all_cryptos = self._process_crypto_data(data)
                 self._save_cache(cache_file, all_cryptos)
                 self.logger.info(f"Found and cached {len(all_cryptos)} cryptos")
@@ -216,7 +210,7 @@ class CryptoDiscovery:
         """
         Get detailed information for a specific cryptocurrency.
         """
-        url = f"{self.base_url}/coins/{crypto_id}"
+        url = f"https://api.coingecko.com/api/v3/coins/{crypto_id}" # Base URL is now hardcoded or managed by DataFetcher
         params = {
             'localization': False,
             'tickers': False,
@@ -227,7 +221,9 @@ class CryptoDiscovery:
         }
         
         try:
-            return self._make_api_request(url, params=params)
+            if self.data_fetcher is None:
+                raise ValueError("DataFetcher not initialized in CryptoDiscovery.")
+            return self.data_fetcher.make_coingecko_request(url, params=params)
         except requests.exceptions.HTTPError as e:
             status_code = e.response.status_code if e.response else None
             if status_code == 429:
@@ -242,10 +238,12 @@ class CryptoDiscovery:
         """
         Get the list of exchanges for a specific cryptocurrency.
         """
-        url = f"{self.base_url}/coins/{crypto_id}/tickers"
+        url = f"https://api.coingecko.com/api/v3/coins/{crypto_id}/tickers" # Base URL is now hardcoded or managed by DataFetcher
         
         try:
-            data = self._make_api_request(url)
+            if self.data_fetcher is None:
+                raise ValueError("DataFetcher not initialized in CryptoDiscovery.")
+            data = self.data_fetcher.make_coingecko_request(url)
             if 'tickers' in data:
                 return list(set([ticker['market']['name'] for ticker in data['tickers']]))
             return []
@@ -263,11 +261,13 @@ class CryptoDiscovery:
         """
         Search for cryptocurrencies by name or symbol.
         """
-        url = f"{self.base_url}/search"
+        url = f"https://api.coingecko.com/api/v3/search" # Base URL is now hardcoded or managed by DataFetcher
         params = {'query': query}
         
         try:
-            data = self._make_api_request(url, params=params)
+            if self.data_fetcher is None:
+                raise ValueError("DataFetcher not initialized in CryptoDiscovery.")
+            data = self.data_fetcher.make_coingecko_request(url, params=params)
             return data.get('coins', [])[:limit]
         except requests.exceptions.HTTPError as e:
             status_code = e.response.status_code if e.response else None

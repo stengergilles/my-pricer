@@ -24,7 +24,7 @@ from .crypto_discovery import CryptoDiscovery
 from .optimizer import BayesianOptimizer
 from .backtester_wrapper import BacktesterWrapper
 import config # Import the top-level config.py
-from .data_fetcher import get_crypto_data_merged
+
 from lines import find_swing_points, find_support_resistance_lines, analyze_line_durations, auto_discover_percentage_change, predict_next_move
 from chart import generate_chart
 from .scheduler import get_scheduler # Import get_scheduler
@@ -35,9 +35,10 @@ class TradingEngine:
     trading functionality for both CLI and web interface.
     """
     
-    def __init__(self, config: Optional[Config] = None):
+    def __init__(self, config: Optional[Config] = None, data_fetcher=None): # Added data_fetcher parameter
         """Initialize trading engine with configuration."""
         self.config = config or Config()
+        self.data_fetcher = data_fetcher # Store the data_fetcher
         self.result_manager = ResultManager(self.config)
         self.data_manager = DataManager(self.config.CACHE_DIR)
         self.logger = logging.getLogger(__name__)
@@ -45,8 +46,8 @@ class TradingEngine:
         # Initialize unified components
         self.param_manager = ParameterManager()
         self.crypto_discovery = CryptoDiscovery(self.config.RESULTS_DIR)
-        self.optimizer = BayesianOptimizer(self.config.RESULTS_DIR)
-        self.backtester = BacktesterWrapper(self.config)
+        self.optimizer = BayesianOptimizer(self.config.RESULTS_DIR, data_fetcher=self.data_fetcher) # Pass data_fetcher to optimizer
+        self.backtester = BacktesterWrapper(self.config, data_fetcher=self.data_fetcher) # Pass data_fetcher to backtester wrapper
         self._scheduler = None # Initialize scheduler attribute
         self._exchange_update_lock = threading.Lock()
         self._last_exchange_update_time = None
@@ -625,7 +626,9 @@ class TradingEngine:
             first_timestamp: Optional[datetime] = None
             try:
                 timeframe_days = self._timeframe_to_days(timeframe)
-                df = get_crypto_data_merged(crypto_id, int(timeframe_days), self.config)
+                if self.data_fetcher is None:
+                    raise ValueError("DataFetcher not initialized in TradingEngine.")
+                df = self.data_fetcher.get_crypto_data_merged(crypto_id, int(timeframe_days))
                 if df is not None and not df.empty:
                     self.logger.debug(f"DataFrame for S/R analysis: {df.head()}")
                     df['price'] = df['close'] # Add a 'price' column for swing point analysis

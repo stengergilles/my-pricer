@@ -1,4 +1,5 @@
 import numpy as np
+from datetime import datetime, timedelta
 import pandas as pd
 import logging
 import json
@@ -10,10 +11,11 @@ from tqdm import tqdm
 import random
 import sys
 from config import strategy_configs, param_sets, DEFAULT_TIMEFRAME, DEFAULT_INTERVAL, DEFAULT_SPREAD_PERCENTAGE, DEFAULT_SLIPPAGE_PERCENTAGE, indicator_defaults
-from core.data_fetcher import get_crypto_data_merged
+
 from indicators import Indicators, calculate_atr
 from strategy import Strategy
-import requests # Added this import
+from core.data_fetcher import DataFetcher
+from core.rate_limiter import RateLimiter
 
 try:
     from backtester_cython import run_backtest_cython
@@ -25,14 +27,38 @@ except ImportError as e:
     run_backtest_cython = None
 
 class Backtester:
-    def __init__(self, data, strategy, config):
-        self.data = data
+    def __init__(self, strategy, config, data_fetcher=None):
         self.strategy = strategy
         self.config = config
         self.initial_capital = 100.0
+        if data_fetcher is None:
+            # Instantiate its own DataFetcher if not provided
+            rate_limiter = RateLimiter(max_requests=10, period=1) # Default values, can be configured
+            self.data_fetcher = DataFetcher(rate_limiter)
+        else:
+            self.data_fetcher = data_fetcher
+        self.data = None # Data will be fetched later
 
     def set_data(self, data):
         self.data = data
+
+    def fetch_data(self, symbol: str, interval: str, start_date: datetime, end_date: datetime):
+        """Fetches historical klines data using the internal DataFetcher."""
+        start_time_ms = int(start_date.timestamp() * 1000)
+        end_time_ms = int(end_date.timestamp() * 1000)
+        klines_data = self.data_fetcher.fetch_klines(symbol, interval, start_time_ms, end_time_ms)
+        
+        # Convert klines_data (list of lists) to DataFrame
+        # Assuming klines_data format: [[timestamp, open, high, low, close, volume, ...]]
+        df = pd.DataFrame(klines_data, columns=[
+            'timestamp', 'open', 'high', 'low', 'close', 'volume',
+            'close_time', 'quote_asset_volume', 'number_of_trades',
+            'taker_buy_base_asset_volume', 'taker_buy_quote_asset_volume', 'ignore'
+        ])
+        df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms')
+        df.set_index('timestamp', inplace=True)
+        df = df[['open', 'high', 'low', 'close', 'volume']].astype(float)
+        return df
 
     def run_backtest(self, params):
         logging.info("Backtester.run_backtest started.")
@@ -154,27 +180,32 @@ def convert_numpy_types(obj):
         return [convert_numpy_types(i) for i in obj]
     return obj
 
-def run_single_backtest(args, config):
+def run_single_backtest(args, config, data_fetcher=None):
     """
     Runs a single backtest with the given parameters.
     """
     logging.info(f"Starting single backtest for {args.crypto} with strategy {args.strategy}")
-    # Load data
-    try:
-        logging.info(f"Attempting to fetch data for {args.crypto}...")
-        data = get_crypto_data_merged(args.crypto, DEFAULT_TIMEFRAME, config)
-        logging.info(f"Successfully fetched data for {args.crypto}. Data points: {len(data)}")
-    except requests.exceptions.RequestException as e:
-        logging.error(f"Failed to fetch data for {args.crypto}: {e}")
-        return # Exit gracefully if data fetching fails
-
+    
     # Create indicators and strategy
     indicators = Indicators()
     strategy_config = strategy_configs[args.strategy]
     strategy = Strategy(indicators, strategy_config)
 
-    # Create backtester
-    backtester = Backtester(data, strategy, None)
+    # Create backtester, passing the data_fetcher
+    backtester = Backtester(strategy, config, data_fetcher) # Changed constructor call
+
+    # Load data using the backtester's fetch_data method
+    try:
+        logging.info(f"Attempting to fetch data for {args.crypto}...")
+        # Define a reasonable date range for backtesting, e.g., last 90 days
+        end_date = datetime.now()
+        start_date = end_date - timedelta(days=90) # Fetch data for the last 90 days
+        data = backtester.fetch_data(args.crypto, DEFAULT_TIMEFRAME, start_date, end_date)
+        backtester.set_data(data) # Set the fetched data
+        logging.info(f"Successfully fetched data for {args.crypto}. Data points: {len(data)}")
+    except Exception as e: # Catching a more general exception now
+        logging.error(f"Failed to fetch data for {args.crypto}: {e}")
+        return # Exit gracefully if data fetching fails
 
     # Collect parameters from args
     params = {
@@ -273,20 +304,19 @@ if __name__ == "__main__":
 
     if args.single_run:
         app_config = Config() # Instantiate Config
-        run_single_backtest(args, app_config) # Pass the instance
+        run_single_backtest(args, app_config, data_fetcher=None) # Pass the instance, let it create its own DataFetcher
     else: # Search mode
-        # Load data
-        data = get_crypto_data_merged(args.crypto, DEFAULT_TIMEFRAME, config)
-        if data is None:
-            logging.error(f"Could not fetch data for {args.crypto}. Exiting.")
-            exit()
+        app_config = Config() # Instantiate Config for search mode as well
 
         # Create strategy
         indicators = Indicators()
         strategy_config = strategy_configs[args.strategy]
         strategy = Strategy(indicators, strategy_config)
-        backtester = Backtester(data, strategy, None)
-
+        
+        # For multiprocessing, each process will need its own DataFetcher
+        # to avoid issues with sharing connections/rate limiters across processes.
+        # The Backtester constructor will handle creating one if not provided.
+        
         # Get param ranges
         if args.crypto in param_sets and args.param_set in param_sets[args.crypto]:
             param_ranges = param_sets[args.crypto][args.param_set]
@@ -302,10 +332,27 @@ if __name__ == "__main__":
             p_set['spread_percentage'] = DEFAULT_SPREAD_PERCENTAGE
             p_set['slippage_percentage'] = DEFAULT_SLIPPAGE_PERCENTAGE
 
+        # Define a helper function for multiprocessing to create its own backtester and fetch data
+        def run_backtest_with_data_fetch(params):
+            # Each process creates its own Backtester and DataFetcher
+            local_backtester = Backtester(strategy, app_config) # Backtester will create its own DataFetcher
+            
+            # Define a reasonable date range for backtesting, e.g., last 90 days
+            end_date = datetime.now()
+            start_date = end_date - timedelta(days=90) # Fetch data for the last 90 days
+            
+            try:
+                data = local_backtester.fetch_data(args.crypto, DEFAULT_TIMEFRAME, start_date, end_date)
+                local_backtester.set_data(data)
+                return local_backtester.run_backtest(params)
+            except Exception as e:
+                logging.error(f"Error in multiprocessing backtest for {args.crypto} with params {params}: {e}")
+                return None
+
         # Run backtests in parallel
         num_processes = os.cpu_count() // 2 if os.cpu_count() > 1 else 1
         with multiprocessing.Pool(processes=num_processes) as pool:
-            results_list = list(tqdm(pool.imap(backtester.run_backtest, param_grid), total=len(param_grid)))
+            results_list = list(tqdm(pool.imap(run_backtest_with_data_fetch, param_grid), total=len(param_grid)))
 
         # Find and display best results
         best_profit = -float('inf')

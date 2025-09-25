@@ -18,9 +18,10 @@ import math
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from . import job_status_manager # Added import
 
-class JobStopRequestedError(Exception):
-    """Custom exception to signal that a job stop has been requested."""
-    pass
+from .backtester_wrapper import BacktesterWrapper # New import
+from .data_fetcher import DataFetcher # New import
+
+from .exceptions import JobStopRequestedError, CoinGeckoRateLimitError # New import
 
 class JobStopCallback:
     """Optuna callback that checks for job stop requests."""
@@ -32,10 +33,6 @@ class JobStopCallback:
         if self.job_id and job_status_manager.is_job_stop_requested(self.job_id):
             self.logger.info(f"Job {self.job_id} stop requested. Stopping Optuna study.")
             study.stop()
-
-class CoinGeckoRateLimitError(Exception):
-    """Custom exception for CoinGecko API rate limit errors."""
-    pass
 
 class RateLimitStopper:
     """Optuna callback to stop optimization on CoinGecko rate limit errors."""
@@ -60,9 +57,10 @@ class BayesianOptimizer:
     
     def __init__(self, 
                  results_dir: str = "backtest_results",
-                 backtester_path: str = None,
+                 backtester_path: str = None, # This might become obsolete
                  seed: int = 42,
-                 logger: logging.Logger = None):
+                 logger: logging.Logger = None,
+                 data_fetcher: Optional[DataFetcher] = None): # Added data_fetcher parameter
         """
         Initialize optimizer.
         
@@ -71,20 +69,20 @@ class BayesianOptimizer:
             backtester_path: Path to backtester script
             seed: Random seed for reproducibility
             logger: Optional logger instance
+            data_fetcher: Optional DataFetcher instance for shared data access
         """
         self.results_dir = results_dir
-        # Resolve backtester_path to an absolute path relative to the project root
-        # Assuming the project root is the parent of 'core' directory
-        project_root = Path(__file__).parent.parent
-        self.backtester_path = backtester_path or str(project_root / "backtester.py")
+        # self.backtester_path = backtester_path or str(Path(__file__).parent.parent / "backtester.py") # Obsolete
         self.seed = seed
         self.logger = logger or logging.getLogger(__name__)
+        self.data_fetcher = data_fetcher # Store the data_fetcher
         
         # Initialize components
         self.config = Config()
         self.param_manager = ParameterManager()
         self.crypto_discovery = CryptoDiscovery(results_dir)
         self.result_manager = ResultManager(self.config)
+        self.backtester_wrapper = BacktesterWrapper(self.config, data_fetcher=self.data_fetcher) # Initialize BacktesterWrapper
         
         # Ensure results directory exists
         os.makedirs(results_dir, exist_ok=True)
@@ -381,137 +379,47 @@ class BayesianOptimizer:
         Returns:
             Objective value (profit percentage)
         """
+        # Check for job stop request at the beginning of each trial
+        if job_id and job_status_manager.is_job_stop_requested(job_id):
+            self.logger.info(f"Job {job_id} stop requested. Terminating trial {trial.number}.")
+            raise JobStopRequestedError(f"Job {job_id} stop requested. Terminating trial.")
+
         # Get parameter suggestions
         params = self.param_manager.suggest_parameters(trial, strategy)
         self.logger.info(f"Trial {trial.number}: Testing params {params}")
         
-        # Format parameters for CLI
-        cli_args = self.param_manager.format_cli_params(params)
-        
-        # Build command
-        cmd = [
-            'python', self.backtester_path,
-            '--crypto', crypto,
-            '--strategy', strategy,
-            '--single-run',
-            '--source', 'optimized'
-        ] + cli_args
-        
-        process = None # Initialize process to None
         try:
-            # Run backtester using Popen to get process object
-            self.logger.info(f"Running backtester for trial {trial.number}: {' '.join(cmd)}")
-            process = subprocess.Popen(
-                cmd,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True,
-                cwd=os.path.dirname(os.path.abspath(self.backtester_path))
+            # Run backtest using the BacktesterWrapper
+            backtest_result = self.backtester_wrapper.run_single_backtest(
+                crypto=crypto,
+                strategy=strategy,
+                parameters=params,
+                timeframe="90d", # Use a fixed timeframe for optimization
+                interval="1h" # Use a fixed interval for optimization
             )
             
-            # Register the process PID with the job status manager
-            job_status_manager.register_job_process(job_id, process.pid)
-            self.logger.info(f"Registered backtester process PID {process.pid} for job {job_id}.")
-
-            stdout_data = []
-            stderr_data = []
-            timeout_seconds = 300 # 5 minute timeout
-            start_time = time.time()
-
-            while process.poll() is None: # While process is still running
-                if job_status_manager.is_job_stop_requested(job_id):
-                    self.logger.warning(f"Stop requested for job {job_id}. Terminating backtester process {process.pid}.")
-                    process.terminate() # Send SIGTERM
-                    time.sleep(1) # Give it a moment to terminate
-                    if process.poll() is None:
-                        process.kill() # Send SIGKILL if not terminated
-                    raise JobStopRequestedError(f"Job {job_id} stop requested. Terminating trial.") # Raise custom exception
-
-                # Read output without blocking indefinitely
-                try:
-                    stdout_line = process.stdout.readline()
-                    if stdout_line:
-                        stdout_data.append(stdout_line)
-                    stderr_line = process.stderr.readline()
-                    if stderr_line:
-                        stderr_data.append(stderr_line)
-                except Exception as e:
-                    self.logger.error(f"Error reading process output: {e}")
-
-                if time.time() - start_time > timeout_seconds:
-                    self.logger.warning(f"Backtester timeout for {crypto} {strategy} in trial {trial.number}. Terminating process {process.pid}.")
-                    process.terminate()
-                    time.sleep(1)
-                    if process.poll() is None:
-                        process.kill()
-                    raise subprocess.TimeoutExpired(cmd, timeout_seconds)
-                time.sleep(0.1) # Small delay to prevent busy-waiting
-
-            # Collect any remaining output after process exits
-            remaining_stdout, remaining_stderr = process.communicate()
-            stdout_data.append(remaining_stdout)
-            stderr_data.append(remaining_stderr)
-
-            output = "".join(stdout_data)
-            error_output = "".join(stderr_data)
-            
-            if process.returncode != 0:
-                # Check if the error is due to CoinGecko rate limit
-                if "CoinGecko API rate limit exceeded" in error_output:
-                    self.logger.error(f"CoinGecko API rate limit exceeded during trial {trial.number}")
+            if backtest_result and backtest_result.get('success'):
+                profit_percentage = backtest_result.get('total_profit_percentage', -100.0)
+                
+                # Store the full backtest result in the trial's user attributes
+                trial.set_user_attr("backtest_result", backtest_result)
+                
+                self.logger.info(f"Trial {trial.number} completed. Profit: {profit_percentage}%")
+                return profit_percentage
+            else:
+                error_message = backtest_result.get('error', 'Unknown error') if backtest_result else 'No result'
+                self.logger.warning(f"Backtest failed for trial {trial.number}: {error_message}")
+                if "CoinGecko API rate limit exceeded" in error_message:
                     raise CoinGeckoRateLimitError(f"CoinGecko API rate limit exceeded. Optimization stopped.")
+                return -100.0 # Penalty for failed runs
                 
-                self.logger.warning(f"Backtester failed for trial {trial.number}: {error_output}")
-                return -100.0  # Penalty for failed runs
-            
-            # Parse output for profit percentage (JSON format)
-            try:
-                # Extract JSON part from output
-                json_start = output.find("OPTIMIZER_RESULTS:")
-                if json_start != -1:
-                    json_str = output[json_start + len("OPTIMIZER_RESULTS:"):]
-                    results_data = json.loads(json_str)
-                    
-                    # Store the full backtest result in the trial's user attributes
-                    trial.set_user_attr("backtest_result", results_data)
-                    
-                    if "total_profit_percentage" in results_data:
-                        profit_percentage = float(results_data["total_profit_percentage"])
-                        self.logger.info(f"Trial {trial.number} completed. Profit: {profit_percentage}%")
-                        return profit_percentage
-                    else:
-                        self.logger.warning(f"JSON output missing 'total_profit_percentage' in trial {trial.number}: {output}")
-                        return -100.0
-                else:
-                    self.logger.warning(f"Could not find OPTIMIZER_RESULTS: prefix in output for trial {trial.number}. Full stdout: {output}. Stderr: {error_output}")
-                    return -100.0
-            except json.JSONDecodeError as e:
-                self.logger.warning(f"Could not parse JSON from output in trial {trial.number}: {output}. Error: {e}")
-                return -100.0
-            except Exception as e:
-                self.logger.warning(f"An unexpected error occurred while parsing output in trial {trial.number}: {output}. Error: {e}")
-                return -100.0
-                
-        except subprocess.TimeoutExpired:
-                self.logger.warning(f"Backtester timeout for {crypto} {strategy} in trial {trial.number}")
-                return -100.0
-        except Exception as e: # Catch all other exceptions
+        except CoinGeckoRateLimitError as e:
+            self.logger.error(f"CoinGecko API rate limit exceeded during trial {trial.number}: {e}")
+            trial.set_user_attr("rate_limit_hit", True)
+            raise # Re-raise to be caught by the RateLimitStopper callback
+        except Exception as e:
             self.logger.error(f"An unexpected error occurred during backtester execution for trial {trial.number}: {e}", exc_info=True)
             return -100.0
-        finally:
-            if process and process.poll() is None: # If process is still running, terminate it
-                self.logger.warning(f"Backtester process {process.pid} still running in finally block. Terminating.")
-                process.terminate()
-                time.sleep(1)
-                if process.poll() is None:
-                    process.kill()
-            if process and process.pid: # Unregister PID if process was started
-                job_status_manager.unregister_job_process(job_id, process.pid)
-                self.logger.info(f"Unregistered backtester process PID {process.pid} for job {job_id}.")
-
-        # If we reach here, it means backtester ran successfully but profit was not parsed
-        self.logger.warning(f"Could not parse profit from output in trial {trial.number}. Full stdout: {output}. Stderr: {error_output}")
-        return -100.0
     
     def _find_best_result(self, results: List[Dict]) -> Optional[Dict]:
         """Find the best result from a list of optimization results."""

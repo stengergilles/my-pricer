@@ -8,7 +8,7 @@ import os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
 
 from auth.middleware import requires_auth
-from core.data_fetcher import get_current_prices
+
 
 # This will be imported from the main app file
 # from app import paper_trading_engine
@@ -25,7 +25,12 @@ class PaperTradingAPI(Resource):
             open_positions_with_current_value = []
             open_positions = self.paper_trading_engine.open_positions
             crypto_ids = [pos['crypto_id'] for pos in open_positions]
-            prices = get_current_prices(crypto_ids, self.paper_trading_engine.config)
+            
+            # Use the data_fetcher from the paper_trading_engine
+            if self.paper_trading_engine.data_fetcher is None:
+                self.logger.error("DataFetcher not initialized in PaperTradingEngine.")
+                return jsonify({'error': 'DataFetcher not available'}), 500
+            prices = self.paper_trading_engine.data_fetcher.get_current_prices(crypto_ids)
 
             for pos in open_positions:
                 current_price = prices.get(pos['crypto_id'])

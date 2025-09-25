@@ -26,7 +26,9 @@ from backtester import Backtester
 from indicators import Indicators
 from config import strategy_configs, DEFAULT_TIMEFRAME, DEFAULT_INTERVAL, indicator_defaults
 from pricer_compatibility_fix import find_best_result_file
-from core.data_fetcher import get_crypto_data_merged, get_current_price
+from core.data_fetcher import DataFetcher # New import
+from core.rate_limiter import RateLimiter, coingecko_rate_limiter # New import, added coingecko_rate_limiter
+
 from lines import (
     auto_discover_percentage_change,
     find_swing_points,
@@ -59,7 +61,7 @@ def get_trade_signal_for_latest(df: pd.DataFrame, strategy: Strategy, params: di
         logging.error(f"Error generating trade signal: {e}")
         return "HOLD"
 
-def run_backtest_using_existing_system(df: pd.DataFrame, strategy_name: str, params: dict, config: dict, initial_capital: float = 10000.0):
+def run_backtest_using_existing_system(df: pd.DataFrame, strategy_name: str, params: dict, config: dict, initial_capital: float = 10000.0, data_fetcher: DataFetcher = None): # Added data_fetcher
     """
     Run backtest using the existing Backtester class instead of duplicated code.
     """
@@ -76,7 +78,8 @@ def run_backtest_using_existing_system(df: pd.DataFrame, strategy_name: str, par
         # Create strategy and backtester instances
         indicators = Indicators()
         strategy = Strategy(indicators, strategy_config)
-        backtester = Backtester(df, strategy, config)
+        backtester = Backtester(strategy, config, data_fetcher=data_fetcher) # Pass data_fetcher
+        backtester.set_data(df) # Set the data
         backtester.initial_capital = initial_capital
         
         # Ensure required parameters exist
@@ -169,7 +172,8 @@ def _convert_to_json_serializable(obj):
     return obj
 
 def optimize_crypto_with_existing_system(crypto_id, config: dict, timeframe=DEFAULT_TIMEFRAME, interval=DEFAULT_INTERVAL, 
-                                      use_best_params=True, strategy_name=None, strategy_params: dict = None):
+                                      use_best_params=True, strategy_name=None, strategy_params: dict = None,
+                                      data_fetcher: DataFetcher = None): # Added data_fetcher parameter
     """
     Analyze cryptocurrency using existing backtester system components.
     This replaces the large duplicated analysis function.
@@ -179,8 +183,13 @@ def optimize_crypto_with_existing_system(crypto_id, config: dict, timeframe=DEFA
     try:
         if isinstance(config, dict):
             config = Config(**config)
+        
+        # Instantiate DataFetcher if not provided
+        if data_fetcher is None:
+            data_fetcher = DataFetcher(coingecko_rate_limiter, config) # Use global coingecko_rate_limiter
+        
         # Get data - use the correct function signature
-        df = get_crypto_data_merged(crypto_id, timeframe, config)
+        df = data_fetcher.get_crypto_data_merged(crypto_id, timeframe)
         if df is None or df.empty:
             logging.error(f"No data available for {crypto_id}")
             return None
@@ -219,10 +228,11 @@ def optimize_crypto_with_existing_system(crypto_id, config: dict, timeframe=DEFA
         current_signal = get_trade_signal_for_latest(df, strategy, params)
         
         # Run backtest to get performance metrics
-        backtest_result = run_backtest_using_existing_system(df, strategy_name, params, config)
+        # Note: run_backtest_using_existing_system will need to be updated to accept data_fetcher
+        backtest_result = run_backtest_using_existing_system(df, strategy_name, params, config, data_fetcher=data_fetcher)
         
         # Get current price
-        current_price = get_current_price(crypto_id, config)
+        current_price = data_fetcher.get_current_price(crypto_id)
         
         # Analyze support/resistance lines (keeping this unique functionality)
         try:
@@ -297,14 +307,19 @@ def optimize_crypto_with_existing_system(crypto_id, config: dict, timeframe=DEFA
         return None
 
 
-def run_continuous_analysis(crypto_id, config, interval_minutes=60, strategy_name=None, result_manager=None):
+def run_continuous_analysis(crypto_id, config, interval_minutes=60, strategy_name=None, result_manager=None, data_fetcher: DataFetcher = None): # Added data_fetcher
     """Run continuous analysis using existing system components."""
     logging.info(f"Starting continuous analysis for {crypto_id} (interval: {interval_minutes} minutes)")
     
+    # Instantiate DataFetcher if not provided
+    if data_fetcher is None:
+        rate_limiter = RateLimiter(max_requests=10, period=1) # Default values
+        data_fetcher = DataFetcher(rate_limiter, config)
+
     while True:
         try:
             # Run analysis
-            result = optimize_crypto_with_existing_system(crypto_id, config, strategy_name=strategy_name)
+            result = optimize_crypto_with_existing_system(crypto_id, config, strategy_name=strategy_name, data_fetcher=data_fetcher)
             
             if result:
                 # Save result
@@ -430,8 +445,12 @@ def main():
                 # Generate chart if requested
                 if args.generate_chart:
                     try:
+                        # Instantiate DataFetcher for chart generation if not already available
+                        # This block is for standalone execution of pricer.py
+                        chart_data_fetcher = DataFetcher(coingecko_rate_limiter, config) # Use global coingecko_rate_limiter
+
                         # Get data for charting
-                        df = get_crypto_data_merged(args.crypto, args.timeframe, config)
+                        df = chart_data_fetcher.get_crypto_data_merged(args.crypto, args.timeframe)
                         if df is not None and not df.empty:
                             df['price'] = df['close']  # Add price column for compatibility
                             
