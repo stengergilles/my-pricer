@@ -6,7 +6,6 @@ import { styled } from '@mui/system';
 // Import components that were in page.tsx
 import { LoginButton } from './components/auth/LoginButton.tsx';
 import { useAuth0 } from '@auth0/auth0-react';
-import { setupRemoteLogger } from './utils/remoteLogger.ts';
 import { ApiLoadingProvider } from './contexts/ApiLoadingContext.tsx';
 import { ConfigProvider } from './contexts/ConfigContext.tsx';
 import { APP_TITLE } from './utils/constants.ts';
@@ -44,15 +43,6 @@ function AppContent() {
   const [activeTab, setActiveTab] = useState('volatile');
   const [selectedCryptoForBacktest, setSelectedCryptoForBacktest] = useState(null);
   const [backtestResult, setBacktestResult] = useState(null);
-
-  const { getAccessTokenSilently } = useAuth0();
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setupRemoteLogger(getAccessTokenSilently);
-    }, 1000);
-    return () => clearTimeout(timer);
-  }, [getAccessTokenSilently]);
 
   useEffect(() => {
     document.title = APP_TITLE;
