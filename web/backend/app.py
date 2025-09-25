@@ -23,6 +23,8 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
 
 from core import job_status_manager
 
+from core.data_fetcher import DataFetcher
+from core.rate_limiter import coingecko_rate_limiter
 from core.trading_engine import TradingEngine
 from core.app_config import Config
 from auth.middleware import AuthError, requires_auth
@@ -77,7 +79,8 @@ CORS(app, origins=cors_origins, supports_credentials=True, allow_headers=["Autho
 # Initialize Flask-RESTful
 api = Api(app)
 
-trading_engine = TradingEngine(config)
+data_fetcher = DataFetcher(coingecko_rate_limiter, config)
+trading_engine = TradingEngine(config, data_fetcher=data_fetcher)
 trading_engine.set_scheduler(get_scheduler()) # Link the scheduler to the engine
 
 # Initialize Paper Trading Engine
@@ -172,7 +175,7 @@ api.add_resource(JobsAPI, '/api/scheduler/jobs', resource_class_kwargs={'engine'
 api.add_resource(JobAPI, '/api/scheduler/jobs/<string:job_id>', resource_class_kwargs={'engine': trading_engine})
 api.add_resource(JobLogsAPI, '/api/scheduler/jobs/<string:job_id>/logs', resource_class_kwargs={'engine': trading_engine})
 
-api.add_resource(PaperTradingAPI, '/api/paper-trading/status', resource_class_kwargs={'engine': PaperTradingEngine(config=config)})
+api.add_resource(PaperTradingAPI, '/api/paper-trading/status', resource_class_kwargs={'engine': PaperTradingEngine(config=config, data_fetcher=data_fetcher)})
 
 
 # Serve frontend static files (for production)
