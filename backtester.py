@@ -15,7 +15,7 @@ from config import strategy_configs, param_sets, DEFAULT_TIMEFRAME, DEFAULT_INTE
 from indicators import Indicators, calculate_atr
 from strategy import Strategy
 from core.data_fetcher import DataFetcher
-from core.rate_limiter import RateLimiter
+from core.rate_limiter import RateLimiter, coingecko_rate_limiter
 
 try:
     from backtester_cython import run_backtest_cython
@@ -33,8 +33,7 @@ class Backtester:
         self.initial_capital = 100.0
         if data_fetcher is None:
             # Instantiate its own DataFetcher if not provided
-            rate_limiter = RateLimiter(requests_per_minute=8, seconds_per_request=1.11) # Default values, can be configured
-            self.data_fetcher = DataFetcher(rate_limiter)
+            self.data_fetcher = DataFetcher(coingecko_rate_limiter)
         else:
             self.data_fetcher = data_fetcher
         self.data = None # Data will be fetched later
