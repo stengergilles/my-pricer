@@ -297,9 +297,11 @@ class BacktesterWrapper:
             elif timeframe.endswith('m'):
                 return int(timeframe[:-1]) / (24 * 60)
             else:
-                # Default to 7 days if format is unknown
-                self.logger.warning(f"Unknown timeframe format: {timeframe}. Defaulting to 7 days.")
-                return 7
+                try:
+                    return float(timeframe)
+                except ValueError:
+                    self.logger.warning(f"Unknown timeframe format: {timeframe}. Defaulting to 7 days.")
+                    return 7
         else:
             self.logger.error(f"Invalid timeframe type: {type(timeframe)}. Expected int or str.")
             return 7 # Default to 7 days on invalid type
