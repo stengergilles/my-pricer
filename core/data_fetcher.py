@@ -102,8 +102,10 @@ class DataFetcher:
             raise
 
     def fetch_klines(self, symbol: str, interval: str, start_time: int, end_time: int):
-        """Fetches klines data from a generic exchange API."""
-        url = f"https://api.exchange.com/klines?symbol={symbol}&interval={interval}&startTime={start_time}&endTime={end_time}"
+        """Fetches klines data from CoinGecko."""
+        days = (end_time - start_time) / (1000 * 60 * 60 * 24)
+        days = int(days) + 1
+        url = f"https://api.coingecko.com/api/v3/coins/{symbol}/ohlc?vs_currency=usd&days={days}"
         try:
             response = self.rate_limiter.make_request(self.session.get, url)
             response.raise_for_status()
