@@ -18,20 +18,28 @@ class RateLimiter:
     def _process_queue(self):
         while True:
             if self.request_queue:
+                time_to_wait = 0
                 with self.lock:
                     now = time.time()
                     # Clean up old timestamps
-                    while (self.request_timestamps and 
+                    while (self.request_timestamps and
                            now - self.request_timestamps[0] > 60):
                         self.request_timestamps.popleft()
 
                     if len(self.request_timestamps) >= self.requests_per_minute:
                         time_to_wait = 60 - (now - self.request_timestamps[0])
-                        logging.debug(f"Rate limit of {self.requests_per_minute}/minute reached. Waiting for {time_to_wait:.2f}s.")
-                        time.sleep(time_to_wait)
-                    
+
+                if time_to_wait > 0:
+                    logging.debug(f"Rate limit of {self.requests_per_minute}/minute reached. Waiting for {time_to_wait:.2f}s.")
+                    time.sleep(time_to_wait)
+                    continue # Re-evaluate after waiting
+
+                # If we are here, we can process a request.
+                with self.lock:
+                    if not self.request_queue:
+                        continue
                     request = self.request_queue.popleft()
-                
+
                 try:
                     logging.debug(f"RateLimiter {id(self)}: Processing request for {request['func'].__name__}")
                     result = request['func'](*request['args'], **request['kwargs'])
@@ -41,7 +49,7 @@ class RateLimiter:
 
                 except Exception as e:
                     request['callback'](e)
-                
+
                 time.sleep(self.seconds_per_request)
             else:
                 time.sleep(0.1)
