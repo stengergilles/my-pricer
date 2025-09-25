@@ -284,7 +284,10 @@ class PaperTradingEngine:
 
             if latest_result:
                 backtest_result = latest_result.get('backtest_result', latest_result)
-                profit = backtest_result.get('total_profit_percentage', 0)
+                if backtest_result: # Add this check
+                    profit = backtest_result.get('total_profit_percentage', 0)
+                else:
+                    profit = 0 # Default profit if backtest_result is None
 
                 if profit > 0:
                     # In optimization results, parameters are at the top level
