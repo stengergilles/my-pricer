@@ -45,7 +45,7 @@ class TradingEngine:
         
         # Initialize unified components
         self.param_manager = ParameterManager()
-        self.crypto_discovery = CryptoDiscovery(self.config.RESULTS_DIR)
+        self.crypto_discovery = CryptoDiscovery(self.config.RESULTS_DIR, data_fetcher=self.data_fetcher)
         self.optimizer = BayesianOptimizer(self.config.RESULTS_DIR, data_fetcher=self.data_fetcher) # Pass data_fetcher to optimizer
         self.backtester = BacktesterWrapper(self.config, data_fetcher=self.data_fetcher) # Pass data_fetcher to backtester wrapper
         self._scheduler = None # Initialize scheduler attribute

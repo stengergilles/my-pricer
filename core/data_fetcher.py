@@ -103,10 +103,9 @@ class DataFetcher:
 
     def fetch_klines(self, symbol: str, interval: str, start_time: int, end_time: int):
         """Fetches klines data from a generic exchange API."""
-        self.rate_limiter.wait_for_permission() # Uses rate limiter
         url = f"https://api.exchange.com/klines?symbol={symbol}&interval={interval}&startTime={start_time}&endTime={end_time}"
         try:
-            response = self.session.get(url)
+            response = self.rate_limiter.make_request(self.session.get, url)
             response.raise_for_status()
             return response.json()
         except requests.exceptions.RequestException as e:
@@ -118,9 +117,8 @@ class DataFetcher:
         """
         Makes a rate-limited request to the CoinGecko API.
         """
-        self.rate_limiter.wait_for_permission() # Use the shared rate limiter
         try:
-            response = self.session.get(url, params=params, timeout=30)
+            response = self.rate_limiter.make_request(self.session.get, url, params=params, timeout=30)
             response.raise_for_status()
             return response.json()
         except requests.exceptions.HTTPError as errh:
