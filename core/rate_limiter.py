@@ -89,4 +89,4 @@ RateLimiterManager.register('RateLimiter', RateLimiter)
 manager = RateLimiterManager()
 manager.start()
 
-coingecko_rate_limiter = manager.RateLimiter(requests_per_minute=8, seconds_per_request=1.11)
+coingecko_rate_limiter = manager.RateLimiter(requests_per_minute=7, seconds_per_request=1.11)
