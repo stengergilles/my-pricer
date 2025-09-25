@@ -33,7 +33,7 @@ class Backtester:
         self.initial_capital = 100.0
         if data_fetcher is None:
             # Instantiate its own DataFetcher if not provided
-            rate_limiter = RateLimiter(max_requests=10, period=1) # Default values, can be configured
+            rate_limiter = RateLimiter(requests_per_minute=8, seconds_per_request=1.11) # Default values, can be configured
             self.data_fetcher = DataFetcher(rate_limiter)
         else:
             self.data_fetcher = data_fetcher
