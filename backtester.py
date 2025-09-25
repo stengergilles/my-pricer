@@ -50,13 +50,11 @@ class Backtester:
         # Convert klines_data (list of lists) to DataFrame
         # Assuming klines_data format: [[timestamp, open, high, low, close, volume, ...]]
         df = pd.DataFrame(klines_data, columns=[
-            'timestamp', 'open', 'high', 'low', 'close', 'volume',
-            'close_time', 'quote_asset_volume', 'number_of_trades',
-            'taker_buy_base_asset_volume', 'taker_buy_quote_asset_volume', 'ignore'
+            'timestamp', 'open', 'high', 'low', 'close'
         ])
         df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms')
         df.set_index('timestamp', inplace=True)
-        df = df[['open', 'high', 'low', 'close', 'volume']].astype(float)
+        df = df[['open', 'high', 'low', 'close']].astype(float)
         return df
 
     def run_backtest(self, params):
