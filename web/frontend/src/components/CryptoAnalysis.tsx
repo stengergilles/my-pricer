@@ -42,6 +42,7 @@ export const CryptoAnalysis = () => {
   const { is403Error, handleError, reset403Error } = useErrorHandler()
   const queryClient = useQueryClient()
   const [displayResult, setDisplayResult] = useState<AnalysisResult | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
   const { data: cryptos, isLoading: cryptosLoading, error: cryptosError } = useQuery<{
     cryptos: Crypto[]
