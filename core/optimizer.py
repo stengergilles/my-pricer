@@ -48,6 +48,7 @@ from .parameter_manager import ParameterManager
 from .crypto_discovery import CryptoDiscovery
 from .result_manager import ResultManager
 from .app_config import Config
+from config import DEFAULT_TIMEFRAME, DEFAULT_INTERVAL
 
 class BayesianOptimizer:
     """
@@ -394,8 +395,8 @@ class BayesianOptimizer:
                 crypto=crypto,
                 strategy=strategy,
                 parameters=params,
-                timeframe="90d", # Use a fixed timeframe for optimization
-                interval="1h" # Use a fixed interval for optimization
+                timeframe=DEFAULT_TIMEFRAME, # Use a fixed timeframe for optimization
+                interval=DEFAULT_INTERVAL, # Use a fixed interval for optimization
             )
             
             if backtest_result and backtest_result.get('success'):
