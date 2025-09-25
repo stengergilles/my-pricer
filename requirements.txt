@@ -21,3 +21,4 @@ Flask-Compress==1.18
 APScheduler==3.11.0
 Flask-SQLAlchemy==2.5.1
 setuptools==68.1.2
+certifi==2025.8.3
