@@ -1,5 +1,5 @@
 import React from 'react';
-import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Typography } from '@mui/material';
+import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Typography, useMediaQuery } from '@mui/material';
 import { Analysis, OpenPosition } from '../../utils/types'; // Import OpenPosition
 
 interface CurrentAnalysisTableProps {
@@ -8,6 +8,8 @@ interface CurrentAnalysisTableProps {
 }
 
 const CurrentAnalysisTable: React.FC<CurrentAnalysisTableProps> = ({ currentAnalysis, openPositions }) => {
+  const isPortrait = useMediaQuery('(orientation: portrait)');
+
   if (!currentAnalysis || currentAnalysis.length === 0) {
     return <Typography>No current analysis available.</Typography>;
   }
@@ -21,14 +23,20 @@ const CurrentAnalysisTable: React.FC<CurrentAnalysisTableProps> = ({ currentAnal
             <TableCell>Strategy</TableCell>
             <TableCell>Signal</TableCell>
             <TableCell>Analysis Date</TableCell>
-            <TableCell>Position Value</TableCell>
-            <TableCell>Expected Profit (Backtest)</TableCell>
+            {isPortrait ? (
+              <TableCell>Position & Profit</TableCell>
+            ) : (
+              <>
+                <TableCell>Position Value</TableCell>
+                <TableCell>Expected Profit (Backtest)</TableCell>
+              </>
+            )}
           </TableRow>
         </TableHead>
         <TableBody>
           {currentAnalysis.map((analysis) => {
             const position = openPositions.find(pos => pos.crypto_id === analysis.crypto_id);
-            const positionValue = position?.current_value_usd ? `${position.current_value_usd.toFixed(2)}` : 'N/A';
+            const positionValue = position?.current_value_usd ? `$${position.current_value_usd.toFixed(2)}` : 'N/A';
 
             return (
               <TableRow key={analysis.analysis_id}>
@@ -36,10 +44,23 @@ const CurrentAnalysisTable: React.FC<CurrentAnalysisTableProps> = ({ currentAnal
                 <TableCell>{analysis.strategy_used}</TableCell>
                 <TableCell>{analysis.current_signal}</TableCell>
                 <TableCell>{new Date(analysis.analysis_timestamp).toLocaleString()}</TableCell>
-                <TableCell>{positionValue}</TableCell>
-                <TableCell>
-                  {analysis.backtest_result?.total_profit_percentage?.toFixed(2) ?? 'N/A'}%
-                </TableCell>
+                {isPortrait ? (
+                  <TableCell>
+                    <Typography variant="body2">
+                      Position Value: {positionValue}
+                    </Typography>
+                    <Typography variant="body2">
+                      Expected Profit: {analysis.backtest_result?.total_profit_percentage?.toFixed(2) ?? 'N/A'}%
+                    </Typography>
+                  </TableCell>
+                ) : (
+                  <>
+                    <TableCell>{positionValue}</TableCell>
+                    <TableCell>
+                      {analysis.backtest_result?.total_profit_percentage?.toFixed(2) ?? 'N/A'}%
+                    </TableCell>
+                  </>
+                )}
               </TableRow>
             );
           })}
