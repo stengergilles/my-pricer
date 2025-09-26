@@ -49,12 +49,18 @@ class PaperTradingAPI(Resource):
                 }
                 open_positions_with_current_value.append(position_data)
 
+            invested_capital = sum(pos['size_usd'] for pos in open_positions)
+            current_positions_value = sum(pos['current_value_usd'] for pos in open_positions_with_current_value)
+            initial_capital = self.paper_trading_engine.total_capital
+            
+            real_time_portfolio_value = (initial_capital - invested_capital) + current_positions_value
+
             logging.root.info(f"Last analysis run time from engine: {self.paper_trading_engine.last_analysis_run_time}")
             status = {
                 'is_running': self.paper_trading_engine.is_running(),
                 'monitored_cryptos': self.paper_trading_engine._get_volatile_cryptos(),
                 'open_positions': open_positions_with_current_value,
-                'portfolio_value': self.paper_trading_engine.portfolio_value or 0,
+                'portfolio_value': real_time_portfolio_value,
                 'trade_history': self.paper_trading_engine.trade_history,
                 'max_concurrent_positions': self.paper_trading_engine.max_concurrent_positions,
                 'capital_per_trade': self.paper_trading_engine.capital_per_trade,

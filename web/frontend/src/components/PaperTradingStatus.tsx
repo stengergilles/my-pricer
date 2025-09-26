@@ -68,6 +68,10 @@ const PaperTradingStatus = () => {
           <Typography variant="h5">${data.portfolio_value.toFixed(2)}</Typography>
         </Grid>
         <Grid item xs={4}>
+          <Typography variant="subtitle1">Initial Capital</Typography>
+          <Typography variant="h5">${data.initial_capital.toFixed(2)}</Typography>
+        </Grid>
+        <Grid item xs={4}>
           <Typography variant="subtitle1">Open Positions</Typography>
           <Typography variant="h5">{data.open_positions.length}</Typography>
         </Grid>

@@ -64,7 +64,7 @@ class PaperTradingEngine:
         
         self.open_positions = []
         self.trade_history = []
-        self.portfolio_value = self.total_capital
+        self.available_capital = self.total_capital
         self.analysis_history = []
         self.current_analysis_state: Dict[str, Any] = {}
         self.last_analysis_run_time: Optional[datetime] = None
@@ -90,7 +90,7 @@ class PaperTradingEngine:
                     trades_data = json.load(f)
                     self.open_positions = trades_data.get('open_positions', [])
                     self.trade_history = trades_data.get('trade_history', [])
-                    self.portfolio_value = trades_data.get('portfolio_value', self.total_capital)
+                    self.available_capital = trades_data.get('available_capital', self.total_capital)
                 logging.info(f"Loaded {len(self.open_positions)} open positions and {len(self.trade_history)} trade history entries from {self.trades_log_path}")
             except Exception as e:
                 logging.error(f"Failed to load trades from {self.trades_log_path}: {e}")
@@ -189,19 +189,19 @@ class PaperTradingEngine:
         if signal == "LONG":
             if not open_position:
                 # Check if enough capital is available
-                if self.portfolio_value >= self.capital_per_trade:
+                if self.available_capital >= self.capital_per_trade:
                     self._open_position(crypto_id, signal, params, prices)
                 else:
-                    logging.info(f"Insufficient capital to open LONG position for {crypto_id}. Capital: ${self.portfolio_value:.2f}")
+                    logging.info(f"Insufficient capital to open LONG position for {crypto_id}. Capital: ${self.available_capital:.2f}")
             else:
                 logging.info(f"Already have an open position for {crypto_id}. Not opening another LONG.")
         elif signal == "SHORT":
             if not open_position:
                 # Check if enough capital is available
-                if self.portfolio_value >= self.capital_per_trade:
+                if self.available_capital >= self.capital_per_trade:
                     self._open_position(crypto_id, signal, params, prices)
                 else:
-                    logging.info(f"Insufficient capital to open SHORT position for {crypto_id}. Capital: ${self.portfolio_value:.2f}")
+                    logging.info(f"Insufficient capital to open SHORT position for {crypto_id}. Capital: ${self.available_capital:.2f}")
             else:
                 logging.info(f"Already have an open position for {crypto_id}. Not opening another SHORT.")
         elif signal == "EXIT_LONG":
@@ -511,8 +511,8 @@ class PaperTradingEngine:
         position = self._place_order(crypto_id, "BUY", signal, current_price, params=params)
         if position:
             self.open_positions.append(position)
-            self.portfolio_value -= position['size_usd'] # Deduct capital used for the position
-            logging.info(f"Opened new {signal} position for {crypto_id} at ${current_price:.2f}. Stop loss at ${position['stop_loss_price']:.2f}. Capital remaining: ${self.portfolio_value:.2f}")
+            self.available_capital -= position['size_usd'] # Deduct capital used for the position
+            logging.info(f"Opened new {signal} position for {crypto_id} at ${current_price:.2f}. Stop loss at ${position['stop_loss_price']:.2f}. Capital remaining: ${self.available_capital:.2f}")
             self._save_trades()
 
 
@@ -555,17 +555,17 @@ class PaperTradingEngine:
         closed_trade = self._place_order(position['crypto_id'], "CLOSE", reason, exit_price, position_to_close=position)
         
         if closed_trade:
-            self.portfolio_value += closed_trade['size_usd'] + closed_trade['pnl_usd'] # Return capital used + PnL
+            self.available_capital += closed_trade['size_usd'] + closed_trade['pnl_usd'] # Return capital used + PnL
             
             self.trade_history.append(closed_trade)
             self.open_positions.remove(position)
 
-            logging.info(f"Closed {position['signal']} position for {position['crypto_id']} at ${exit_price:.2f} due to {reason}. PnL: ${closed_trade['pnl_usd']:.2f}. New Portfolio Value: ${self.portfolio_value:.2f}")
+            logging.info(f"Closed {position['signal']} position for {position['crypto_id']} at ${exit_price:.2f} due to {reason}. PnL: ${closed_trade['pnl_usd']:.2f}. New Portfolio Value: ${self.available_capital:.2f}")
             self._save_trades()
 
     def _place_order(self, crypto_id, order_type, signal, current_price, params=None, position_to_close=None):
         if order_type == "BUY": # Opening a LONG position
-            if self.portfolio_value < self.capital_per_trade:
+            if self.available_capital < self.capital_per_trade:
                 logging.warning(f"Cannot place BUY order for {crypto_id}: Insufficient capital.")
                 return None
             
@@ -588,7 +588,7 @@ class PaperTradingEngine:
             return position
 
         elif order_type == "SELL": # Opening a SHORT position
-            if self.portfolio_value < self.capital_per_trade:
+            if self.available_capital < self.capital_per_trade:
                 logging.warning(f"Cannot place SELL order for {crypto_id}: Insufficient capital.")
                 return None
 
@@ -635,7 +635,7 @@ class PaperTradingEngine:
             all_trades = {
                 "open_positions": self.open_positions,
                 "trade_history": self.trade_history,
-                "portfolio_value": self.portfolio_value
+                "portfolio_value": self.available_capital
             }
             with open(self.trades_log_path, 'w') as f:
                 json.dump(all_trades, f, indent=4)
