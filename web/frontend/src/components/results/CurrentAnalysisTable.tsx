@@ -21,7 +21,6 @@ const CurrentAnalysisTable: React.FC<CurrentAnalysisTableProps> = ({ currentAnal
           <TableRow>
             <TableCell>Crypto</TableCell>
             <TableCell>Strategy</TableCell>
-            <TableCell>Signal</TableCell>
             {isPortrait ? (
               <TableCell>Date</TableCell> // Shorter header for portrait
             ) : (
@@ -47,7 +46,6 @@ const CurrentAnalysisTable: React.FC<CurrentAnalysisTableProps> = ({ currentAnal
               <TableRow key={analysis.analysis_id}>
                 <TableCell>{analysis.crypto_id}</TableCell>
                 <TableCell>{analysis.strategy_used}</TableCell>
-                <TableCell>{analysis.current_signal}</TableCell>
                 {isPortrait ? (
                   <TableCell>
                     <Typography variant="body2">{analysisDate.toLocaleDateString()}</Typography>
