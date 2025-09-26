@@ -14,17 +14,23 @@ from flask_cors import CORS
 from flask_restful import Api
 from dotenv import load_dotenv
 from flask_compress import Compress
+import multiprocessing # Add this
+
+# Add core module to path (Moved to top)
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+if project_root not in sys.path:
+    sys.path.insert(0, project_root) # Insert at the beginning to prioritize
+logging.debug(f"sys.path after modification: {sys.path}") # Use logging.debug
+
+from core.rate_limiter_process import start_rate_limiter_process # Add this (Moved down)
 
 # Load environment variables from the current directory's .env file
-load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '.env'))
-
-# Add core module to path
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
+load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '.env'), override=True)
 
 from core import job_status_manager
 
 from core.data_fetcher import DataFetcher
-from core.rate_limiter import coingecko_rate_limiter
+from core.rate_limiter import get_shared_rate_limiter
 from core.trading_engine import TradingEngine
 from core.app_config import Config
 from auth.middleware import AuthError, requires_auth
@@ -49,6 +55,8 @@ from core.logger_config import setup_logging
 # Set up logging
 setup_logging(config, component_name='flask_app')
 logging.getLogger('api.paper_trading').setLevel(logging.DEBUG)
+logging.getLogger('core.trading_engine').setLevel(logging.DEBUG)
+logging.getLogger('core.crypto_discovery').setLevel(logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 # Initialize scheduler globally
@@ -79,9 +87,7 @@ CORS(app, origins=cors_origins, supports_credentials=True, allow_headers=["Autho
 # Initialize Flask-RESTful
 api = Api(app)
 
-data_fetcher = DataFetcher(coingecko_rate_limiter, config)
-trading_engine = TradingEngine(config, data_fetcher=data_fetcher)
-trading_engine.set_scheduler(get_scheduler()) # Link the scheduler to the engine
+# These will be initialized in __main__
 
 # Initialize Paper Trading Engine
 # The singleton instance will be created on first access
@@ -122,6 +128,7 @@ def health_check():
     """System health check endpoint."""
     try:
         health = trading_engine.health_check()
+        logger.info(f"Health check result: {health}")
         return jsonify(health), 200 if health['status'] == 'healthy' else 503
     except Exception as e:
         logger.error(f"Health check failed: {str(e)}")
@@ -164,19 +171,21 @@ def receive_log():
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
 # Register API resources with Auth0 protection
-api.add_resource(CryptoAPI, '/api/cryptos', '/api/cryptos/<string:crypto_id>', resource_class_kwargs={'engine': trading_engine})
-api.add_resource(CryptoStatusAPI, '/api/crypto_status/<string:crypto_id>', resource_class_kwargs={'engine': trading_engine})
-api.add_resource(AnalysisAPI, '/api/analysis', '/api/analysis/<string:analysis_id>', resource_class_kwargs={'engine': trading_engine})
-api.add_resource(BacktestAPI, '/api/backtest', '/api/backtest/<string:backtest_id>', resource_class_kwargs={'engine': trading_engine})
-api.add_resource(StrategiesAPI, '/api/strategies', '/api/strategies/<string:strategy_name>', resource_class_kwargs={'engine': trading_engine})
-api.add_resource(ResultsAPI, '/api/results', '/api/results/<string:result_type>', resource_class_kwargs={'engine': trading_engine})
-api.add_resource(ScheduleJobAPI, '/api/scheduler/schedule', resource_class_kwargs={'engine': trading_engine})
-api.add_resource(JobsAPI, '/api/scheduler/jobs', resource_class_kwargs={'engine': trading_engine})
-api.add_resource(JobAPI, '/api/scheduler/jobs/<string:job_id>', resource_class_kwargs={'engine': trading_engine})
-api.add_resource(JobLogsAPI, '/api/scheduler/jobs/<string:job_id>/logs', resource_class_kwargs={'engine': trading_engine})
+def setup_routes_and_api(app, api, trading_engine, config, data_fetcher, paper_trading_engine):
+    api.add_resource(CryptoAPI, '/api/cryptos', '/api/cryptos/<string:crypto_id>', resource_class_kwargs={'engine': trading_engine})
+    api.add_resource(CryptoStatusAPI, '/api/crypto_status/<string:crypto_id>', resource_class_kwargs={'engine': trading_engine})
+    api.add_resource(AnalysisAPI, '/api/analysis', '/api/analysis/<string:analysis_id>', resource_class_kwargs={'engine': trading_engine})
+    api.add_resource(BacktestAPI, '/api/backtest', '/api/backtest/<string:backtest_id>', resource_class_kwargs={'engine': trading_engine})
+    api.add_resource(StrategiesAPI, '/api/strategies', '/api/strategies/<string:strategy_name>', resource_class_kwargs={'engine': trading_engine})
+    api.add_resource(ResultsAPI, '/api/results', '/api/results/<string:result_type>', resource_class_kwargs={'engine': trading_engine})
+    api.add_resource(ScheduleJobAPI, '/api/scheduler/schedule', resource_class_kwargs={'engine': trading_engine})
+    api.add_resource(JobsAPI, '/api/scheduler/jobs', resource_class_kwargs={'engine': trading_engine})
+    api.add_resource(JobAPI, '/api/scheduler/jobs/<string:job_id>', resource_class_kwargs={'engine': trading_engine})
+    api.add_resource(JobLogsAPI, '/api/scheduler/jobs/<string:job_id>/logs', resource_class_kwargs={'engine': trading_engine})
 
-api.add_resource(PaperTradingAPI, '/api/paper-trading/status', resource_class_kwargs={'engine': PaperTradingEngine(config=config, data_fetcher=data_fetcher)})
+    api.add_resource(PaperTradingAPI, '/api/paper-trading/status', resource_class_kwargs={'engine': paper_trading_engine})
 
+    
 
 # Serve frontend static files (for production)
 @app.route('/favicon-v2.ico')
@@ -211,7 +220,7 @@ def serve_frontend(path):
         })
 
 
-def start_background_services():
+def start_background_services(config: Config, data_fetcher: DataFetcher):
     """Starts the background services using APScheduler."""
     logger.info("--- Scheduling Crypto Trading Backend Services ---")
     
@@ -227,7 +236,7 @@ def start_background_services():
             minutes=config.PAPER_TRADING_ANALYSIS_INTERVAL_MINUTES,
             id='analysis_task',
             replace_existing=True,
-            kwargs={'job_id': job_id}
+            kwargs={'job_id': job_id, 'config': config}
         )
 
     # Schedule price monitoring task
@@ -240,7 +249,7 @@ def start_background_services():
             seconds=config.PAPER_TRADING_MONITORING_INTERVAL_SECONDS,
             id='price_monitoring_task',
             replace_existing=True,
-            kwargs={'job_id': job_id}
+            kwargs={'job_id': job_id, 'config': config}
         )
 
 if __name__ == '__main__':
@@ -248,11 +257,46 @@ if __name__ == '__main__':
     logger.info(f"Auth0 Domain: {os.getenv('AUTH0_DOMAIN')}")
     logger.info(f"API Audience: {os.getenv('AUTH0_API_AUDIENCE')}")
 
-    start_background_services()
-    
-    app.run(
-        host=os.getenv('API_HOST', 'localhost'),
-        port=int(os.getenv('API_PORT', 5000)),
-        debug=os.getenv('FLASK_DEBUG', 'True').lower() == 'true',
-        use_reloader=False
+    global data_fetcher, trading_engine, paper_trading_engine, rate_limiter_request_queue, rate_limiter_response_queue, rate_limiter_process # Declare new globals
+
+    # Initialize core components in the main process
+    config = Config()
+
+    # Create queues for rate limiter process
+    rate_limiter_request_queue = multiprocessing.Queue()
+    rate_limiter_response_queue = multiprocessing.Queue()
+
+    # Start the dedicated rate limiter process
+    rate_limiter_process = multiprocessing.Process(
+        target=start_rate_limiter_process,
+        args=(rate_limiter_request_queue, rate_limiter_response_queue, config),
+        daemon=True # Daemonize the process so it exits with the parent
     )
+    rate_limiter_process.start()
+    logger.info(f"Rate Limiter Process started with PID: {rate_limiter_process.pid}")
+
+    data_fetcher = DataFetcher(rate_limiter_request_queue, rate_limiter_response_queue, config) # Pass queues instead of RateLimiter instance
+    trading_engine = TradingEngine(config, data_fetcher=data_fetcher)
+    trading_engine.set_scheduler(get_scheduler()) # Link the scheduler to the engine
+
+    # Initialize PaperTradingEngine here
+    paper_trading_engine = PaperTradingEngine(config=config, data_fetcher=data_fetcher, trading_engine=trading_engine)
+
+    # Setup API routes and resources
+    setup_routes_and_api(app, api, trading_engine, config, data_fetcher, paper_trading_engine)
+
+    start_background_services(config, data_fetcher) # Pass config and data_fetcher
+    
+    try:
+        app.run(
+            host=os.getenv('API_HOST', 'localhost'),
+            port=int(os.getenv('API_PORT', 5000)),
+            debug=os.getenv('FLASK_DEBUG', 'True').lower() == 'true',
+            use_reloader=False
+        )
+    finally:
+        # Ensure the rate limiter process is terminated on app shutdown
+        if rate_limiter_process.is_alive():
+            rate_limiter_process.terminate()
+            rate_limiter_process.join()
+            logger.info("Rate Limiter Process terminated.")

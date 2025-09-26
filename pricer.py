@@ -27,7 +27,7 @@ from indicators import Indicators
 from config import strategy_configs, DEFAULT_TIMEFRAME, DEFAULT_INTERVAL, indicator_defaults
 from pricer_compatibility_fix import find_best_result_file
 from core.data_fetcher import DataFetcher # New import
-from core.rate_limiter import RateLimiter, coingecko_rate_limiter # New import, added coingecko_rate_limiter
+from core.rate_limiter import RateLimiter, get_shared_rate_limiter
 
 from lines import (
     auto_discover_percentage_change,
@@ -186,7 +186,7 @@ def optimize_crypto_with_existing_system(crypto_id, config: dict, timeframe=DEFA
         
         # Instantiate DataFetcher if not provided
         if data_fetcher is None:
-            data_fetcher = DataFetcher(coingecko_rate_limiter, config) # Use global coingecko_rate_limiter
+            data_fetcher = DataFetcher(get_shared_rate_limiter(), config)
         
         # Get data - use the correct function signature
         df = data_fetcher.get_crypto_data_merged(crypto_id, timeframe)
@@ -313,8 +313,7 @@ def run_continuous_analysis(crypto_id, config, interval_minutes=60, strategy_nam
     
     # Instantiate DataFetcher if not provided
     if data_fetcher is None:
-        rate_limiter = RateLimiter(max_requests=10, period=1) # Default values
-        data_fetcher = DataFetcher(rate_limiter, config)
+        data_fetcher = DataFetcher(get_shared_rate_limiter(), config)
 
     while True:
         try:
@@ -447,7 +446,7 @@ def main():
                     try:
                         # Instantiate DataFetcher for chart generation if not already available
                         # This block is for standalone execution of pricer.py
-                        chart_data_fetcher = DataFetcher(coingecko_rate_limiter, config) # Use global coingecko_rate_limiter
+                        chart_data_fetcher = DataFetcher(get_shared_rate_limiter(), config)
 
                         # Get data for charting
                         df = chart_data_fetcher.get_crypto_data_merged(args.crypto, args.timeframe)

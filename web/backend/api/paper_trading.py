@@ -29,7 +29,7 @@ class PaperTradingAPI(Resource):
             # Use the data_fetcher from the paper_trading_engine
             if self.paper_trading_engine.data_fetcher is None:
                 self.logger.error("DataFetcher not initialized in PaperTradingEngine.")
-                return jsonify({'error': 'DataFetcher not available'}), 500
+                return {'error': 'DataFetcher not available'}, 500
             prices = self.paper_trading_engine.data_fetcher.get_current_prices(crypto_ids)
 
             for pos in open_positions:
@@ -63,9 +63,9 @@ class PaperTradingAPI(Resource):
                 'optimization_status': self.paper_trading_engine.check_optimization_status(),
                 'last_analysis_run': self.paper_trading_engine.last_analysis_run_time
             }
-            return jsonify(status)
+            return status
         except Exception as e:
             logging.root.error(f"Error getting paper trading status: {e}")
             if "'Strategy' object has no attribute 'set_params'" in str(e):
-                return jsonify({'error': 'No analysis data available. Please run the optimizer.'}), 500
-            return jsonify({'error': 'Failed to get paper trading status'}), 500
+                return {'error': 'No analysis data available. Please run the optimizer.'}, 500
+            return {'error': 'Failed to get paper trading status'}, 500

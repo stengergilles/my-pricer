@@ -9,7 +9,7 @@ import uuid # Import uuid for generating unique IDs
 
 from core.app_config import Config
 from core.data_fetcher import DataFetcher # New import
-from core.rate_limiter import RateLimiter, coingecko_rate_limiter # New import, added coingecko_rate_limiter
+from core.rate_limiter import RateLimiter, get_shared_rate_limiter
 
 from pricer_compatibility_fix import find_best_result_file
 from strategy import Strategy
@@ -27,25 +27,36 @@ from core.scheduler import get_scheduler
 class PaperTradingEngine:
     _instance = None
 
-    def __new__(cls, config: Config = None, data_fetcher: DataFetcher = None): # Added data_fetcher
+    def __new__(cls, *args, **kwargs):
         if cls._instance is None:
-            if config is None:
-                raise ValueError("Config must be provided for the first instantiation of PaperTradingEngine.")
             cls._instance = super(PaperTradingEngine, cls).__new__(cls)
             cls._instance._initialized = False # Use a flag to prevent re-initialization
         return cls._instance
 
-    def __init__(self, config: Config, data_fetcher: DataFetcher = None): # Added data_fetcher
+    def __init__(self, config: Config, data_fetcher: DataFetcher = None, trading_engine: TradingEngine = None):
         if self._initialized:
             return
         self._initialized = True
+        self.logger = logging.getLogger(__name__) # Initialize logger here
 
         self.config = config
+        self.logger.debug(f"PaperTradingEngine init: received data_fetcher is {type(data_fetcher)}") # Add this line
         self.data_fetcher = data_fetcher # Store data_fetcher
         
         # If data_fetcher is not provided, create a default one using the global coingecko_rate_limiter
         if self.data_fetcher is None:
-            self.data_fetcher = DataFetcher(coingecko_rate_limiter, config) # Use global coingecko_rate_limiter
+            from core.rate_limiter_process import start_rate_limiter_process
+            import multiprocessing
+            request_queue = multiprocessing.Queue()
+            response_queue = multiprocessing.Queue()
+            rate_limiter_process = multiprocessing.Process(
+                target=start_rate_limiter_process,
+                args=(request_queue, response_queue, self.config),
+                daemon=True
+            )
+            rate_limiter_process.start()
+            self.rate_limiter_process = rate_limiter_process # Store the process
+            self.data_fetcher = DataFetcher(request_queue, response_queue, config)
 
         self.total_capital = config.PAPER_TRADING_TOTAL_CAPITAL
         self.capital_per_trade = config.PAPER_TRADING_MIN_POSITION_VALUE
@@ -85,7 +96,7 @@ class PaperTradingEngine:
                 logging.error(f"Failed to load trades from {self.trades_log_path}: {e}")
 
         self.crypto_discovery = CryptoDiscovery(cache_dir=self.config.CACHE_DIR, data_fetcher=self.data_fetcher) # Pass data_fetcher
-        self.trading_engine = TradingEngine(config=self.config, data_fetcher=self.data_fetcher) # Pass data_fetcher
+        self.trading_engine = trading_engine # Use the passed trading_engine
 
         logging.info("--- Paper Trading Engine Initialized ---")
         logging.info(f"Total Capital: ${self.total_capital:.2f}")
@@ -640,7 +651,7 @@ class PaperTradingEngine:
             logging.error(f"Failed to save analysis history: {e}")
 
 
-def run_analysis_task(job_id):
+def run_analysis_task(job_id, config: Config):
     """Wrapper function to run the analysis task as a job."""
     from core.logger_config import setup_job_logging
     log_path = setup_job_logging(job_id)
@@ -648,16 +659,14 @@ def run_analysis_task(job_id):
     logger.info(f"Starting analysis task job (id: {job_id})... Log file: {log_path}")
 
     try:
-        config = Config()
-        data_fetcher = DataFetcher(coingecko_rate_limiter, config) # Use global coingecko_rate_limiter
-        engine = PaperTradingEngine(config=config, data_fetcher=data_fetcher)
+        engine = PaperTradingEngine(config=config)
         engine.analysis_task()
         logger.info("Analysis task job finished.")
     except Exception as e:
         logger.error(f"An error occurred during the analysis task job: {e}", exc_info=True)
 
 
-def run_price_monitoring_task(job_id):
+def run_price_monitoring_task(job_id, config: Config):
     """Wrapper function to run the price monitoring task as a job."""
     from core.logger_config import setup_job_logging
     log_path = setup_job_logging(job_id)
@@ -665,9 +674,7 @@ def run_price_monitoring_task(job_id):
     logger.info(f"Starting price monitoring task job (id: {job_id})... Log file: {log_path}")
 
     try:
-        config = Config()
-        data_fetcher = DataFetcher(coingecko_rate_limiter, config) # Use global coingecko_rate_limiter
-        engine = PaperTradingEngine(config=config, data_fetcher=data_fetcher)
+        engine = PaperTradingEngine(config=config)
         engine.price_monitoring_task()
         logger.info("Price monitoring task job finished.")
     except Exception as e:

@@ -5,6 +5,7 @@ from core.parameter_manager import ParameterManager
 from core.app_config import Config
 from . import job_status_manager # Import job_status_manager
 from core.logger_config import setup_job_logging # Import the new logging setup function
+from core.paper_trading_engine import PaperTradingEngine # Import the singleton
 
 def run_optimize_cryptos_job(
     *, # Mark subsequent arguments as keyword-only
@@ -27,7 +28,12 @@ def run_optimize_cryptos_job(
     logger.debug(f"Job {job_id} status set to 'running'.") # Added debug log
 
     config = Config()
-    optimizer = BayesianOptimizer(results_dir=config.RESULTS_DIR, logger=logger)
+    
+    # Get the DataFetcher from the PaperTradingEngine singleton
+    pte = PaperTradingEngine(config=config)
+    data_fetcher = pte.data_fetcher
+
+    optimizer = BayesianOptimizer(results_dir=config.RESULTS_DIR, logger=logger, data_fetcher=data_fetcher)
     param_manager = ParameterManager()
     available_strategies = param_manager.get_available_strategies()
 

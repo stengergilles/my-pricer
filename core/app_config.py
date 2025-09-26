@@ -57,6 +57,10 @@ class Config:
         self.PAPER_TRADING_MONITORING_INTERVAL_SECONDS = int(os.getenv('PAPER_TRADING_MONITORING_INTERVAL_SECONDS', 60))
         self.DATA_FETCH_DELAY_SECONDS = int(os.getenv('DATA_FETCH_DELAY_SECONDS', 10))
         self.MIN_PROFIT_THRESHOLD = float(os.getenv('MIN_PROFIT_THRESHOLD', 0.1)) # New line
+
+        # CoinGecko Rate Limiter Configuration
+        self.COINGECKO_REQUESTS_PER_MINUTE = int(os.getenv('COINGECKO_REQUESTS_PER_MINUTE', 50)) # Default to 50 requests/minute
+        self.COINGECKO_SECONDS_PER_REQUEST = float(os.getenv('COINGECKO_SECONDS_PER_REQUEST', 1.2)) # Default to 1.2 seconds/request (60/50)
         
         # Ensure directories exist
         self._create_directories()

@@ -49,6 +49,7 @@ class CryptoDiscovery:
         """Initialize crypto discovery with caching directory."""
         self.cache_dir = cache_dir
         self.logger = logging.getLogger(__name__)
+        self.logger.debug(f"CryptoDiscovery init: received data_fetcher is {type(data_fetcher)}")
         self.data_fetcher = data_fetcher # Store the data_fetcher
         
         # Ensure cache directory exists

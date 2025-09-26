@@ -22,8 +22,8 @@ def setup_logging(config=None, component_name='app'):
         level=logging.DEBUG,
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
         handlers=[
-            logging.FileHandler(LOG_FILE(component_name)),
-            logging.StreamHandler() # Also log to console
+            logging.StreamHandler(),
+            logging.FileHandler(LOG_FILE(component_name))
         ]
     )
 
@@ -33,6 +33,10 @@ def setup_logging(config=None, component_name='app'):
 
     # Configure apscheduler logging
     logging.getLogger('apscheduler').setLevel(logging.INFO)
+
+    # Explicitly set levels for core modules to ensure debug messages are visible
+    logging.getLogger('core.trading_engine').setLevel(logging.DEBUG)
+    logging.getLogger('core.crypto_discovery').setLevel(logging.DEBUG)
 
 def setup_job_logging(job_id: str):
     """Creates a new logger for a given job ID and adds a file handler to it."""

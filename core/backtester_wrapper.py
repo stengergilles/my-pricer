@@ -72,7 +72,8 @@ class BacktesterWrapper:
                           strategy: str, 
                           parameters: Dict[str, Any],
                           timeframe: str = "7d",
-                          interval: str = "30m") -> Dict[str, Any]:
+                          interval: str = "30m",
+                          data: pd.DataFrame = None) -> Dict[str, Any]:
         """
         Run a single backtest with specified parameters.
         
@@ -82,6 +83,7 @@ class BacktesterWrapper:
             parameters: Strategy parameters
             timeframe: Data timeframe (e.g., "7d", "30d")
             interval: Data interval (e.g., "30m", "1h")
+            data: Pre-fetched data (optional)
             
         Returns:
             Backtest results dictionary
@@ -110,13 +112,14 @@ class BacktesterWrapper:
             # Create backtester instance, passing the data_fetcher
             backtester = Backtester(strategy_instance, strategy_config, data_fetcher=self.data_fetcher)
             
-            # Determine start and end dates for data fetching
-            end_date = datetime.now()
-            timeframe_days = self._timeframe_to_days(timeframe)
-            start_date = end_date - timedelta(days=timeframe_days)
-
-            # Fetch data using the backtester's internal DataFetcher
-            data = backtester.fetch_data(crypto, interval, start_date, end_date)
+            # Fetch data if not provided
+            if data is None:
+                self.logger.info(f"No pre-fetched data for {crypto}, fetching from source.")
+                end_date = datetime.now()
+                timeframe_days = self._timeframe_to_days(timeframe)
+                start_date = end_date - timedelta(days=timeframe_days)
+                data = backtester.fetch_data(crypto, interval, start_date, end_date)
+            
             if data is None or len(data) == 0:
                 self.logger.error(f"No data available for {crypto} for timeframe {timeframe}")
                 return {
@@ -127,6 +130,7 @@ class BacktesterWrapper:
                     'error': 'No data available',
                     'timestamp': datetime.now().isoformat()
                 }
+            
             backtester.set_data(data) # Set the fetched data
             
             # Add required parameters for backtester

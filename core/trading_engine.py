@@ -37,14 +37,16 @@ class TradingEngine:
     
     def __init__(self, config: Optional[Config] = None, data_fetcher=None): # Added data_fetcher parameter
         """Initialize trading engine with configuration."""
+        self.logger = logging.getLogger(__name__)
         self.config = config or Config()
+        self.logger.debug(f"TradingEngine init: data_fetcher is {type(data_fetcher)}")
         self.data_fetcher = data_fetcher # Store the data_fetcher
         self.result_manager = ResultManager(self.config)
         self.data_manager = DataManager(self.config.CACHE_DIR)
-        self.logger = logging.getLogger(__name__)
         
         # Initialize unified components
         self.param_manager = ParameterManager()
+        self.logger.debug(f"TradingEngine init: Passing data_fetcher ({type(self.data_fetcher)}) to CryptoDiscovery")
         self.crypto_discovery = CryptoDiscovery(self.config.RESULTS_DIR, data_fetcher=self.data_fetcher)
         self.optimizer = BayesianOptimizer(self.config.RESULTS_DIR, data_fetcher=self.data_fetcher) # Pass data_fetcher to optimizer
         self.backtester = BacktesterWrapper(self.config, data_fetcher=self.data_fetcher) # Pass data_fetcher to backtester wrapper

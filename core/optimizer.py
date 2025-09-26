@@ -15,6 +15,7 @@ from datetime import datetime
 from typing import Dict, List, Optional, Any, Tuple
 from pathlib import Path
 import math
+import pandas as pd
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from . import job_status_manager # Added import
 
@@ -81,7 +82,7 @@ class BayesianOptimizer:
         # Initialize components
         self.config = Config()
         self.param_manager = ParameterManager()
-        self.crypto_discovery = CryptoDiscovery(results_dir)
+        self.crypto_discovery = CryptoDiscovery(results_dir, data_fetcher=self.data_fetcher)
         self.result_manager = ResultManager(self.config)
         self.backtester_wrapper = BacktesterWrapper(self.config, data_fetcher=self.data_fetcher) # Initialize BacktesterWrapper
         
@@ -97,7 +98,8 @@ class BayesianOptimizer:
                              strategy: str, 
                              n_trials: int = 50,
                              timeout: Optional[int] = None,
-                             job_id: str = None) -> Dict[str, Any]: # Added job_id
+                             job_id: str = None,
+                             data: pd.DataFrame = None) -> Dict[str, Any]:
         if timeout is not None:
             try:
                 timeout = int(timeout) # Ensure timeout is an integer
@@ -112,7 +114,8 @@ class BayesianOptimizer:
             strategy: Trading strategy name
             n_trials: Number of optimization trials
             timeout: Timeout in seconds (optional)
-            job_id: Optional job ID for process tracking # Added job_id doc
+            job_id: Optional job ID for process tracking
+            data: Pre-fetched data (optional)
             
         Returns:
             Optimization results dictionary
@@ -134,7 +137,7 @@ class BayesianOptimizer:
         
         # Define objective function
         def objective(trial):
-            return self._objective_function(trial, crypto, strategy, job_id) # Added job_id
+            return self._objective_function(trial, crypto, strategy, job_id, data)
         
         # Run optimization
         start_time = time.time()
@@ -224,7 +227,7 @@ class BayesianOptimizer:
                                 top_count: int = 10,
                                 min_volatility: float = 5.0,
                                 max_workers: int = 3,
-                                job_id: str = None) -> Dict[str, Any]: # Added job_id
+                                job_id: str = None) -> Dict[str, Any]:
         """
         Optimize parameters for multiple volatile cryptocurrencies.
         
@@ -234,7 +237,7 @@ class BayesianOptimizer:
             top_count: Number of top volatile cryptos to optimize
             min_volatility: Minimum volatility threshold
             max_workers: Maximum parallel workers
-            job_id: Optional job ID for process tracking # Added job_id doc
+            job_id: Optional job ID for process tracking
             
         Returns:
             Batch optimization results
@@ -255,7 +258,22 @@ class BayesianOptimizer:
         self.logger.info(f"Selected {len(selected_cryptos)} cryptos for optimization")
         for crypto in selected_cryptos:
             self.logger.info(f"  {crypto['symbol']}: {crypto['price_change_percentage_24h']:.2f}%")
-        
+
+        # Pre-fetch data for all selected cryptos
+        self.logger.info(f"Pre-fetching data for {len(selected_cryptos)} cryptos...")
+        prefetched_data = {}
+        for crypto in selected_cryptos:
+            crypto_id = crypto['id']
+            try:
+                df = self.data_fetcher.get_crypto_data_merged(crypto_id, days=int(DEFAULT_TIMEFRAME))
+                if df is not None and not df.empty:
+                    prefetched_data[crypto_id] = df
+                    self.logger.info(f"Successfully pre-fetched data for {crypto_id}")
+                else:
+                    self.logger.warning(f"Could not pre-fetch data for {crypto_id}")
+            except Exception as e:
+                self.logger.error(f"Error pre-fetching data for {crypto_id}: {e}")
+
         # Run parallel optimization
         results = []
         start_time = time.time()
@@ -270,12 +288,20 @@ class BayesianOptimizer:
                     stop_batch_optimization = True
                     break # Exit the loop if stop is requested
                 
+                crypto_id = crypto['id']
+                crypto_data = prefetched_data.get(crypto_id)
+
+                if crypto_data is None:
+                    self.logger.warning(f"Skipping optimization for {crypto_id} because pre-fetched data is missing.")
+                    continue
+
                 future = executor.submit(
                     self.optimize_single_crypto, 
-                    crypto['id'], 
+                    crypto_id, 
                     strategy, 
                     n_trials,
-                    job_id=job_id
+                    job_id=job_id,
+                    data=crypto_data
                 )
                 future_to_crypto[future] = crypto
             
@@ -367,7 +393,7 @@ class BayesianOptimizer:
         self.logger.info(f"Batch optimization completed. Best overall: {batch_results['best_overall']}")
         return batch_results
     
-    def _objective_function(self, trial, crypto: str, strategy: str, job_id: str) -> float: # Added job_id
+    def _objective_function(self, trial, crypto: str, strategy: str, job_id: str, data: pd.DataFrame = None) -> float:
         """
         Objective function for Optuna optimization.
         
@@ -375,7 +401,8 @@ class BayesianOptimizer:
             trial: Optuna trial object
             crypto: Cryptocurrency identifier
             strategy: Trading strategy name
-            job_id: The ID of the parent job (for process tracking) # Added job_id doc
+            job_id: The ID of the parent job (for process tracking)
+            data: Pre-fetched data (optional)
             
         Returns:
             Objective value (profit percentage)
@@ -397,6 +424,7 @@ class BayesianOptimizer:
                 parameters=params,
                 timeframe=DEFAULT_TIMEFRAME, # Use a fixed timeframe for optimization
                 interval=DEFAULT_INTERVAL, # Use a fixed interval for optimization
+                data=data
             )
             
             if backtest_result and backtest_result.get('success'):
