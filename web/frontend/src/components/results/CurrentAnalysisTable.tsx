@@ -16,7 +16,7 @@ const CurrentAnalysisTable: React.FC<CurrentAnalysisTableProps> = ({ currentAnal
 
   return (
     <TableContainer component={Paper} sx={{ mt: 2 }}>
-      <Table sx={{ minWidth: 650 }} aria-label="current analysis table">
+      <Table sx={{ minWidth: isPortrait ? 'auto' : 650 }} aria-label="current analysis table">
         <TableHead>
           <TableRow>
             {isPortrait ? (
