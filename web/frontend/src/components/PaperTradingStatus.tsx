@@ -35,6 +35,8 @@ const PaperTradingStatus = () => {
   console.log("PaperTradingStatus data:", data); // Add this line
 
   const totalPnl = data.open_positions.reduce((acc, pos) => acc + (pos.pnl_usd || 0), 0);
+  const totalPositionCost = data.open_positions.reduce((acc, pos) => acc + (pos.cost_usd || 0), 0);
+  const availableCash = data.initial_capital - totalPositionCost;
 
   return (
     <Paper elevation={3} sx={{ p: 2, mb: 2 }}>
@@ -57,8 +59,8 @@ const PaperTradingStatus = () => {
           <Typography variant="h5">${data.portfolio_value.toFixed(2)}</Typography>
         </Grid>
         <Grid item xs={4}>
-          <Typography variant="subtitle1">Initial Capital</Typography>
-          <Typography variant="h5">${data.initial_capital.toFixed(2)}</Typography>
+          <Typography variant="subtitle1">Available Cash</Typography>
+          <Typography variant="h5">${availableCash.toFixed(2)}</Typography>
         </Grid>
         <Grid item xs={4}>
           <Typography variant="subtitle1">Open Positions</Typography>

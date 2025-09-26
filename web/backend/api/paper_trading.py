@@ -45,7 +45,8 @@ class PaperTradingAPI(Resource):
                     **pos,
                     'current_price': current_price,
                     'current_value_usd': current_value,
-                    'pnl_usd': pnl_usd
+                    'pnl_usd': pnl_usd,
+                    'cost_usd': pos['size_usd']
                 }
                 open_positions_with_current_value.append(position_data)
 
