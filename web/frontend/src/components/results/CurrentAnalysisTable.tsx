@@ -27,11 +27,7 @@ const CurrentAnalysisTable: React.FC<CurrentAnalysisTableProps> = ({ currentAnal
                 <TableCell>Strategy</TableCell>
               </>
             )}
-            {isPortrait ? (
-              <TableCell>Date</TableCell> // Shorter header for portrait
-            ) : (
-              <TableCell>Analysis Date</TableCell>
-            )}
+            {isPortrait ? null : <TableCell>Analysis Date</TableCell>}
             {isPortrait ? (
               <TableCell>Position & Profit</TableCell>
             ) : (
@@ -61,14 +57,7 @@ const CurrentAnalysisTable: React.FC<CurrentAnalysisTableProps> = ({ currentAnal
                     <TableCell>{analysis.strategy_used}</TableCell>
                   </>
                 )}
-                {isPortrait ? (
-                  <TableCell>
-                    <Typography variant="body2">{analysisDate.toLocaleDateString()}</Typography>
-                    <Typography variant="body2">{analysisDate.toLocaleTimeString()}</Typography>
-                  </TableCell>
-                ) : (
-                  <TableCell>{analysisDate.toLocaleString()}</TableCell>
-                )}
+                {isPortrait ? null : <TableCell>{analysisDate.toLocaleString()}</TableCell>}
                 {isPortrait ? (
                   <TableCell>
                     <Typography variant="body2">

@@ -119,7 +119,14 @@ const PaperTradingStatus = () => {
 
       {data.analysis_history && data.analysis_history.length > 0 && (
         <Box sx={{ mt: 2 }}>
-          <Typography variant="h6">Current Analysis</Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+            <Typography variant="h6" sx={{ mr: 1 }}>Current Analysis</Typography>
+            {data.last_analysis_run && (
+              <Typography variant="caption" color="text.secondary">
+                (Last updated: {new Date(data.last_analysis_run).toLocaleTimeString()})
+              </Typography>
+            )}
+          </Box>
           <CurrentAnalysisTable
             currentAnalysis={data.analysis_history}
             openPositions={data.open_positions}
