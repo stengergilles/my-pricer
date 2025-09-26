@@ -1,7 +1,12 @@
 import React, { useState, useEffect, Suspense, lazy } from 'react';
-import { HashRouter as Router, Routes, Route } from 'react-router-dom';
-import { Box, CircularProgress, Typography, Container, Paper, AppBar, Toolbar, Tabs, Tab, IconButton } from '@mui/material';
-import { styled } from '@mui/system';
+import { HashRouter as Router, Routes, Route, Link, useNavigate } from 'react-router-dom';
+import { Box, CircularProgress, Typography, Container, Paper, AppBar, Toolbar, IconButton, Drawer, List, ListItem, ListItemButton, ListItemIcon, ListItemText } from '@mui/material';
+import MenuIcon from '@mui/icons-material/Menu';
+import HomeIcon from '@mui/icons-material/Home';
+import TrendingUpIcon from '@mui/icons-material/TrendingUp';
+import AnalyticsIcon from '@mui/icons-material/Analytics';
+import BarChartIcon from '@mui/icons-material/BarChart';
+import ScheduleIcon from '@mui/icons-material/Schedule';
 
 // Import components that were in page.tsx
 import { LoginButton } from './components/auth/LoginButton.tsx';
@@ -20,27 +25,13 @@ const ScheduleTab = lazy(() => import('./components/ScheduleTab.tsx').then(modul
 
 
 // Styled components for navigation tabs
-const StyledTab = styled(Tab)(({ theme }) => ({
-  textTransform: 'none',
-  fontWeight: theme.typography.fontWeightMedium,
-  fontSize: theme.typography.pxToRem(14),
-  padding: theme.spacing(2, 1),
-  minWidth: 0, // Allow tabs to shrink
-  [theme.breakpoints.up('sm')]: {
-    minWidth: 0,
-  },
-  '&.Mui-selected': {
-    color: theme.palette.primary.main,
-  },
-  '&:hover': {
-    color: theme.palette.primary.dark,
-  },
-}));
+
 
 
 function AppContent() {
   const { user, isLoading: auth0Loading, logout } = useAuth0();
-  const [activeTab, setActiveTab] = useState('volatile');
+  const navigate = useNavigate();
+  const [mobileOpen, setMobileOpen] = useState(false);
   const [selectedCryptoForBacktest, setSelectedCryptoForBacktest] = useState(null);
   const [backtestResult, setBacktestResult] = useState(null);
 
@@ -48,13 +39,13 @@ function AppContent() {
     document.title = APP_TITLE;
   }, []);
 
-  const handleTabChange = (event, newValue) => {
-    setActiveTab(newValue);
+  const handleDrawerToggle = () => {
+    setMobileOpen(!mobileOpen);
   };
 
   const handleRunBacktest = (cryptoId) => {
     setSelectedCryptoForBacktest(cryptoId);
-    setActiveTab('backtest');
+    navigate('/backtest');
   };
 
   if (auth0Loading) {
@@ -98,90 +89,151 @@ function AppContent() {
     );
   }
 
+  const drawer = (
+    <Box onClick={handleDrawerToggle} sx={{ textAlign: 'center' }}>
+      <Typography variant="h6" sx={{ my: 2 }}>
+        {APP_TITLE}
+      </Typography>
+      <List>
+        <ListItem disablePadding>
+          <ListItemButton component={Link} to="/">
+            <ListItemIcon><HomeIcon /></ListItemIcon>
+            <ListItemText primary="Paper Trader" />
+          </ListItemButton>
+        </ListItem>
+        <ListItem disablePadding>
+          <ListItemButton component={Link} to="/volatile">
+            <ListItemIcon><TrendingUpIcon /></ListItemIcon>
+            <ListItemText primary="Volatile Cryptos" />
+          </ListItemButton>
+        </ListItem>
+        <ListItem disablePadding>
+          <ListItemButton component={Link} to="/analysis">
+            <ListItemIcon><AnalyticsIcon /></ListItemIcon>
+            <ListItemText primary="Analysis" />
+          </ListItemButton>
+        </ListItem>
+        <ListItem disablePadding>
+          <ListItemButton component={Link} to="/backtest">
+            <ListItemIcon><BarChartIcon /></ListItemIcon>
+            <ListItemText primary="Backtest" />
+          </ListItemButton>
+        </ListItem>
+        <ListItem disablePadding>
+          <ListItemButton component={Link} to="/schedule">
+            <ListItemIcon><ScheduleIcon /></ListItemIcon>
+            <ListItemText primary="Schedule" />
+          </ListItemButton>
+        </ListItem>
+      </List>
+    </Box>
+  );
+
   return (
-    <Router>
-        <Box sx={{ minHeight: '100vh', backgroundColor: (theme) => theme.palette.grey[50] }}>
-          {/* Header */}
-          <AppBar position="static" color="default" elevation={1}>
-            <Toolbar>
-              <Container maxWidth="xl" sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 2 }}>
-                <Box>
-                  <Typography variant="h5" component="h1" sx={{ fontWeight: 'bold', color: 'text.primary' }}>
-                    {APP_TITLE}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Welcome back, {user.name}
-                  </Typography>
-                </Box>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                  <HealthStatus />
-                  <IconButton
-                    color="inherit"
-                    onClick={() => logout({ logoutParams: { returnTo: window.location.origin } })}
-                    aria-label="logout"
-                  >
-                    <LogoutIcon />
-                  </IconButton>
-                </Box>
-              </Container>
-            </Toolbar>
-          </AppBar>
-
-          {/* Paper Trading Status */}
-          <Container maxWidth="xl" sx={{ py: 2 }}>
-            <PaperTradingStatus />
+    <Box sx={{ minHeight: '100vh', backgroundColor: (theme) => theme.palette.grey[50] }}>
+      <AppBar position="static" color="default" elevation={1}>
+        <Toolbar>
+          <IconButton
+            color="inherit"
+            aria-label="open drawer"
+            edge="start"
+            onClick={handleDrawerToggle}
+            sx={{ mr: 2, display: { sm: 'none' } }}
+          >
+            <MenuIcon />
+          </IconButton>
+          <Container maxWidth="xl" sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 2 }}>
+            <Box>
+              <Typography variant="h5" component="h1" sx={{ fontWeight: 'bold', color: 'text.primary' }}>
+                {APP_TITLE}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Welcome back, {user.name}
+              </Typography>
+            </Box>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <HealthStatus />
+              <IconButton
+                color="inherit"
+                onClick={() => logout({ logoutParams: { returnTo: window.location.origin } })}
+                aria-label="logout"
+              >
+                <LogoutIcon />
+              </IconButton>
+            </Box>
           </Container>
+        </Toolbar>
+      </AppBar>
 
-        {/* Navigation */}
-        <AppBar position="static" color="default" elevation={0} sx={{ borderBottom: 1, borderColor: 'divider' }}>
-          <Toolbar>
-            <Container maxWidth="xl">
-              <Tabs value={activeTab} onChange={handleTabChange} aria-label="navigation tabs">
-                <StyledTab label="Volatile Cryptos" value="volatile" />
-                <StyledTab label="Analysis" value="analysis" />
-                <StyledTab label="Backtest" value="backtest" />
-                <StyledTab label="Schedule" value="schedule" />
-              </Tabs>
-            </Container>
-          </Toolbar>
-        </AppBar>
+      <Drawer
+        variant="temporary"
+        open={mobileOpen}
+        onClose={handleDrawerToggle}
+        ModalProps={{
+          keepMounted: true, // Better open performance on mobile.
+        }}
+        sx={{
+          display: { xs: 'block', sm: 'none' },
+          '& .MuiDrawer-paper': { boxSizing: 'border-box', width: 240 },
+        }}
+      >
+        {drawer}
+      </Drawer>
 
-        {/* Main Content */}
-        <Container maxWidth="xl" sx={{ py: 3 }}>
-          <Box sx={{ p: 2 }}>
-            <Suspense fallback={<CircularProgress />}>
+      <Box component="nav" sx={{ display: { xs: 'none', sm: 'block' } }}>
+        <List sx={{ display: 'flex', flexDirection: 'row', padding: 0 }}>
+          <ListItem disablePadding sx={{ width: 'auto' }}>
+            <ListItemButton component={Link} to="/">
+              <ListItemText primary="Paper Trader" />
+            </ListItemButton>
+          </ListItem>
+          <ListItem disablePadding sx={{ width: 'auto' }}>
+            <ListItemButton component={Link} to="/volatile">
+              <ListItemText primary="Volatile Cryptos" />
+            </ListItemButton>
+          </ListItem>
+          <ListItem disablePadding sx={{ width: 'auto' }}>
+            <ListItemButton component={Link} to="/analysis">
+              <ListItemText primary="Analysis" />
+            </ListItemButton>
+          </ListItem>
+          <ListItem disablePadding sx={{ width: 'auto' }}>
+            <ListItemButton component={Link} to="/backtest">
+              <ListItemText primary="Backtest" />
+            </ListItemButton>
+          </ListItem>
+          <ListItem disablePadding sx={{ width: 'auto' }}>
+            <ListItemButton component={Link} to="/schedule">
+              <ListItemText primary="Schedule" />
+            </ListItemButton>
+          </ListItem>
+        </List>
+      </Box>
+
+      <Container maxWidth="xl" sx={{ py: 3 }}>
+        <Box sx={{ p: 2 }}>
+          <Suspense fallback={<CircularProgress />}>
             <Routes>
-              <Route path="/" element={
-                <ConfigProvider>
-                  {activeTab === 'volatile' ? (
-                    <VolatileCryptoList />
-                  ) : activeTab === 'analysis' ? (
-                    <CryptoAnalysis setActiveTab={setActiveTab} onRunBacktest={handleRunBacktest} />
-                  ) : activeTab === 'backtest' ? (
-                    <BacktestRunner
-                      selectedCrypto={selectedCryptoForBacktest}
-                      onSetResult={setBacktestResult}
-                      initialResult={backtestResult}
-                    />
-                  ) : (
-                    <ScheduleTab />
-                  )}
-                </ConfigProvider>
-              } />
+              <Route path="/" element={<ConfigProvider><PaperTradingStatus /></ConfigProvider>} />
+              <Route path="/volatile" element={<ConfigProvider><VolatileCryptoList /></ConfigProvider>} />
+              <Route path="/analysis" element={<ConfigProvider><CryptoAnalysis onRunBacktest={handleRunBacktest} /></ConfigProvider>} />
+              <Route path="/backtest" element={<ConfigProvider><BacktestRunner selectedCrypto={selectedCryptoForBacktest} onSetResult={setBacktestResult} initialResult={backtestResult} /></ConfigProvider>} />
+              <Route path="/schedule" element={<ConfigProvider><ScheduleTab /></ConfigProvider>} />
             </Routes>
           </Suspense>
-          </Box>
-        </Container>
-      </Box>
-    </Router>
+        </Box>
+      </Container>
+    </Box>
   );
 }
 
 function App() {
   return (
-    <ApiLoadingProvider>
-      <AppContent />
-    </ApiLoadingProvider>
+    <Router>
+      <ApiLoadingProvider>
+        <AppContent />
+      </ApiLoadingProvider>
+    </Router>
   );
 }
 
