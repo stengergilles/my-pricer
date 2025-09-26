@@ -1,7 +1,7 @@
 import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { HashRouter as Router, Routes, Route, Link, useNavigate } from 'react-router-dom';
-import { Box, CircularProgress, Typography, Container, Paper, AppBar, Toolbar, IconButton, Drawer, List, ListItem, ListItemButton, ListItemIcon, ListItemText } from '@mui/material';
-import MenuIcon from '@mui/icons-material/Menu';
+import { Box, CircularProgress, Typography, Container, Paper, Drawer, List, ListItem, ListItemButton, ListItemIcon, ListItemText, useMediaQuery } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
 import HomeIcon from '@mui/icons-material/Home';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import AnalyticsIcon from '@mui/icons-material/Analytics';
@@ -14,12 +14,11 @@ import { useAuth0 } from '@auth0/auth0-react';
 import { ApiLoadingProvider } from './contexts/ApiLoadingContext.tsx';
 import { ConfigProvider } from './contexts/ConfigContext.tsx';
 import { APP_TITLE } from './utils/constants.ts';
-import LogoutIcon from '@mui/icons-material/Logout';
 import PaperTradingStatus from './components/PaperTradingStatus.tsx';
+import HeaderContent from './HeaderContent.js';
 
 const CryptoAnalysis = lazy(() => import('./components/CryptoAnalysis.tsx').then(module => ({ default: module.CryptoAnalysis })));
 const BacktestRunner = lazy(() => import('./components/BacktestRunner.tsx').then(module => ({ default: module.BacktestRunner })));
-const HealthStatus = lazy(() => import('./components/HealthStatus.tsx').then(module => ({ default: module.HealthStatus })));
 const VolatileCryptoList = lazy(() => import('./components/VolatileCryptoList.tsx').then(module => ({ default: module.VolatileCryptoList })));
 const ScheduleTab = lazy(() => import('./components/ScheduleTab.tsx').then(module => ({ default: module.ScheduleTab })));
 
@@ -31,6 +30,8 @@ const ScheduleTab = lazy(() => import('./components/ScheduleTab.tsx').then(modul
 function AppContent() {
   const { user, isLoading: auth0Loading, logout } = useAuth0();
   const navigate = useNavigate();
+  const theme = useTheme(); // Re-evaluate useTheme here for desktop navigation
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm')); // Re-evaluate isMobile here for desktop navigation
   const [mobileOpen, setMobileOpen] = useState(false);
   const [selectedCryptoForBacktest, setSelectedCryptoForBacktest] = useState(null);
   const [backtestResult, setBacktestResult] = useState(null);
@@ -131,39 +132,7 @@ function AppContent() {
 
   return (
     <Box sx={{ minHeight: '100vh', backgroundColor: (theme) => theme.palette.grey[50] }}>
-      <AppBar position="static" color="default" elevation={1}>
-        <Toolbar>
-          <IconButton
-            color="inherit"
-            aria-label="open drawer"
-            edge="start"
-            onClick={handleDrawerToggle}
-            sx={{ mr: 2, display: { sm: 'none' } }}
-          >
-            <MenuIcon />
-          </IconButton>
-          <Container maxWidth="xl" sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 2 }}>
-            <Box>
-              <Typography variant="h5" component="h1" sx={{ fontWeight: 'bold', color: 'text.primary' }}>
-                {APP_TITLE}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Welcome back, {user.name}
-              </Typography>
-            </Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <HealthStatus />
-              <IconButton
-                color="inherit"
-                onClick={() => logout({ logoutParams: { returnTo: window.location.origin } })}
-                aria-label="logout"
-              >
-                <LogoutIcon />
-              </IconButton>
-            </Box>
-          </Container>
-        </Toolbar>
-      </AppBar>
+      <HeaderContent user={user} logout={logout} handleDrawerToggle={handleDrawerToggle} />
 
       <Drawer
         variant="temporary"
@@ -180,35 +149,37 @@ function AppContent() {
         {drawer}
       </Drawer>
 
-      <Box component="nav" sx={{ display: { xs: 'none', sm: 'block' } }}>
-        <List sx={{ display: 'flex', flexDirection: 'row', padding: 0 }}>
-          <ListItem disablePadding sx={{ width: 'auto' }}>
-            <ListItemButton component={Link} to="/">
-              <ListItemText primary="Paper Trader" />
-            </ListItemButton>
-          </ListItem>
-          <ListItem disablePadding sx={{ width: 'auto' }}>
-            <ListItemButton component={Link} to="/volatile">
-              <ListItemText primary="Volatile Cryptos" />
-            </ListItemButton>
-          </ListItem>
-          <ListItem disablePadding sx={{ width: 'auto' }}>
-            <ListItemButton component={Link} to="/analysis">
-              <ListItemText primary="Analysis" />
-            </ListItemButton>
-          </ListItem>
-          <ListItem disablePadding sx={{ width: 'auto' }}>
-            <ListItemButton component={Link} to="/backtest">
-              <ListItemText primary="Backtest" />
-            </ListItemButton>
-          </ListItem>
-          <ListItem disablePadding sx={{ width: 'auto' }}>
-            <ListItemButton component={Link} to="/schedule">
-              <ListItemText primary="Schedule" />
-            </ListItemButton>
-          </ListItem>
-        </List>
-      </Box>
+      {!isMobile && (
+        <Box component="nav" sx={{ display: 'block' }}>
+          <List sx={{ display: 'flex', flexDirection: 'row', padding: 0 }}>
+            <ListItem disablePadding sx={{ width: 'auto' }}>
+              <ListItemButton component={Link} to="/">
+                <ListItemText primary="Paper Trader" />
+              </ListItemButton>
+            </ListItem>
+            <ListItem disablePadding sx={{ width: 'auto' }}>
+              <ListItemButton component={Link} to="/volatile">
+                <ListItemText primary="Volatile Cryptos" />
+              </ListItemButton>
+            </ListItem>
+            <ListItem disablePadding sx={{ width: 'auto' }}>
+              <ListItemButton component={Link} to="/analysis">
+                <ListItemText primary="Analysis" />
+              </ListItemButton>
+            </ListItem>
+            <ListItem disablePadding sx={{ width: 'auto' }}>
+              <ListItemButton component={Link} to="/backtest">
+                <ListItemText primary="Backtest" />
+              </ListItemButton>
+            </ListItem>
+            <ListItem disablePadding sx={{ width: 'auto' }}>
+              <ListItemButton component={Link} to="/schedule">
+                <ListItemText primary="Schedule" />
+              </ListItemButton>
+            </ListItem>
+          </List>
+        </Box>
+      )}
 
       <Container maxWidth="xl" sx={{ py: 3 }}>
         <Box sx={{ p: 2 }}>
