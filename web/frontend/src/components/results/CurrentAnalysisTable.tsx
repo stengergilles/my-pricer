@@ -22,7 +22,11 @@ const CurrentAnalysisTable: React.FC<CurrentAnalysisTableProps> = ({ currentAnal
             <TableCell>Crypto</TableCell>
             <TableCell>Strategy</TableCell>
             <TableCell>Signal</TableCell>
-            <TableCell>Analysis Date</TableCell>
+            {isPortrait ? (
+              <TableCell>Date</TableCell> // Shorter header for portrait
+            ) : (
+              <TableCell>Analysis Date</TableCell>
+            )}
             {isPortrait ? (
               <TableCell>Position & Profit</TableCell>
             ) : (
@@ -37,13 +41,21 @@ const CurrentAnalysisTable: React.FC<CurrentAnalysisTableProps> = ({ currentAnal
           {currentAnalysis.map((analysis) => {
             const position = openPositions.find(pos => pos.crypto_id === analysis.crypto_id);
             const positionValue = position?.current_value_usd ? `$${position.current_value_usd.toFixed(2)}` : 'N/A';
+            const analysisDate = new Date(analysis.analysis_timestamp);
 
             return (
               <TableRow key={analysis.analysis_id}>
                 <TableCell>{analysis.crypto_id}</TableCell>
                 <TableCell>{analysis.strategy_used}</TableCell>
                 <TableCell>{analysis.current_signal}</TableCell>
-                <TableCell>{new Date(analysis.analysis_timestamp).toLocaleString()}</TableCell>
+                {isPortrait ? (
+                  <TableCell>
+                    <Typography variant="body2">{analysisDate.toLocaleDateString()}</Typography>
+                    <Typography variant="body2">{analysisDate.toLocaleTimeString()}</Typography>
+                  </TableCell>
+                ) : (
+                  <TableCell>{analysisDate.toLocaleString()}</TableCell>
+                )}
                 {isPortrait ? (
                   <TableCell>
                     <Typography variant="body2">
