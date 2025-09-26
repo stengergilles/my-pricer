@@ -19,8 +19,14 @@ const CurrentAnalysisTable: React.FC<CurrentAnalysisTableProps> = ({ currentAnal
       <Table sx={{ minWidth: 650 }} aria-label="current analysis table">
         <TableHead>
           <TableRow>
-            <TableCell>Crypto</TableCell>
-            <TableCell>Strategy</TableCell>
+            {isPortrait ? (
+              <TableCell>Crypto / Strategy</TableCell>
+            ) : (
+              <>
+                <TableCell>Crypto</TableCell>
+                <TableCell>Strategy</TableCell>
+              </>
+            )}
             {isPortrait ? (
               <TableCell>Date</TableCell> // Shorter header for portrait
             ) : (
@@ -44,8 +50,17 @@ const CurrentAnalysisTable: React.FC<CurrentAnalysisTableProps> = ({ currentAnal
 
             return (
               <TableRow key={analysis.analysis_id}>
-                <TableCell>{analysis.crypto_id}</TableCell>
-                <TableCell>{analysis.strategy_used}</TableCell>
+                {isPortrait ? (
+                  <TableCell>
+                    <Typography variant="body2">{analysis.crypto_id}</Typography>
+                    <Typography variant="body2">{analysis.strategy_used}</Typography>
+                  </TableCell>
+                ) : (
+                  <>
+                    <TableCell>{analysis.crypto_id}</TableCell>
+                    <TableCell>{analysis.strategy_used}</TableCell>
+                  </>
+                )}
                 {isPortrait ? (
                   <TableCell>
                     <Typography variant="body2">{analysisDate.toLocaleDateString()}</Typography>
