@@ -56,7 +56,9 @@ class Config:
         self.PAPER_TRADING_ANALYSIS_INTERVAL_MINUTES = int(os.getenv('PAPER_TRADING_ANALYSIS_INTERVAL_MINUTES', 1))
         self.PAPER_TRADING_MONITORING_INTERVAL_SECONDS = int(os.getenv('PAPER_TRADING_MONITORING_INTERVAL_SECONDS', 60))
         self.DATA_FETCH_DELAY_SECONDS = int(os.getenv('DATA_FETCH_DELAY_SECONDS', 10))
-        self.MIN_PROFIT_THRESHOLD = float(os.getenv('MIN_PROFIT_THRESHOLD', 0.1)) # New line
+        self.PAPER_TRADING_SPREAD_PERCENTAGE = self.get_env_var('PAPER_TRADING_SPREAD_PERCENTAGE', 0.01, type=float)
+        self.PAPER_TRADING_SLIPPAGE_PERCENTAGE = self.get_env_var('PAPER_TRADING_SLIPPAGE_PERCENTAGE', 0.0005, type=float)
+        self.PAPER_TRADING_MIN_PROFIT_BUFFER = self.get_env_var('PAPER_TRADING_MIN_PROFIT_BUFFER', 5, type=float)
 
         # CoinGecko Rate Limiter Configuration
         self.COINGECKO_REQUESTS_PER_MINUTE = int(os.getenv('COINGECKO_REQUESTS_PER_MINUTE', 50)) # Default to 50 requests/minute

@@ -300,7 +300,8 @@ class PaperTradingEngine:
                 else:
                     profit = 0 # Default profit if backtest_result is None
 
-                if profit > 0:
+                min_profit_threshold = (self.config.PAPER_TRADING_SPREAD_PERCENTAGE + self.config.PAPER_TRADING_SLIPPAGE_PERCENTAGE) * 100 + self.config.PAPER_TRADING_MIN_PROFIT_BUFFER
+                if profit > min_profit_threshold:
                     # In optimization results, parameters are at the top level
                     params = latest_result.get('best_params') or backtest_result.get('parameters')
 
