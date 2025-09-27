@@ -35,8 +35,7 @@ const PaperTradingStatus = () => {
   console.log("PaperTradingStatus data:", data); // Add this line
 
   const totalPnl = data.open_positions.reduce((acc, pos) => acc + (pos.pnl_usd || 0), 0);
-  const totalPositionCost = data.open_positions.reduce((acc, pos) => acc + (pos.size_usd || 0), 0);
-  const availableCash = data.initial_capital - totalPositionCost;
+  const availableCash = data.available_capital;
 
   return (
     <Paper elevation={3} sx={{ p: 2, mb: 2 }}>

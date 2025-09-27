@@ -90,7 +90,7 @@ class PaperTradingEngine:
                     trades_data = json.load(f)
                     self.open_positions = trades_data.get('open_positions', [])
                     self.trade_history = trades_data.get('trade_history', [])
-                    self.available_capital = trades_data.get('available_capital', self.total_capital)
+                    self.available_capital = trades_data.get('available_capital', trades_data.get('portfolio_value', self.total_capital))
                 logging.info(f"Loaded {len(self.open_positions)} open positions and {len(self.trade_history)} trade history entries from {self.trades_log_path}")
             except Exception as e:
                 logging.error(f"Failed to load trades from {self.trades_log_path}: {e}")
@@ -652,7 +652,7 @@ class PaperTradingEngine:
             all_trades = {
                 "open_positions": self.open_positions,
                 "trade_history": self.trade_history,
-                "portfolio_value": self.available_capital
+                "available_capital": self.available_capital
             }
             with open(self.trades_log_path, 'w') as f:
                 json.dump(all_trades, f, indent=4)
