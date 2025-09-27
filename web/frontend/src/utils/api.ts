@@ -26,6 +26,7 @@ export class ApiClient {
     this.scheduleJob = this.scheduleJob.bind(this);
     this.deleteJob = this.deleteJob.bind(this);
     this.getJobLogs = this.getJobLogs.bind(this);
+    this.getTradeHistory = this.getTradeHistory.bind(this); // New method
   }
 
   private async request(method: string, endpoint: string, data?: any) {
@@ -186,5 +187,10 @@ export class ApiClient {
 
   async getJobLogs(jobId: string) {
     return this.request('GET', `/api/scheduler/jobs/${jobId}/logs`);
+  }
+
+  // Paper Trading Trade History
+  async getTradeHistory(date: string, symbol: string) {
+    return this.request('GET', `/api/paper-trading/history/${date}/${symbol}`);
   }
 }

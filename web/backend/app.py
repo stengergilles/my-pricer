@@ -40,7 +40,7 @@ from api.backtest import BacktestAPI
 from api.strategies import StrategiesAPI
 from api.results import ResultsAPI
 from api.scheduler import ScheduleJobAPI, JobsAPI, JobAPI, JobLogsAPI
-from api.paper_trading import PaperTradingAPI
+from api.paper_trading import PaperTradingAPI, TradeHistoryAPI
 from utils.error_handlers import register_error_handlers
 from core.paper_trading_engine import PaperTradingEngine, run_analysis_task, run_price_monitoring_task
 
@@ -184,6 +184,7 @@ def setup_routes_and_api(app, api, trading_engine, config, data_fetcher, paper_t
     api.add_resource(JobLogsAPI, '/api/scheduler/jobs/<string:job_id>/logs', resource_class_kwargs={'engine': trading_engine})
 
     api.add_resource(PaperTradingAPI, '/api/paper-trading/status', resource_class_kwargs={'engine': paper_trading_engine})
+    api.add_resource(TradeHistoryAPI, '/api/paper-trading/history/<string:date>/<string:symbol>', resource_class_kwargs={}) # No engine needed for this API
 
     
 

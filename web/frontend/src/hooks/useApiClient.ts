@@ -116,6 +116,10 @@ export const useApiClient = () => {
     return callApi('getPaperTradingStatus');
   }, [callApi]);
 
+  const getTradeHistory = useCallback(async (date: string, cryptoId: string) => {
+    return callApi('getTradeHistory', date, cryptoId);
+  }, [callApi]);
+
   return { 
     apiClient, 
     getCryptos,
@@ -136,6 +140,7 @@ export const useApiClient = () => {
     deleteJob,
     getJobLogs,
     getPaperTradingStatus,
+    getTradeHistory,
     isLoading
   }
 }

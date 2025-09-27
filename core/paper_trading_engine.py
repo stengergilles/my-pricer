@@ -3,7 +3,7 @@ import time
 import threading
 from datetime import datetime, timedelta, time as dt_time
 from decimal import Decimal
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional, Tuple
 import pandas as pd
 import uuid # Import uuid for generating unique IDs
 
@@ -102,6 +102,22 @@ class PaperTradingEngine:
         logging.info(f"Total Capital: ${self.total_capital:.2f}")
         logging.info(f"Capital per Trade: ${self.capital_per_trade:.2f}")
         logging.info(f"Max Concurrent Positions: {self.max_concurrent_positions}")
+
+    def _log_trade(self, trade_data: Dict):
+        """Logs trade data to a daily file for the specific crypto."""
+        try:
+            log_dir = os.path.join("data", "trade_history")
+            os.makedirs(log_dir, exist_ok=True)
+            
+            today_str = datetime.now().strftime("%Y-%m-%d")
+            symbol = trade_data.get("symbol", "UNKNOWN").replace("/", "-")
+            filename = os.path.join(log_dir, f"{today_str}_{symbol}.json")
+
+            with open(filename, "a") as f:
+                f.write(json.dumps(trade_data) + "\n")
+            self.logger.debug(f"Logged trade for {symbol} to {filename}")
+        except Exception as e:
+            self.logger.error(f"Error logging trade: {e}")
 
     def check_optimization_status(self):
         """
@@ -514,6 +530,18 @@ class PaperTradingEngine:
             self.open_positions.append(position)
             self.available_capital -= position['size_usd'] # Deduct capital used for the position
             logging.info(f"Opened new {signal} position for {crypto_id} at ${current_price:.2f}. Stop loss at ${position['stop_loss_price']:.2f}. Capital remaining: ${self.available_capital:.2f}")
+            
+            trade_data = {
+                "timestamp": datetime.now().isoformat(),
+                "symbol": crypto_id,
+                "trade_type": signal, # LONG or SHORT
+                "price": current_price,
+                "quantity": position['size_crypto'],
+                "total_value": position['size_usd'],
+                "balance_after": self.available_capital,
+                "position_id": position.get('position_id') # Assuming position_id might be added later
+            }
+            self._log_trade(trade_data)
             self._save_trades()
 
 
@@ -577,6 +605,20 @@ class PaperTradingEngine:
             self.open_positions.remove(position)
 
             logging.info(f"Closed {position['signal']} position for {position['crypto_id']} at ${exit_price:.2f} due to {reason}. PnL: ${closed_trade['pnl_usd']:.2f}. New Portfolio Value: ${self.available_capital:.2f}")
+            
+            trade_data = {
+                "timestamp": datetime.now().isoformat(),
+                "symbol": position['crypto_id'],
+                "trade_type": f"EXIT_{position['signal']}", # EXIT_LONG or EXIT_SHORT
+                "price": exit_price,
+                "quantity": position['size_crypto'],
+                "total_value": position['size_usd'], # Original value of the position
+                "pnl_usd": closed_trade['pnl_usd'],
+                "reason": reason,
+                "balance_after": self.available_capital,
+                "position_id": position.get('position_id')
+            }
+            self._log_trade(trade_data)
             self._save_trades()
 
     def _place_order(self, crypto_id, order_type, signal, current_price, params=None, position_to_close=None, backtest_result=None):

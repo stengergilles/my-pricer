@@ -1,6 +1,7 @@
 from flask import jsonify, current_app
 from flask_restful import Resource, Api
 import logging
+import json # Added json import
 
 # Add project root to path to allow importing core modules
 import sys
@@ -77,3 +78,30 @@ class PaperTradingAPI(Resource):
             if "'Strategy' object has no attribute 'set_params'" in str(e):
                 return {'error': 'No analysis data available. Please run the optimizer.'}, 500
             return {'error': 'Failed to get paper trading status'}, 500
+
+class TradeHistoryAPI(Resource):
+    def __init__(self, **kwargs):
+        self.logger = logging.getLogger(__name__)
+
+    @requires_auth('read:paper_trading_history') # Assuming a new permission for history
+    def get(self, date: str, symbol: str):
+        """Returns the trade history for a given date and symbol."""
+        try:
+            log_dir = os.path.join("data", "trade_history")
+            filename = os.path.join(log_dir, f"{date}_{symbol.replace('/', '-')}.json")
+
+            if not os.path.exists(filename):
+                return {"message": "Trade history not found for this date and symbol."}, 404
+
+            trades = []
+            with open(filename, "r") as f:
+                for line in f:
+                    try:
+                        trades.append(json.loads(line))
+                    except json.JSONDecodeError as e:
+                        self.logger.error(f"Error decoding JSON from trade history file {filename}: {e}")
+                        continue
+            return jsonify(trades)
+        except Exception as e:
+            self.logger.error(f"Error retrieving trade history for {symbol} on {date}: {e}")
+            return {"error": "Failed to retrieve trade history."}, 500
