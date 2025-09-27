@@ -135,6 +135,7 @@ function AppContent() {
       <HeaderContent user={user} logout={logout} handleDrawerToggle={handleDrawerToggle} />
 
       <Drawer
+        anchor="bottom"
         variant="temporary"
         open={mobileOpen}
         onClose={handleDrawerToggle}
@@ -143,7 +144,7 @@ function AppContent() {
         }}
         sx={{
           display: { xs: 'block', sm: 'none' },
-          '& .MuiDrawer-paper': { boxSizing: 'border-box', width: 240 },
+          '& .MuiDrawer-paper': { boxSizing: 'border-box', height: 'auto' },
         }}
       >
         {drawer}
