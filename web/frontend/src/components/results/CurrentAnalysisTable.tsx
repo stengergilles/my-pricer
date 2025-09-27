@@ -20,11 +20,12 @@ const CurrentAnalysisTable: React.FC<CurrentAnalysisTableProps> = ({ currentAnal
         <TableHead>
           <TableRow>
             {isPortrait ? (
-              <TableCell>Crypto / Strategy</TableCell>
+              <TableCell>Crypto / Strategy / Type</TableCell>
             ) : (
               <>
                 <TableCell>Crypto</TableCell>
                 <TableCell>Strategy</TableCell>
+                <TableCell>Type</TableCell>
               </>
             )}
             {isPortrait ? null : <TableCell>Analysis Date</TableCell>}
@@ -41,7 +42,8 @@ const CurrentAnalysisTable: React.FC<CurrentAnalysisTableProps> = ({ currentAnal
         <TableBody>
           {currentAnalysis.map((analysis) => {
             const position = openPositions.find(pos => pos.crypto_id === analysis.crypto_id);
-            const positionValue = position?.current_value_usd ? `$${position.current_value_usd.toFixed(2)}` : 'N/A';
+            console.log("Position in CurrentAnalysisTable:", position); // Debugging line
+            const positionValue = position?.current_value_usd ? `${position.current_value_usd.toFixed(2)}` : 'N/A';
             const analysisDate = new Date(analysis.analysis_timestamp);
 
             return (
@@ -50,11 +52,13 @@ const CurrentAnalysisTable: React.FC<CurrentAnalysisTableProps> = ({ currentAnal
                   <TableCell>
                     <Typography variant="body2">{analysis.crypto_id}</Typography>
                     <Typography variant="body2">{analysis.strategy_used}</Typography>
+                    <Typography variant="body2">Type: {position?.signal || 'N/A'}</Typography>
                   </TableCell>
                 ) : (
                   <>
                     <TableCell>{analysis.crypto_id}</TableCell>
                     <TableCell>{analysis.strategy_used}</TableCell>
+                    <TableCell>{position?.signal || 'N/A'}</TableCell>
                   </>
                 )}
                 {isPortrait ? null : <TableCell>{analysisDate.toLocaleString()}</TableCell>}
