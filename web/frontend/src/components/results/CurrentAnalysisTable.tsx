@@ -62,7 +62,7 @@ const CurrentAnalysisTable: React.FC<CurrentAnalysisTableProps> = ({ currentAnal
                   <TableCell>
                     <Typography variant="body2">
                       Position Value:
-                      <Typography component="span" color={position?.pnl_usd && position.pnl_usd >= 0 ? 'success.main' : 'error.main'}>
+                      <Typography component="span" color={position ? (position.pnl_usd >= 0 ? 'success.main' : 'error.main') : 'inherit'}>
                         {' '}{positionValue}
                       </Typography>
                     </Typography>
@@ -73,7 +73,7 @@ const CurrentAnalysisTable: React.FC<CurrentAnalysisTableProps> = ({ currentAnal
                 ) : (
                   <>
                     <TableCell>
-                      <Typography color={position?.pnl_usd && position.pnl_usd >= 0 ? 'success.main' : 'error.main'}>
+                      <Typography color={position ? (position.pnl_usd >= 0 ? 'success.main' : 'error.main') : 'inherit'}>
                         {positionValue}
                       </Typography>
                     </TableCell>
