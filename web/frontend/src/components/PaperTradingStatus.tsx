@@ -45,7 +45,9 @@ const PaperTradingStatus = () => {
           <Typography variant="h6" sx={{ mr: 1 }}>
             Paper Trading Status
           </Typography>
-          
+          <Typography variant="subtitle1" color={data.is_running ? 'success.main' : 'error.main'}>
+            {data.is_running ? 'Open' : 'Closed'}
+          </Typography>
         </Box>
         {dataUpdatedAt && (
           <Typography variant="caption" color="text.secondary">
