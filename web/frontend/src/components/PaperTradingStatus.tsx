@@ -35,7 +35,7 @@ const PaperTradingStatus = () => {
   console.log("PaperTradingStatus data:", data); // Add this line
 
   const totalPnl = data.open_positions.reduce((acc, pos) => acc + (pos.pnl_usd || 0), 0);
-  const totalPositionCost = data.open_positions.reduce((acc, pos) => acc + (pos.cost_usd || 0), 0);
+  const totalPositionCost = data.open_positions.reduce((acc, pos) => acc + (pos.size_usd || 0), 0);
   const availableCash = data.initial_capital - totalPositionCost;
 
   return (
