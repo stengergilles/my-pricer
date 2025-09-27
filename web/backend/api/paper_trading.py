@@ -36,16 +36,23 @@ class PaperTradingAPI(Resource):
             for pos in open_positions:
                 current_price = prices.get(pos['crypto_id'])
                 if current_price:
-                    current_value = current_price * pos['size_crypto']
-                    pnl_usd = (current_price - pos['entry_price']) * pos['size_crypto'] if pos['signal'] == 'LONG' else (pos['entry_price'] - current_price) * pos['size_crypto']
+                    # Calculate PnL for the open position
+                    if pos['signal'] == 'LONG':
+                        pnl_usd = (current_price - pos['entry_price']) * pos['size_crypto']
+                        current_value_for_portfolio = current_price * pos['size_crypto'] # For long, current value is market value
+                    else: # SHORT
+                        pnl_usd = (pos['entry_price'] - current_price) * pos['size_crypto']
+                        # For short, the "value" contributing to portfolio is initial capital + PnL
+                        current_value_for_portfolio = pos['size_usd'] + pnl_usd
                 else:
-                    current_value = pos['size_usd'] # Fallback to entry value
+                    # Fallback if current price is not available
                     pnl_usd = 0
+                    current_value_for_portfolio = pos['size_usd'] # Assume no change from initial capital
 
                 position_data = {
                     **pos,
                     'current_price': current_price,
-                    'current_value_usd': current_value,
+                    'current_value_usd': current_value_for_portfolio, # This will be used for portfolio sum
                     'pnl_usd': pnl_usd,
                     'cost_usd': pos['size_usd']
                 }
