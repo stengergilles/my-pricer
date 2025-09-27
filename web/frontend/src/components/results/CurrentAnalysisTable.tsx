@@ -61,7 +61,10 @@ const CurrentAnalysisTable: React.FC<CurrentAnalysisTableProps> = ({ currentAnal
                 {isPortrait ? (
                   <TableCell>
                     <Typography variant="body2">
-                      Position Value: {positionValue}
+                      Position Value:
+                      <Typography component="span" color={position?.pnl_usd && position.pnl_usd >= 0 ? 'success.main' : 'error.main'}>
+                        {' '}{positionValue}
+                      </Typography>
                     </Typography>
                     <Typography variant="body2">
                       Expected Profit: {analysis.backtest_result?.total_profit_percentage?.toFixed(2) ?? 'N/A'}%
@@ -69,7 +72,11 @@ const CurrentAnalysisTable: React.FC<CurrentAnalysisTableProps> = ({ currentAnal
                   </TableCell>
                 ) : (
                   <>
-                    <TableCell>{positionValue}</TableCell>
+                    <TableCell>
+                      <Typography color={position?.pnl_usd && position.pnl_usd >= 0 ? 'success.main' : 'error.main'}>
+                        {positionValue}
+                      </Typography>
+                    </TableCell>
                     <TableCell>
                       {analysis.backtest_result?.total_profit_percentage?.toFixed(2) ?? 'N/A'}%
                     </TableCell>

@@ -56,7 +56,7 @@ const PaperTradingStatus = () => {
       <Grid container spacing={2}>
         <Grid item xs={4}>
           <Typography variant="subtitle1">Portfolio Value</Typography>
-          <Typography variant="h5">${data.portfolio_value.toFixed(2)}</Typography>
+          <Typography variant="h5" color={data.portfolio_value >= data.initial_capital ? 'success.main' : 'error.main'}>${data.portfolio_value.toFixed(2)}</Typography>
         </Grid>
         <Grid item xs={4}>
           <Typography variant="subtitle1">Available Cash</Typography>
