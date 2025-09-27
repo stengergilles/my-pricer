@@ -32,7 +32,22 @@ const PaperTradingStatus = () => {
     return null; // Don't render anything if there's no data yet
   }
 
-  console.log("PaperTradingStatus data:", data); // Add this line
+  console.log("PaperTradingStatus data:", data);
+  console.log("PaperTradingStatus analysis_history:", data.analysis_history);
+  console.log("PaperTradingStatus trade_history:", data.trade_history);
+
+  const analysisCryptoIds = new Set(data.analysis_history.map(analysis => analysis.crypto_id));
+  const tradeHistoryCryptoIds = new Set(data.trade_history.map(trade => trade.crypto_id));
+
+  const cryptosInTradeHistoryButNotInAnalysis = Array.from(tradeHistoryCryptoIds).filter(
+    cryptoId => !analysisCryptoIds.has(cryptoId)
+  );
+
+  if (cryptosInTradeHistoryButNotInAnalysis.length > 0) {
+    console.warn("Cryptos in trade history but not in current analysis:", cryptosInTradeHistoryButNotInAnalysis);
+  } else {
+    console.log("All cryptos with trade history are present in current analysis.");
+  }
 
   const totalPnl = data.open_positions.reduce((acc, pos) => acc + (pos.pnl_usd || 0), 0);
   const availableCash = data.available_capital;

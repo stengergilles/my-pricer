@@ -1,14 +1,15 @@
-import React, { useState } from 'react'; // Added useState
-import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Typography, useMediaQuery, Button, Dialog, DialogTitle, DialogContent, IconButton } from '@mui/material'; // Added Button, Dialog, DialogTitle, DialogContent, IconButton
-import CloseIcon from '@mui/icons-material/Close'; // Added CloseIcon
-import { Analysis, OpenPosition } from '../../utils/types'; // Import OpenPosition
-import { useApiClient } from '../../hooks/useApiClient.ts'; // Added useApiClient
-import { useErrorHandler } from '../../hooks/useErrorHandler.ts'; // Added useErrorHandler
-import { ErrorDisplay } from '../ErrorDisplay.tsx'; // Import ErrorDisplay
+import React, { useState } from 'react';
+import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Typography, useMediaQuery, Dialog, DialogTitle, DialogContent, IconButton } from '@mui/material';
+import CloseIcon from '@mui/icons-material/Close';
+import HistoryIcon from '@mui/icons-material/History'; // Import HistoryIcon
+import { Analysis, OpenPosition } from '../../utils/types';
+import { useApiClient } from '../../hooks/useApiClient.ts';
+import { useErrorHandler } from '../../hooks/useErrorHandler.ts';
+import { ErrorDisplay } from '../ErrorDisplay.tsx';
 
 interface CurrentAnalysisTableProps {
   currentAnalysis: Analysis[];
-  openPositions: OpenPosition[]; // Add openPositions prop
+  openPositions: OpenPosition[];
 }
 
 const CurrentAnalysisTable: React.FC<CurrentAnalysisTableProps> = ({ currentAnalysis, openPositions }) => {
@@ -16,9 +17,9 @@ const CurrentAnalysisTable: React.FC<CurrentAnalysisTableProps> = ({ currentAnal
   const [openHistoryModal, setOpenHistoryModal] = useState(false);
   const [selectedCrypto, setSelectedCrypto] = useState('');
   const [selectedDate, setSelectedDate] = useState('');
-  const [tradeHistory, setTradeHistory] = useState<any[]>([]); // State to store fetched trade history
-  const { getTradeHistory } = useApiClient(); // Use the new API client function
-  const { showError } = useErrorHandler(); // Use the error handler hook
+  const [fetchedTradeHistory, setFetchedTradeHistory] = useState<any[]>([]);
+  const { getTradeHistory } = useApiClient();
+  const { showError } = useErrorHandler();
   const { is403Error, handleError, errorMessage, clearError } = useErrorHandler();
 
   const handleShowHistory = async (cryptoId: string, date: string) => {
@@ -26,7 +27,7 @@ const CurrentAnalysisTable: React.FC<CurrentAnalysisTableProps> = ({ currentAnal
     setSelectedDate(date);
     try {
       const history = await getTradeHistory(date, cryptoId);
-      setTradeHistory(history);
+      setFetchedTradeHistory(history);
       setOpenHistoryModal(true);
     } catch (error: any) {
       console.error("Error fetching trade history:", error);
@@ -38,7 +39,7 @@ const CurrentAnalysisTable: React.FC<CurrentAnalysisTableProps> = ({ currentAnal
 
   const handleCloseHistoryModal = () => {
     setOpenHistoryModal(false);
-    setTradeHistory([]);
+    setFetchedTradeHistory([]);
     setSelectedCrypto('');
     setSelectedDate('');
   };
@@ -57,7 +58,7 @@ const CurrentAnalysisTable: React.FC<CurrentAnalysisTableProps> = ({ currentAnal
       <TableContainer component={Paper} sx={{ mt: 2 }}>
         <Table sx={{ minWidth: isPortrait ? 'auto' : 650 }} aria-label="current analysis table">
           <TableHead>
-            <TableRow>{isPortrait ? (<TableCell>Crypto / Strategy / Type</TableCell>) : (<><TableCell>Crypto</TableCell><TableCell>Strategy</TableCell><TableCell>Type</TableCell></>)}{isPortrait ? '' : <TableCell>Analysis Date</TableCell>}{isPortrait ? (<TableCell>Position & Profit</TableCell>) : (<><TableCell>Position Value</TableCell><TableCell>Expected Profit (Backtest)</TableCell></>)}<TableCell>Actions</TableCell>{/* New TableCell */}</TableRow>
+            <TableRow>{isPortrait ? (<TableCell>Crypto / Strategy / Type</TableCell>) : (<><TableCell>Crypto</TableCell><TableCell>Strategy</TableCell><TableCell>Type</TableCell></>)}{isPortrait ? '' : <TableCell>Analysis Date</TableCell>}{isPortrait ? (<TableCell>Position & Profit</TableCell>) : (<><TableCell>Position Value</TableCell><TableCell>Expected Profit (Backtest)</TableCell></>)}<TableCell>Actions</TableCell></TableRow>
           </TableHead>
           <TableBody>
             {currentAnalysis.map((analysis) => {
@@ -65,6 +66,7 @@ const CurrentAnalysisTable: React.FC<CurrentAnalysisTableProps> = ({ currentAnal
               console.log("Position in CurrentAnalysisTable:", position); // Debugging line
               const positionValue = position?.current_value_usd ? `${position.current_value_usd.toFixed(2)}` : 'N/A';
               const analysisDate = new Date(analysis.analysis_timestamp);
+              const formattedAnalysisDate = analysisDate.toISOString().split('T')[0];
 
               return (
                 <TableRow key={analysis.analysis_id}>
@@ -72,13 +74,13 @@ const CurrentAnalysisTable: React.FC<CurrentAnalysisTableProps> = ({ currentAnal
                   {isPortrait ? null : <TableCell>{analysisDate.toLocaleString()}</TableCell>}
                   {isPortrait ? (<TableCell><Typography variant="body2">Position Value:<Typography component="span" color={position ? (position.pnl_usd >= 0 ? 'success.main' : 'error.main') : 'inherit'}>{' '}{positionValue}</Typography></Typography><Typography variant="body2">Expected Profit: {analysis.backtest_result?.total_profit_percentage?.toFixed(2) ?? 'N/A'}%</Typography></TableCell>) : (<><TableCell><Typography color={position ? (position.pnl_usd >= 0 ? 'success.main' : 'error.main') : 'inherit'}>{positionValue}</Typography></TableCell><TableCell>{analysis.backtest_result?.total_profit_percentage?.toFixed(2) ?? 'N/A'}%</TableCell></>)}
                   <TableCell>
-                    <Button
-                      variant="outlined"
+                    <IconButton
+                      aria-label="show history"
                       size="small"
-                      onClick={() => handleShowHistory(analysis.crypto_id, analysisDate.toISOString().split('T')[0])}
+                      onClick={() => handleShowHistory(analysis.crypto_id, formattedAnalysisDate)}
                     >
-                      History
-                    </Button>
+                      <HistoryIcon />
+                    </IconButton>
                   </TableCell>
                 </TableRow>
               );
@@ -104,7 +106,7 @@ const CurrentAnalysisTable: React.FC<CurrentAnalysisTableProps> = ({ currentAnal
           </IconButton>
         </DialogTitle>
         <DialogContent dividers>
-          {tradeHistory.length > 0 ? (
+          {fetchedTradeHistory.length > 0 ? (
             <TableContainer component={Paper}>
               <Table size="small">
                 <TableHead>
@@ -119,7 +121,7 @@ const CurrentAnalysisTable: React.FC<CurrentAnalysisTableProps> = ({ currentAnal
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {tradeHistory.map((trade, index) => (
+                  {fetchedTradeHistory.map((trade, index) => (
                     <TableRow key={index}><TableCell>{new Date(trade.timestamp).toLocaleString()}</TableCell><TableCell>{trade.trade_type}</TableCell><TableCell>{trade.price.toFixed(2)}</TableCell><TableCell>{trade.quantity.toFixed(4)}</TableCell><TableCell>{trade.total_value.toFixed(2)}</TableCell><TableCell>{trade.pnl_usd ? trade.pnl_usd.toFixed(2) : 'N/A'}</TableCell><TableCell>{trade.reason || 'N/A'}</TableCell></TableRow>
                   ))}
                 </TableBody>
