@@ -1,83 +1,84 @@
-# Crypto Trading System with Hybrid Position Sizing
+# Crypto Trading System
 
-A cryptocurrency trading system designed for high-spread environments, featuring adaptive position sizing, volatile crypto discovery, and Bayesian parameter optimization.
+This is a comprehensive cryptocurrency trading bot that includes backtesting, optimization, and paper trading capabilities. It features a web-based user interface for interacting with the system.
 
-## 📈 Daily Workflow
+## Documentation
 
-### 1. Morning Routine
-```bash
-# Find today's volatile cryptos
-python get_volatile_cryptos.py
+For a detailed understanding of the system's architecture, please refer to the following documents:
 
-# Run batch optimization on top volatile cryptos
-python volatile_crypto_optimizer.py --strategy EMA_Only --n-trials 30 --top-count 5
-```
+*   **[Optimizer](docs/optimizer.md):** Describes the Bayesian optimization engine used to find the best parameters for trading strategies.
+*   **[Paper Trader](docs/paper_trader.md):** Explains the paper trading engine that simulates live trading with the optimized strategies.
+*   **[Backtester](docs/backtester.md):** Details the backtesting engine used to evaluate the performance of trading strategies on historical data.
+*   **[Strategies and Indicators](docs/strategy.md):** Provides an overview of how trading strategies and technical indicators are defined and used.
 
-### 2. Analysis
-```bash
-# View best performing strategies
-python manage_results.py --top
+## Getting Started
 
-# Detailed results review
-python manage_results.py --list
-```
+### Prerequisites
 
-### 3. Focused Testing
-```bash
-# Deep dive on promising crypto
-python optimize_bayesian.py --crypto <best_crypto> --strategy <best_strategy> --n-trials 100
-```
+*   Python 3.10+
+*   Node.js and npm (for the frontend)
 
-## 📚 Documentation
+### Installation
 
-| Document | Purpose |
-|----------|---------|
-| [README.md](README.md) | Main project overview and daily workflow |
-| [Backend API Documentation](docs/api.md) | Detailed documentation for the backend REST API |
-| [TESTING.md](TESTING.md) | Comprehensive testing framework documentation |
-| [docs/README.md](docs/README.md) | Detailed technical documentation for all components |
+1.  **Clone the repository:**
 
-## 📁 File Organization
+    ```bash
+    git clone <repository-url>
+    cd my-pricer
+    ```
 
-```
-my-pricer/
-├── README.md                          # This file
-├── TESTING.md                         # Testing framework documentation
-├── docs/                              # Detailed documentation
-│   ├── api.md                         # Backend API documentation
-│   ├── backtester.md
-│   ├── bayesian_optimization.md
-│   ├── volatile_crypto_optimizer.md
-│   ├── volatile_crypto_discovery.md
-│   └── strategies/
-│       ├── ema_only.md
-│       ├── strict.md
-│       ├── bb_breakout.md
-│       ├── bb_rsi.md
-│       └── combined_trigger_verifier.md
-├── tests/                             # Testing framework
-│   ├── test_unit.py
-│   ├── test_integration.py
-│   ├── test_functional.py
-│   └── test_performance.py
-├── web/                               # Web application
-│   ├── backend/                       # Flask API
-│   └── frontend/                      # Next.js frontend
-├── backtest_results/                  # All optimization results
-│   ├── best_params_*.json
-│   ├── volatile_optimization_results_*.json
-│   └── volatile_cryptos.json
-├── backtester.py                      # Core backtesting engine
-├── optimize_bayesian.py               # Bayesian optimization
-├── volatile_crypto_optimizer.py       # Batch volatile crypto optimization
-├── get_volatile_cryptos.py           # Volatile crypto discovery
-├── manage_results.py                 # Results management
-├── run_tests.py                      # Main test runner
-└── config.py                         # Strategy configurations
-```
+2.  **Set up the Python environment:**
 
+    ```bash
+    python -m venv venv
+    source venv/bin/activate
+    pip install -r requirements.txt
+    ```
 
+3.  **Compile the Cython modules:**
 
-**⚠️ DISCLAIMER: This is a toy/fun project for educational and research purposes only. This system is NOT intended for real trading or production use. Cryptocurrency trading involves substantial risk of loss. Always conduct thorough testing and risk assessment before any live trading.**
+    ```bash
+    python setup.py build_ext --inplace
+    ```
 
----
+4.  **Set up the frontend:**
+
+    ```bash
+    cd web/frontend
+    npm install
+    ```
+
+5.  **Configure the environment:**
+
+    *   Create a `.env` file in the `web/backend` directory.
+    *   Add the following environment variables:
+
+        ```
+        # Auth0 Configuration
+        AUTH0_DOMAIN=your-auth0-domain
+        AUTH0_API_AUDIENCE=your-auth0-api-audience
+
+        # Flask Configuration
+        SECRET_KEY=a-strong-secret-key
+        FLASK_DEBUG=True
+
+        # Frontend URL
+        CORS_ORIGINS=http://localhost:3000
+        ```
+
+### Running the Application
+
+1.  **Start the backend server:**
+
+    ```bash
+    python web/backend/app.py
+    ```
+
+2.  **Start the frontend development server:**
+
+    ```bash
+    cd web/frontend
+    npm start
+    ```
+
+The application should now be running and accessible at `http://localhost:3000`.

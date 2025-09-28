@@ -64,7 +64,7 @@ const CurrentAnalysisTable: React.FC<CurrentAnalysisTableProps> = ({ currentAnal
             {currentAnalysis.map((analysis) => {
               const position = openPositions.find(pos => pos.crypto_id === analysis.crypto_id);
               console.log("Position in CurrentAnalysisTable:", position); // Debugging line
-              const positionValue = position?.current_value_usd ? `${position.current_value_usd.toFixed(2)}` : 'N/A';
+              const positionValue = position?.current_value_usd ? `${position.current_value_usd}` : 'N/A';
               const analysisDate = new Date(analysis.analysis_timestamp);
               const formattedAnalysisDate = analysisDate.toISOString().split('T')[0];
 
@@ -122,7 +122,7 @@ const CurrentAnalysisTable: React.FC<CurrentAnalysisTableProps> = ({ currentAnal
                 </TableHead>
                 <TableBody>
                   {fetchedTradeHistory.map((trade, index) => (
-                    <TableRow key={index}><TableCell>{new Date(trade.timestamp).toLocaleString()}</TableCell><TableCell>{trade.trade_type}</TableCell><TableCell>{trade.price.toFixed(2)}</TableCell><TableCell>{trade.quantity.toFixed(4)}</TableCell><TableCell>{trade.total_value.toFixed(2)}</TableCell><TableCell>{trade.pnl_usd ? trade.pnl_usd.toFixed(2) : 'N/A'}</TableCell><TableCell>{trade.reason || 'N/A'}</TableCell></TableRow>
+                    <TableRow key={index}><TableCell>{new Date(trade.timestamp).toLocaleString()}</TableCell><TableCell>{trade.trade_type}</TableCell><TableCell>{trade.price.toFixed(2)}</TableCell><TableCell>{trade.quantity.toFixed(4)}</TableCell><TableCell>{trade.total_value.toFixed(2)}</TableCell><TableCell>{trade.pnl_usd ? trade.pnl_usd : 'N/A'}</TableCell><TableCell>{trade.reason || 'N/A'}</TableCell></TableRow>
                   ))}
                 </TableBody>
               </Table>

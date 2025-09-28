@@ -52,9 +52,9 @@ class PaperTradingAPI(Resource):
                 position_data = {
                     **pos,
                     'current_price': current_price,
-                    'current_value_usd': current_value_for_portfolio, # This will be used for portfolio sum
-                    'pnl_usd': pnl_usd,
-                    'cost_usd': pos['size_usd']
+                    'current_value_usd': round(current_value_for_portfolio, 2), # Round to 2 decimal places for USD
+                    'pnl_usd': round(pnl_usd, 2), # Round to 2 decimal places for USD
+                    'cost_usd': round(pos['size_usd'], 2)
                 }
                 open_positions_with_current_value.append(position_data)
 
