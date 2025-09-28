@@ -106,13 +106,15 @@ class PaperTradingEngine:
     def _log_trade(self, trade_data: Dict):
         """Logs trade data to a daily file for the specific crypto."""
         try:
-            log_dir = os.path.join("data", "trade_history")
+            # Correctly construct the absolute path for the log directory
+            log_dir = os.path.join(self.config.BASE_DIR, "web", "backend", "data", "trade_history")
             os.makedirs(log_dir, exist_ok=True)
             
             today_str = datetime.now().strftime("%Y-%m-%d")
             symbol = trade_data.get("symbol", "UNKNOWN").replace("/", "-")
             filename = os.path.join(log_dir, f"{today_str}_{symbol}.json")
 
+            # Append trade data to the file
             with open(filename, "a") as f:
                 f.write(json.dumps(trade_data) + "\n")
             self.logger.debug(f"Logged trade for {symbol} to {filename}")
@@ -199,6 +201,7 @@ class PaperTradingEngine:
         return list(self.current_analysis_state.values())
 
     def execute_trade(self, crypto_id, signal, params, prices, backtest_result=None):
+        self.logger.info(f"Executing trade for {crypto_id} with signal {signal}")
         # Check if there's an open position for this crypto
         open_position = next((p for p in self.open_positions if p['crypto_id'] == crypto_id), None)
 
@@ -206,6 +209,7 @@ class PaperTradingEngine:
             if not open_position:
                 # Check if enough capital is available
                 if self.available_capital >= self.capital_per_trade:
+                    self.logger.info(f"Opening LONG position for {crypto_id}")
                     self._open_position(crypto_id, signal, params, prices, backtest_result=backtest_result)
                 else:
                     logging.info(f"Insufficient capital to open LONG position for {crypto_id}. Capital: ${self.available_capital:.2f}")
@@ -215,6 +219,7 @@ class PaperTradingEngine:
             if not open_position:
                 # Check if enough capital is available
                 if self.available_capital >= self.capital_per_trade:
+                    self.logger.info(f"Opening SHORT position for {crypto_id}")
                     self._open_position(crypto_id, signal, params, prices, backtest_result=backtest_result)
                 else:
                     logging.info(f"Insufficient capital to open SHORT position for {crypto_id}. Capital: ${self.available_capital:.2f}")
@@ -224,6 +229,7 @@ class PaperTradingEngine:
             if open_position and open_position['signal'] == "LONG":
                 current_price = prices.get(crypto_id)
                 if current_price:
+                    self.logger.info(f"Closing LONG position for {crypto_id}")
                     self._close_position(open_position, current_price, "exit-signal")
                 else:
                     logging.warning(f"Could not fetch current price for {crypto_id} to close LONG position on exit signal.")
@@ -233,6 +239,7 @@ class PaperTradingEngine:
             if open_position and open_position['signal'] == "SHORT":
                 current_price = prices.get(crypto_id)
                 if current_price:
+                    self.logger.info(f"Closing SHORT position for {crypto_id}")
                     self._close_position(open_position, current_price, "exit-signal")
                 else:
                     logging.warning(f"Could not fetch current price for {crypto_id} to close SHORT position on exit signal.")
@@ -553,7 +560,7 @@ class PaperTradingEngine:
         if not self.open_positions:
             return
 
-        logging.info("--- Running Price Monitoring Task ---")
+        self.logger.info("--- Running Price Monitoring Task ---")
         
         if self.data_fetcher is None:
             logging.error("DataFetcher not initialized. Cannot monitor prices.")
@@ -568,12 +575,14 @@ class PaperTradingEngine:
                 logging.warning(f"Could not fetch price for {position['crypto_id']} during monitoring.")
                 continue
 
-            logging.info(f"Monitoring {position['crypto_id']}: Current Price=${current_price:.2f}, SL=${position['stop_loss_price']:.2f}")
+            self.logger.info(f"Monitoring {position['crypto_id']} ({position['signal']}): Entry Price=${position['entry_price']:.2f}, Current Price=${current_price:.2f}, SL=${position['stop_loss_price']:.2f}")
 
             stop_loss_triggered = False
             if position['signal'] == 'LONG' and current_price <= position['stop_loss_price']:
+                self.logger.info(f"Stop loss triggered for LONG position on {position['crypto_id']}")
                 stop_loss_triggered = True
             elif position['signal'] == 'SHORT' and current_price >= position['stop_loss_price']:
+                self.logger.info(f"Stop loss triggered for SHORT position on {position['crypto_id']}")
                 stop_loss_triggered = True
 
             if stop_loss_triggered:
@@ -591,7 +600,9 @@ class PaperTradingEngine:
                     elif position['signal'] == 'SHORT':
                         current_profit_percentage = ((entry_price - current_price) / entry_price) * 100
                     
+                    self.logger.info(f"Checking take profit for {position['crypto_id']}. Current profit: {current_profit_percentage:.2f}%, Target: {take_profit_percentage:.2f}%")
                     if current_profit_percentage >= take_profit_percentage:
+                        self.logger.info(f"Take profit triggered for {position['crypto_id']}")
                         self._close_position(position, current_price, "take-profit")
 
     def _close_position(self, position, exit_price, reason):
