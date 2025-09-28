@@ -1,12 +1,13 @@
 import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { HashRouter as Router, Routes, Route, Link, useNavigate } from 'react-router-dom';
-import { Box, CircularProgress, Typography, Container, Paper, Drawer, List, ListItem, ListItemButton, ListItemIcon, ListItemText, useMediaQuery } from '@mui/material';
+import { Box, CircularProgress, Typography, Container, Paper, Drawer, List, ListItem, ListItemButton, ListItemIcon, ListItemText, useMediaQuery, Snackbar, Alert } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import HomeIcon from '@mui/icons-material/Home';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import AnalyticsIcon from '@mui/icons-material/Analytics';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import ScheduleIcon from '@mui/icons-material/Schedule';
+import { io } from 'socket.io-client';
 
 // Import components that were in page.tsx
 import { LoginButton } from './components/auth/LoginButton.tsx';
@@ -35,9 +36,39 @@ function AppContent() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [selectedCryptoForBacktest, setSelectedCryptoForBacktest] = useState(null);
   const [backtestResult, setBacktestResult] = useState(null);
+  const [notification, setNotification] = useState(null);
+  const [notificationOpen, setNotificationOpen] = useState(false);
 
   useEffect(() => {
     document.title = APP_TITLE;
+
+    const socket = io(process.env.REACT_APP_API_URL || 'http://localhost:5000', {
+      transports: ['websocket', 'polling'],
+      upgrade: true,
+    });
+
+    socket.on('connect', () => {
+      console.log('Connected to Socket.IO server');
+    });
+
+    socket.on('trade_update', (data) => {
+      console.log('Trade update received:', data);
+      const { symbol, trade_type, price, pnl_usd } = data;
+      let message = `Trade: ${trade_type} ${symbol} at ${price.toFixed(4)}`;
+      if (pnl_usd !== undefined && pnl_usd !== null) {
+        message += ` PnL: ${pnl_usd.toFixed(2)}`;
+      }
+      setNotification({ message, severity: 'info' });
+      setNotificationOpen(true);
+    });
+
+    socket.on('disconnect', () => {
+      console.log('Disconnected from Socket.IO server');
+    });
+
+    return () => {
+      socket.disconnect();
+    };
   }, []);
 
   const handleDrawerToggle = () => {
@@ -195,6 +226,12 @@ function AppContent() {
           </Suspense>
         </Box>
       </Container>
+
+      <Snackbar open={notificationOpen} autoHideDuration={6000} onClose={() => setNotificationOpen(false)}>
+        <Alert onClose={() => setNotificationOpen(false)} severity={notification?.severity || 'info'} sx={{ width: '100%' }}>
+          {notification?.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }

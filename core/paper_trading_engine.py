@@ -33,7 +33,7 @@ class PaperTradingEngine:
             cls._instance._initialized = False # Use a flag to prevent re-initialization
         return cls._instance
 
-    def __init__(self, config: Config, data_fetcher: DataFetcher = None, trading_engine: TradingEngine = None):
+    def __init__(self, config: Config, data_fetcher: DataFetcher = None, trading_engine: TradingEngine = None, socketio: Any = None):
         if self._initialized:
             return
         self._initialized = True
@@ -42,6 +42,7 @@ class PaperTradingEngine:
         self.config = config
         self.logger.debug(f"PaperTradingEngine init: received data_fetcher is {type(data_fetcher)}") # Add this line
         self.data_fetcher = data_fetcher # Store data_fetcher
+        self.socketio = socketio # Store socketio
         
         # If data_fetcher is not provided, create a default one using the global coingecko_rate_limiter
         if self.data_fetcher is None:
@@ -118,6 +119,8 @@ class PaperTradingEngine:
             with open(filename, "a") as f:
                 f.write(json.dumps(trade_data) + "\n")
             self.logger.debug(f"Logged trade for {symbol} to {filename}")
+            if self.socketio:
+                self.socketio.emit('trade_update', trade_data)
         except Exception as e:
             self.logger.error(f"Error logging trade: {e}")
 

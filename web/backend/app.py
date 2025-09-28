@@ -10,11 +10,12 @@ from datetime import datetime
 import threading
 import uuid
 from flask import Flask, jsonify, request, send_from_directory, g
-from flask_cors import CORS
 from flask_restful import Api
 from dotenv import load_dotenv
 from flask_compress import Compress
 import multiprocessing # Add this
+from flask_socketio import SocketIO
+from flask_cors import CORS # Keep CORS for regular Flask routes if needed, but SocketIO handles its own
 
 # Add core module to path (Moved to top)
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
@@ -78,11 +79,28 @@ os.makedirs(os.path.dirname(db_path), exist_ok=True)
 # Initialize Flask app
 app = Flask(__name__)
 app.config['SECRET_key'] = os.getenv('SECRET_KEY', 'dev-secret-key-change-this')
-Compress(app)
+def should_compress(response):
+    if request.path.startswith('/socket.io/'):
+        return False
+    return True
+
+app.config['COMPRESS_FILTER'] = should_compress
+app.config['COMPRESS_REGISTER_BLUEPRINTS'] = True # Ensure blueprints are compressed
+app.config['COMPRESS_MIMETYPES'] = ['text/html', 'text/css', 'text/xml', 'application/json', 'application/javascript'] # Only compress these types
+app.config['COMPRESS_LEVEL'] = 6 # Compression level
+app.config['COMPRESS_MIN_SIZE'] = 500 # Minimum size to compress
+compress = Compress(app)
 
 # Enable CORS for frontend
 cors_origins = os.getenv('CORS_ORIGINS', '*').split(',')
 CORS(app, origins=cors_origins, supports_credentials=True, allow_headers=["Authorization", "Content-Type"])
+
+# Initialize Flask-SocketIO
+socketio = SocketIO(app, cors_allowed_origins=cors_origins, async_mode='threading', ping_timeout=30, ping_interval=15, message_queue=None)
+
+@socketio.on('connect')
+def test_connect():
+    logger.info("Client connected to Socket.IO")
 
 # Initialize Flask-RESTful
 api = Api(app)
@@ -171,7 +189,7 @@ def receive_log():
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
 # Register API resources with Auth0 protection
-def setup_routes_and_api(app, api, trading_engine, config, data_fetcher, paper_trading_engine):
+def setup_routes_and_api(app, api, trading_engine, config, data_fetcher, paper_trading_engine, socketio):
     api.add_resource(CryptoAPI, '/api/cryptos', '/api/cryptos/<string:crypto_id>', resource_class_kwargs={'engine': trading_engine})
     api.add_resource(CryptoStatusAPI, '/api/crypto_status/<string:crypto_id>', resource_class_kwargs={'engine': trading_engine})
     api.add_resource(AnalysisAPI, '/api/analysis', '/api/analysis/<string:analysis_id>', resource_class_kwargs={'engine': trading_engine})
@@ -188,37 +206,7 @@ def setup_routes_and_api(app, api, trading_engine, config, data_fetcher, paper_t
 
     
 
-# Serve frontend static files (for production)
-@app.route('/favicon-v2.ico')
-def favicon():
-    """Serve the favicon with the correct content type."""
-    frontend_build_dir = os.path.join(os.path.dirname(__file__), '..', 'frontend', 'build')
-    response = send_from_directory(frontend_build_dir, 'favicon-v2.ico', mimetype='image/vnd.microsoft.icon')
-    response.headers['Cache-Control'] = 'public, max-age=31536000'
-    return response
 
-@app.route('/', defaults={'path': ''})
-@app.route('/<path:path>')
-def serve_frontend(path):
-    """Serve Next.js frontend files, ignoring API routes."""
-    if path.startswith('api/'):
-        return jsonify({'code': 'not_found', 'description': 'The requested API endpoint was not found.'}), 404
-
-    frontend_build_dir = os.path.join(os.path.dirname(__file__), '..', 'frontend', 'build')
-
-    if os.path.exists(frontend_build_dir):
-        if path and os.path.exists(os.path.join(frontend_build_dir, path)):
-            response = send_from_directory(frontend_build_dir, path)
-        else:
-            response = send_from_directory(frontend_build_dir, 'index.html')
-
-        response.headers['Cache-Control'] = 'public, max-age=31536000'
-        return response
-    else:
-        return jsonify({
-            'message': 'Frontend not built. Run in development mode.',
-            'frontend_url': os.getenv('FRONTEND_URL', 'http://localhost:3000')
-        })
 
 
 def start_background_services(config: Config, data_fetcher: DataFetcher):
@@ -281,15 +269,16 @@ if __name__ == '__main__':
     trading_engine.set_scheduler(get_scheduler()) # Link the scheduler to the engine
 
     # Initialize PaperTradingEngine here
-    paper_trading_engine = PaperTradingEngine(config=config, data_fetcher=data_fetcher, trading_engine=trading_engine)
+    paper_trading_engine = PaperTradingEngine(config=config, data_fetcher=data_fetcher, trading_engine=trading_engine, socketio=socketio)
 
     # Setup API routes and resources
-    setup_routes_and_api(app, api, trading_engine, config, data_fetcher, paper_trading_engine)
+    setup_routes_and_api(app, api, trading_engine, config, data_fetcher, paper_trading_engine, socketio)
 
     start_background_services(config, data_fetcher) # Pass config and data_fetcher
     
     try:
-        app.run(
+        socketio.run(
+            app,
             host=os.getenv('API_HOST', 'localhost'),
             port=int(os.getenv('API_PORT', 5000)),
             debug=os.getenv('FLASK_DEBUG', 'True').lower() == 'true',
