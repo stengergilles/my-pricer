@@ -531,8 +531,8 @@ class PaperTradingEngine:
             logging.error(f"Could not fetch current price for {crypto_id} to open position.")
             return
 
-        # Use _place_order to simulate the buy
-        position = self._place_order(crypto_id, "BUY", signal, current_price, params=params, backtest_result=backtest_result)
+        order_type = "BUY" if signal == "LONG" else "SELL"
+        position = self._place_order(crypto_id, order_type, signal, current_price, params=params, backtest_result=backtest_result)
         if position:
             self.open_positions.append(position)
             self.available_capital -= position['size_usd'] # Deduct capital used for the position

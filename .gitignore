@@ -51,4 +51,4 @@ web/frontend/package-lock.json
 
 # Frontend environment variables
 web/frontend/.env
-web/frontend/.env.local
+web/frontend/.env.localweb/backend/data/trade_history/
