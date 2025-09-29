@@ -29,7 +29,7 @@ const ScheduleTab = lazy(() => import('./components/ScheduleTab.tsx').then(modul
 
 
 function AppContent() {
-  const { user, isLoading: auth0Loading, logout } = useAuth0();
+  const { user, isLoading: auth0Loading, logout, getAccessTokenSilently } = useAuth0();
   const navigate = useNavigate();
   const theme = useTheme(); // Re-evaluate useTheme here for desktop navigation
   const isMobile = useMediaQuery(theme.breakpoints.down('sm')); // Re-evaluate isMobile here for desktop navigation
@@ -42,34 +42,53 @@ function AppContent() {
   useEffect(() => {
     document.title = APP_TITLE;
 
-    const socket = io(process.env.REACT_APP_API_URL || 'http://localhost:5000', {
-      transports: ['websocket', 'polling'],
-      upgrade: true,
-    });
+    let socket;
 
-    socket.on('connect', () => {
-      console.log('Connected to Socket.IO server');
-    });
+    const connectSocket = async () => {
+      if (!user) return; // Only connect if user is authenticated
 
-    socket.on('trade_update', (data) => {
-      console.log('Trade update received:', data);
-      const { symbol, trade_type, price, pnl_usd } = data;
-      let message = `Trade: ${trade_type} ${symbol} at ${price.toFixed(4)}`;
-      if (pnl_usd !== undefined && pnl_usd !== null) {
-        message += ` PnL: ${pnl_usd.toFixed(2)}`;
+      try {
+        const token = await getAccessTokenSilently();
+        socket = io(process.env.REACT_APP_API_URL || 'http://localhost:5000', {
+          transports: ['websocket', 'polling'],
+          upgrade: true,
+          auth: {
+            token: token,
+          },
+        });
+
+        socket.on('connect', () => {
+          console.log('Connected to Socket.IO server');
+        });
+
+        socket.on('trade_update', (data) => {
+          console.log('Trade update received:', data);
+          const { symbol, trade_type, price, pnl_usd } = data;
+          let message = `Trade: ${trade_type} ${symbol} at ${price.toFixed(4)}`;
+          if (pnl_usd !== undefined && pnl_usd !== null) {
+            message += ` PnL: ${pnl_usd.toFixed(2)}`;
+          }
+          setNotification({ message, severity: 'info' });
+          setNotificationOpen(true);
+        });
+
+        socket.on('disconnect', () => {
+          console.log('Disconnected from Socket.IO server');
+        });
+
+      } catch (error) {
+        console.error("Error connecting to Socket.IO or getting access token:", error);
       }
-      setNotification({ message, severity: 'info' });
-      setNotificationOpen(true);
-    });
+    };
 
-    socket.on('disconnect', () => {
-      console.log('Disconnected from Socket.IO server');
-    });
+    connectSocket();
 
     return () => {
-      socket.disconnect();
+      if (socket) {
+        socket.disconnect();
+      }
     };
-  }, []);
+  }, [user, getAccessTokenSilently]);
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);

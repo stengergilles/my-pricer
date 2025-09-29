@@ -14,7 +14,7 @@ from flask_restful import Api
 from dotenv import load_dotenv
 from flask_compress import Compress
 import multiprocessing # Add this
-from flask_socketio import SocketIO
+from flask_socketio import SocketIO, disconnect
 from flask_cors import CORS # Keep CORS for regular Flask routes if needed, but SocketIO handles its own
 
 # Add core module to path (Moved to top)
@@ -34,7 +34,7 @@ from core.data_fetcher import DataFetcher
 from core.rate_limiter import get_shared_rate_limiter
 from core.trading_engine import TradingEngine
 from core.app_config import Config
-from auth.middleware import AuthError, requires_auth
+from auth.middleware import AuthError, requires_auth, get_token_auth_header, verify_decode_jwt
 from api.crypto import CryptoAPI, CryptoStatusAPI
 from api.analysis import AnalysisAPI
 from api.backtest import BacktestAPI
@@ -99,8 +99,38 @@ CORS(app, origins=cors_origins, supports_credentials=True, allow_headers=["Autho
 socketio = SocketIO(app, cors_allowed_origins=cors_origins, async_mode='threading', ping_timeout=30, ping_interval=15, message_queue=None)
 
 @socketio.on('connect')
-def test_connect():
-    logger.info("Client connected to Socket.IO")
+def connect():
+    logger.info("Client attempting to connect to Socket.IO")
+    # For Socket.IO, the token is passed in the 'auth' field of the handshake
+    # which Flask-SocketIO makes available in request.args
+    token = request.args.get('token')
+
+    if not token:
+        logger.warning("Socket.IO connection denied: No token provided.")
+        disconnect()
+        return
+
+    try:
+        # Verify the token using your existing Auth0 logic
+        # The verify_decode_jwt function expects the raw token string
+        payload = verify_decode_jwt(token)
+
+        # --- PERMISSION CHECK ---
+        required_permission = "read:trade_notifications" # Define the required permission for WebSocket
+        try:
+            check_permissions(required_permission, payload)
+        except AuthError as e:
+            logger.warning(f"Socket.IO connection denied: Insufficient permissions. Error: {e.error.get('description')}")
+            disconnect()
+            return
+        # --- END PERMISSION CHECK ---
+
+        g.current_user = payload # Store user info in Flask's global context for this request
+        logger.info(f"Client connected to Socket.IO: User {g.current_user.get('sub')} with permissions: {payload.get('permissions')}")
+    except Exception as e:
+        logger.error(f"Socket.IO connection denied: Token verification failed: {e}")
+        disconnect()
+        return
 
 # Initialize Flask-RESTful
 api = Api(app)
