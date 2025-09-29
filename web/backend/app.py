@@ -34,7 +34,7 @@ from core.data_fetcher import DataFetcher
 from core.rate_limiter import get_shared_rate_limiter
 from core.trading_engine import TradingEngine
 from core.app_config import Config
-from auth.middleware import AuthError, requires_auth, get_token_auth_header, verify_decode_jwt
+from auth.middleware import AuthError, requires_auth, get_token_auth_header, verify_decode_jwt_token
 from api.crypto import CryptoAPI, CryptoStatusAPI
 from api.analysis import AnalysisAPI
 from api.backtest import BacktestAPI
