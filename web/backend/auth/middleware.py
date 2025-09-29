@@ -19,7 +19,7 @@ ALGORITHMS = ["RS256"]
 # JWKS cache
 _jwks_cache = None
 _jwks_cache_time = 0
-JWKS_CACHE_DURATION = 3600  # 1 hour in seconds
+JWKS_CACHE_DURATION = 86400  # 24 hours in seconds
 
 def get_jwks():
     """Get JWKS with caching"""
