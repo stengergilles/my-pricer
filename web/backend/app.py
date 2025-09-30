@@ -293,7 +293,8 @@ if __name__ == '__main__':
             host=os.getenv('API_HOST', 'localhost'),
             port=int(os.getenv('API_PORT', 5000)),
             debug=os.getenv('FLASK_DEBUG', 'True').lower() == 'true',
-            use_reloader=False
+            use_reloader=False,
+            allow_unsafe_werkzeug=True
         )
     finally:
         # Ensure the rate limiter process is terminated on app shutdown
