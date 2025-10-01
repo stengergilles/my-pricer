@@ -465,7 +465,7 @@ class PaperTradingEngine:
             # Calculate ATR
             from indicators import calculate_atr
             atr_period = profitable_strategies[0].params.get('atr_period', 14)
-            atr_value = calculate_atr(df, period=atr_period).iloc[-1]
+            atr_value = calculate_atr(df, window=atr_period).iloc[-1]
 
             time.sleep(self.config.DATA_FETCH_DELAY_SECONDS)
 
