@@ -12,7 +12,7 @@ const TradeHistory = () => {
     queryFn: getPaperTradingStatus,
   });
   const theme = useTheme();
-  const isPortrait = useMediaQuery(theme.breakpoints.down('md'));
+  const isPortrait = useMediaQuery('(orientation: portrait)');
 
   if (isLoading) {
     return <CircularProgress />;
@@ -35,7 +35,7 @@ const TradeHistory = () => {
           <Paper key={index} sx={{ mb: 2, p: 2 }}>
             <ListItem>
               <ListItemText
-                primary={`${trade.crypto_id}`}
+                primary={`${trade.crypto_id} (${trade.signal})`}
                 secondary={
                   <>
                     <Typography component="span" variant="body2">Entry: {new Date(trade.entry_date).toLocaleString()}</Typography><br />
@@ -63,6 +63,7 @@ const TradeHistory = () => {
         <TableHead>
           <TableRow>
             <TableCell>Crypto</TableCell>
+            <TableCell>Position</TableCell>
             <TableCell>Entry Date</TableCell>
             <TableCell>Exit Date</TableCell>
             <TableCell>Entry Reason</TableCell>
@@ -76,6 +77,7 @@ const TradeHistory = () => {
           {tradeHistory.map((trade, index) => (
             <TableRow key={index}>
               <TableCell>{trade.crypto_id}</TableCell>
+              <TableCell>{trade.signal}</TableCell>
               <TableCell>{new Date(trade.entry_date).toLocaleString()}</TableCell>
               <TableCell>{trade.exit_date ? new Date(trade.exit_date).toLocaleString() : 'N/A'}</TableCell>
               <TableCell>{trade.entry_reason}</TableCell>
