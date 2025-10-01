@@ -203,7 +203,7 @@ class PaperTradingEngine:
         """Returns the latest analysis state for all monitored cryptos."""
         return list(self.current_analysis_state.values())
 
-    def execute_trade(self, crypto_id, signal, params, prices, backtest_result=None):
+    def execute_trade(self, crypto_id, signal, params, prices, backtest_result=None, entry_reason=None):
         self.logger.info(f"Executing trade for {crypto_id} with signal {signal}")
         # Check if there's an open position for this crypto
         open_position = next((p for p in self.open_positions if p['crypto_id'] == crypto_id), None)
@@ -213,7 +213,7 @@ class PaperTradingEngine:
                 # Check if enough capital is available
                 if self.available_capital >= self.capital_per_trade:
                     self.logger.info(f"Opening LONG position for {crypto_id}")
-                    self._open_position(crypto_id, signal, params, prices, backtest_result=backtest_result)
+                    self._open_position(crypto_id, signal, params, prices, backtest_result=backtest_result, entry_reason=entry_reason)
                 else:
                     logging.info(f"Insufficient capital to open LONG position for {crypto_id}. Capital: ${self.available_capital:.2f}")
             else:
@@ -223,7 +223,7 @@ class PaperTradingEngine:
                 # Check if enough capital is available
                 if self.available_capital >= self.capital_per_trade:
                     self.logger.info(f"Opening SHORT position for {crypto_id}")
-                    self._open_position(crypto_id, signal, params, prices, backtest_result=backtest_result)
+                    self._open_position(crypto_id, signal, params, prices, backtest_result=backtest_result, entry_reason=entry_reason)
                 else:
                     logging.info(f"Insufficient capital to open SHORT position for {crypto_id}. Capital: ${self.available_capital:.2f}")
             else:
@@ -526,16 +526,16 @@ class PaperTradingEngine:
                 # or refine this to be an average/median of params if applicable.
                 # For now, let's use the params of the first profitable strategy.
                 representative_params = profitable_strategies[0].params
-                self.execute_trade(crypto_id, signal, representative_params, prices, backtest_result=backtest_result)
+                self.execute_trade(crypto_id, signal, representative_params, prices, backtest_result=backtest_result, entry_reason=strategy_used)
 
-    def _open_position(self, crypto_id, signal, params, prices, backtest_result=None):
+    def _open_position(self, crypto_id, signal, params, prices, backtest_result=None, entry_reason=None):
         current_price = prices.get(crypto_id)
         if not current_price:
             logging.error(f"Could not fetch current price for {crypto_id} to open position.")
             return
 
         order_type = "BUY" if signal == "LONG" else "SELL"
-        position = self._place_order(crypto_id, order_type, signal, current_price, params=params, backtest_result=backtest_result)
+        position = self._place_order(crypto_id, order_type, signal, current_price, params=params, backtest_result=backtest_result, entry_reason=entry_reason)
         if position:
             self.open_positions.append(position)
             self.available_capital -= position['size_usd'] # Deduct capital used for the position
@@ -635,7 +635,7 @@ class PaperTradingEngine:
             self._log_trade(trade_data)
             self._save_trades()
 
-    def _place_order(self, crypto_id, order_type, signal, current_price, params=None, position_to_close=None, backtest_result=None):
+    def _place_order(self, crypto_id, order_type, signal, current_price, params=None, position_to_close=None, backtest_result=None, entry_reason=None):
         if order_type == "BUY": # Opening a LONG position
             if self.available_capital < self.capital_per_trade:
                 logging.warning(f"Cannot place BUY order for {crypto_id}: Insufficient capital.")
@@ -655,7 +655,8 @@ class PaperTradingEngine:
                 "size_crypto": position_size_crypto,
                 "timestamp": datetime.now().isoformat(),
                 "status": "open",
-                "backtest_profit_percentage": backtest_result.get('total_profit_percentage') if backtest_result else None
+                "backtest_profit_percentage": backtest_result.get('total_profit_percentage') if backtest_result else None,
+                "entry_reason": entry_reason
             }
             logging.info(f"Simulated BUY order for {crypto_id} at ${current_price:.2f}")
             return position
@@ -679,7 +680,8 @@ class PaperTradingEngine:
                 "size_crypto": position_size_crypto,
                 "timestamp": datetime.now().isoformat(),
                 "status": "open",
-                "backtest_profit_percentage": backtest_result.get('total_profit_percentage') if backtest_result else None
+                "backtest_profit_percentage": backtest_result.get('total_profit_percentage') if backtest_result else None,
+                "entry_reason": entry_reason
             }
             logging.info(f"Simulated SELL order for {crypto_id} at ${current_price:.2f}")
             return position
@@ -691,13 +693,22 @@ class PaperTradingEngine:
             else: # SHORT
                 pnl_usd = (position_to_close['entry_price'] - current_price) * position_to_close['size_crypto']
             
+            exit_timestamp = datetime.now().isoformat()
+            reason = signal # signal here is the reason for closing (e.g., "exit-signal", "stop-loss")
+
             closed_trade = {
                 **position_to_close,
                 "exit_price": current_price,
-                "exit_timestamp": datetime.now().isoformat(),
+                "exit_timestamp": exit_timestamp,
                 "pnl_usd": pnl_usd,
-                "reason": signal, # signal here is the reason for closing (e.g., "exit-signal", "stop-loss")
-                "status": "closed"
+                "reason": reason,
+                "status": "closed",
+
+                # Add new fields for frontend
+                "entry_date": position_to_close.get('timestamp'),
+                "exit_date": exit_timestamp,
+                "entry_reason": position_to_close.get('entry_reason', 'N/A'),
+                "exit_reason": reason
             }
             logging.info(f"Simulated CLOSE order for {crypto_id} at ${current_price:.2f}")
             return closed_trade
