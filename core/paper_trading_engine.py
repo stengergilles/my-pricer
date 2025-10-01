@@ -233,7 +233,7 @@ class PaperTradingEngine:
                 current_price = prices.get(crypto_id)
                 if current_price:
                     self.logger.info(f"Closing LONG position for {crypto_id}")
-                    self._close_position(open_position, current_price, "exit-signal")
+                    self._close_position(open_position, current_price, entry_reason)
                 else:
                     logging.warning(f"Could not fetch current price for {crypto_id} to close LONG position on exit signal.")
             else:
@@ -243,7 +243,7 @@ class PaperTradingEngine:
                 current_price = prices.get(crypto_id)
                 if current_price:
                     self.logger.info(f"Closing SHORT position for {crypto_id}")
-                    self._close_position(open_position, current_price, "exit-signal")
+                    self._close_position(open_position, current_price, entry_reason)
                 else:
                     logging.warning(f"Could not fetch current price for {crypto_id} to close SHORT position on exit signal.")
             else:
@@ -369,42 +369,43 @@ class PaperTradingEngine:
             logging.error(f"Error generating trade signal: {e}")
             return "HOLD"
 
-    def _get_aggregated_trade_signal(self, df: pd.DataFrame, profitable_strategies: List[Strategy], open_position_signal: str = None):
+    def _get_aggregated_trade_signal(self, df: pd.DataFrame, profitable_strategies: List[Strategy], open_position_signal: str = None) -> Tuple[str, List[str]]:
         if not profitable_strategies:
-            return "HOLD"
+            return "HOLD", []
 
-        buy_signals = 0
-        sell_signals = 0
-        exit_long_signals = 0
-        exit_short_signals = 0
+        buy_strategies = []
+        sell_strategies = []
+        exit_long_strategies = []
+        exit_short_strategies = []
         
         for strategy in profitable_strategies:
             signal = self._get_trade_signal_for_latest(df, strategy, open_position_signal)
+            strategy_name = strategy.config.get('name', 'N/A')
             if signal == "LONG":
-                buy_signals += 1
+                buy_strategies.append(strategy_name)
             elif signal == "SHORT":
-                sell_signals += 1
+                sell_strategies.append(strategy_name)
             elif signal == "EXIT_LONG":
-                exit_long_signals += 1
+                exit_long_strategies.append(strategy_name)
             elif signal == "EXIT_SHORT":
-                exit_short_signals += 1
+                exit_short_strategies.append(strategy_name)
         
         num_strategies = len(profitable_strategies)
         majority_threshold = num_strategies / 2
 
         # Prioritize exit signals
-        if open_position_signal == "LONG" and exit_long_signals > majority_threshold:
-            return "EXIT_LONG"
-        elif open_position_signal == "SHORT" and exit_short_signals > majority_threshold:
-            return "EXIT_SHORT"
+        if open_position_signal == "LONG" and len(exit_long_strategies) > majority_threshold:
+            return "EXIT_LONG", exit_long_strategies
+        elif open_position_signal == "SHORT" and len(exit_short_strategies) > majority_threshold:
+            return "EXIT_SHORT", exit_short_strategies
         
         # Then check entry signals
-        if buy_signals > 0: # Any profitable strategy says buy
-            return "LONG"
-        elif sell_signals > 0: # Any profitable strategy says sell
-            return "SHORT"
+        if buy_strategies: # Any profitable strategy says buy
+            return "LONG", buy_strategies
+        elif sell_strategies: # Any profitable strategy says sell
+            return "SHORT", sell_strategies
         
-        return "HOLD"
+        return "HOLD", []
 
     def analysis_task(self):
         if not self._is_trading_hours():
@@ -415,41 +416,26 @@ class PaperTradingEngine:
         self.last_analysis_run_time = datetime.now().isoformat()
         
         volatile_cryptos = self._get_volatile_cryptos()
-        logging.info(f"Found {len(volatile_cryptos)} volatile cryptos: {volatile_cryptos}")
-
-        # Convert volatile_cryptos to a set for efficient lookup
-        volatile_crypto_ids = {crypto_id for crypto_id in volatile_cryptos}
-
-        # Reconcile open positions and monitored cryptos with the latest volatile list
-        cryptos_to_remove_from_monitoring = []
-        for crypto_id in list(self.current_analysis_state.keys()): # Iterate over a copy of keys
-            if crypto_id not in volatile_crypto_ids:
-                cryptos_to_remove_from_monitoring.append(crypto_id)
-
-        for crypto_id in cryptos_to_remove_from_monitoring:
-            logging.info(f"Crypto {crypto_id} is no longer volatile. Stopping monitoring and closing positions.")
-            # Close any open positions for this crypto
-            positions_to_close = [p for p in self.open_positions if p['crypto_id'] == crypto_id]
-            if positions_to_close:
-                # Fetch current price to close position
-                prices = self.data_fetcher.get_current_prices([crypto_id]) # Use data_fetcher
-                current_price = prices.get(crypto_id)
-                if current_price:
-                    for position in positions_to_close:
-                        self._close_position(position, current_price, "no-longer-volatile")
-                else:
-                    logging.warning(f"Could not fetch current price for {crypto_id} to close position as it's no longer volatile.")
-            
-            # Remove from current analysis state
-            if crypto_id in self.current_analysis_state:
-                del self.current_analysis_state[crypto_id]
-            logging.info(f"Stopped monitoring {crypto_id}.")
-
-        # Batch fetch prices for all volatile cryptos
-        prices = self.data_fetcher.get_current_prices(volatile_cryptos) # Use data_fetcher
+        volatile_crypto_ids = set(volatile_cryptos)
+        open_position_cryptos = {p['crypto_id'] for p in self.open_positions}
         
-        for crypto_id in volatile_cryptos:
+        cryptos_to_analyze = volatile_crypto_ids | open_position_cryptos
+        
+        logging.info(f"Found {len(volatile_cryptos)} volatile cryptos: {volatile_cryptos}")
+        logging.info(f"Found {len(open_position_cryptos)} cryptos with open positions: {list(open_position_cryptos)}")
+        logging.info(f"Analyzing a total of {len(cryptos_to_analyze)} unique cryptos.")
+
+        # Batch fetch prices for all cryptos to be analyzed
+        prices = self.data_fetcher.get_current_prices(list(cryptos_to_analyze))
+        
+        for crypto_id in cryptos_to_analyze:
             open_position = next((p for p in self.open_positions if p['crypto_id'] == crypto_id), None)
+            is_volatile = crypto_id in volatile_crypto_ids
+
+            # Skip opening new positions for non-volatile cryptos
+            if not open_position and not is_volatile:
+                logging.info(f"Skipping analysis for {crypto_id} as it is not volatile and has no open position.")
+                continue
 
             # If max concurrent positions reached and no open position for this crypto, skip
             if not open_position and len(self.open_positions) >= self.max_concurrent_positions:
@@ -480,7 +466,7 @@ class PaperTradingEngine:
 
             # Get aggregated signal
             open_position_signal_type = open_position['signal'] if open_position else None
-            signal = self._get_aggregated_trade_signal(df, profitable_strategies, open_position_signal=open_position_signal_type)
+            signal, contributing_strategies = self._get_aggregated_trade_signal(df, profitable_strategies, open_position_signal=open_position_signal_type)
 
             logging.info(f"Aggregated Signal for {crypto_id}: {signal}")
 
@@ -526,7 +512,8 @@ class PaperTradingEngine:
                 # or refine this to be an average/median of params if applicable.
                 # For now, let's use the params of the first profitable strategy.
                 representative_params = profitable_strategies[0].params
-                self.execute_trade(crypto_id, signal, representative_params, prices, backtest_result=backtest_result, entry_reason=strategy_used)
+                reason = f"{signal} triggered by {', '.join(contributing_strategies)}"
+                self.execute_trade(crypto_id, signal, representative_params, prices, backtest_result=backtest_result, entry_reason=reason)
 
     def _open_position(self, crypto_id, signal, params, prices, backtest_result=None, entry_reason=None):
         current_price = prices.get(crypto_id)

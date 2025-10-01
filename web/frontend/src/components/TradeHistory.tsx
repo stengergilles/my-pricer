@@ -2,7 +2,7 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Paper, Typography, CircularProgress, Alert, useMediaQuery, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, List, ListItem, ListItemText } from '@mui/material';
-import { useTheme } from '@mui/material/styles';
+
 import { useApiClient } from '../hooks/useApiClient.ts';
 
 const TradeHistory = () => {
@@ -11,7 +11,7 @@ const TradeHistory = () => {
     queryKey: ['paperTradingStatus'],
     queryFn: getPaperTradingStatus,
   });
-  const theme = useTheme();
+  
   const isPortrait = useMediaQuery('(orientation: portrait)');
 
   if (isLoading) {
