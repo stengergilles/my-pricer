@@ -203,7 +203,7 @@ class PaperTradingEngine:
         """Returns the latest analysis state for all monitored cryptos."""
         return list(self.current_analysis_state.values())
 
-    def execute_trade(self, crypto_id, signal, params, prices, backtest_result=None, entry_reason=None):
+    def execute_trade(self, crypto_id, signal, params, prices, backtest_result=None, entry_reason=None, atr_value=None):
         self.logger.info(f"Executing trade for {crypto_id} with signal {signal}")
         # Check if there's an open position for this crypto
         open_position = next((p for p in self.open_positions if p['crypto_id'] == crypto_id), None)
@@ -213,7 +213,7 @@ class PaperTradingEngine:
                 # Check if enough capital is available
                 if self.available_capital >= self.capital_per_trade:
                     self.logger.info(f"Opening LONG position for {crypto_id}")
-                    self._open_position(crypto_id, signal, params, prices, backtest_result=backtest_result, entry_reason=entry_reason)
+                    self._open_position(crypto_id, signal, params, prices, backtest_result=backtest_result, entry_reason=entry_reason, atr_value=atr_value)
                 else:
                     logging.info(f"Insufficient capital to open LONG position for {crypto_id}. Capital: ${self.available_capital:.2f}")
             else:
@@ -223,7 +223,7 @@ class PaperTradingEngine:
                 # Check if enough capital is available
                 if self.available_capital >= self.capital_per_trade:
                     self.logger.info(f"Opening SHORT position for {crypto_id}")
-                    self._open_position(crypto_id, signal, params, prices, backtest_result=backtest_result, entry_reason=entry_reason)
+                    self._open_position(crypto_id, signal, params, prices, backtest_result=backtest_result, entry_reason=entry_reason, atr_value=atr_value)
                 else:
                     logging.info(f"Insufficient capital to open SHORT position for {crypto_id}. Capital: ${self.available_capital:.2f}")
             else:
@@ -462,6 +462,11 @@ class PaperTradingEngine:
                 logging.error(f"No data for {crypto_id}. Skipping.")
                 continue
 
+            # Calculate ATR
+            from indicators import calculate_atr
+            atr_period = profitable_strategies[0].params.get('atr_period', 14)
+            atr_value = calculate_atr(df, period=atr_period).iloc[-1]
+
             time.sleep(self.config.DATA_FETCH_DELAY_SECONDS)
 
             # Get aggregated signal
@@ -513,16 +518,16 @@ class PaperTradingEngine:
                 # For now, let's use the params of the first profitable strategy.
                 representative_params = profitable_strategies[0].params
                 reason = f"{signal} triggered by {', '.join(contributing_strategies)}"
-                self.execute_trade(crypto_id, signal, representative_params, prices, backtest_result=backtest_result, entry_reason=reason)
+                self.execute_trade(crypto_id, signal, representative_params, prices, backtest_result=backtest_result, entry_reason=reason, atr_value=atr_value)
 
-    def _open_position(self, crypto_id, signal, params, prices, backtest_result=None, entry_reason=None):
+    def _open_position(self, crypto_id, signal, params, prices, backtest_result=None, entry_reason=None, atr_value=None):
         current_price = prices.get(crypto_id)
         if not current_price:
             logging.error(f"Could not fetch current price for {crypto_id} to open position.")
             return
 
         order_type = "BUY" if signal == "LONG" else "SELL"
-        position = self._place_order(crypto_id, order_type, signal, current_price, params=params, backtest_result=backtest_result, entry_reason=entry_reason)
+        position = self._place_order(crypto_id, order_type, signal, current_price, params=params, backtest_result=backtest_result, entry_reason=entry_reason, atr_value=atr_value)
         if position:
             self.open_positions.append(position)
             self.available_capital -= position['size_usd'] # Deduct capital used for the position
@@ -566,6 +571,22 @@ class PaperTradingEngine:
                 continue
 
             self.logger.info(f"Monitoring {position['crypto_id']} ({position['signal']}): Entry Price=${position['entry_price']:.2f}, Current Price=${current_price:.2f}, SL=${position['stop_loss_price']:.2f}")
+
+            # Trailing stop loss logic
+            if position['signal'] == 'LONG':
+                if current_price > position.get('highest_price_seen', position['entry_price']):
+                    position['highest_price_seen'] = current_price
+                    new_stop_loss_price = current_price * (1 - position['trailing_stop_loss_percentage'])
+                    if new_stop_loss_price > position['stop_loss_price']:
+                        position['stop_loss_price'] = new_stop_loss_price
+                        self.logger.info(f"Updated trailing stop loss for {position['crypto_id']} to ${new_stop_loss_price:.2f}")
+            elif position['signal'] == 'SHORT':
+                if current_price < position.get('lowest_price_seen', position['entry_price']):
+                    position['lowest_price_seen'] = current_price
+                    new_stop_loss_price = current_price * (1 + position['trailing_stop_loss_percentage'])
+                    if new_stop_loss_price < position['stop_loss_price']:
+                        position['stop_loss_price'] = new_stop_loss_price
+                        self.logger.info(f"Updated trailing stop loss for {position['crypto_id']} to ${new_stop_loss_price:.2f}")
 
             stop_loss_triggered = False
             if position['signal'] == 'LONG' and current_price <= position['stop_loss_price']:
@@ -622,7 +643,7 @@ class PaperTradingEngine:
             self._log_trade(trade_data)
             self._save_trades()
 
-    def _place_order(self, crypto_id, order_type, signal, current_price, params=None, position_to_close=None, backtest_result=None, entry_reason=None):
+    def _place_order(self, crypto_id, order_type, signal, current_price, params=None, position_to_close=None, backtest_result=None, entry_reason=None, atr_value=None):
         if order_type == "BUY": # Opening a LONG position
             if self.available_capital < self.capital_per_trade:
                 logging.warning(f"Cannot place BUY order for {crypto_id}: Insufficient capital.")
@@ -630,8 +651,9 @@ class PaperTradingEngine:
             
             position_size_usd = self.capital_per_trade
             position_size_crypto = position_size_usd / current_price
-            stop_loss_percentage = params.get('fixed_stop_loss_percentage', 0.02)
-            stop_loss_price = current_price * (1 - stop_loss_percentage)
+            atr_stop_loss_multiple = params.get('atr_stop_loss_multiple', 2.0)
+            stop_loss_price = current_price - (atr_value * atr_stop_loss_multiple)
+            trailing_stop_loss_percentage = params.get('trailing_stop_loss_percentage', 0.02)
 
             position = {
                 "crypto_id": crypto_id,
@@ -643,7 +665,9 @@ class PaperTradingEngine:
                 "timestamp": datetime.now().isoformat(),
                 "status": "open",
                 "backtest_profit_percentage": backtest_result.get('total_profit_percentage') if backtest_result else None,
-                "entry_reason": entry_reason
+                "entry_reason": entry_reason,
+                "highest_price_seen": current_price,
+                "trailing_stop_loss_percentage": trailing_stop_loss_percentage
             }
             logging.info(f"Simulated BUY order for {crypto_id} at ${current_price:.2f}")
             return position
@@ -655,8 +679,9 @@ class PaperTradingEngine:
 
             position_size_usd = self.capital_per_trade
             position_size_crypto = position_size_usd / current_price
-            stop_loss_percentage = params.get('fixed_stop_loss_percentage', 0.02)
-            stop_loss_price = current_price * (1 + stop_loss_percentage)
+            atr_stop_loss_multiple = params.get('atr_stop_loss_multiple', 2.0)
+            stop_loss_price = current_price + (atr_value * atr_stop_loss_multiple)
+            trailing_stop_loss_percentage = params.get('trailing_stop_loss_percentage', 0.02)
 
             position = {
                 "crypto_id": crypto_id,
@@ -668,7 +693,9 @@ class PaperTradingEngine:
                 "timestamp": datetime.now().isoformat(),
                 "status": "open",
                 "backtest_profit_percentage": backtest_result.get('total_profit_percentage') if backtest_result else None,
-                "entry_reason": entry_reason
+                "entry_reason": entry_reason,
+                "lowest_price_seen": current_price,
+                "trailing_stop_loss_percentage": trailing_stop_loss_percentage
             }
             logging.info(f"Simulated SELL order for {crypto_id} at ${current_price:.2f}")
             return position
