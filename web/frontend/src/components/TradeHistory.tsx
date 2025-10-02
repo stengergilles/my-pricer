@@ -50,6 +50,7 @@ const TradeHistory = () => {
                       <Typography component="span" variant="body2">Exit: {trade.exit_date ? new Date(trade.exit_date).toLocaleString() : 'N/A'}</Typography><br />
                       <Typography component="span" variant="body2">Entry Reason: {trade.entry_reason}</Typography><br />
                       <Typography component="span" variant="body2">Exit Reason: {trade.exit_reason}</Typography><br />
+                      <Typography component="span" variant="body2">PnL Status: {trade.exit_pnl_status}</Typography><br />
                       <Typography component="span" variant="body2">Entry Value: ${trade.size_usd?.toFixed(2)}</Typography><br />
                       <Typography component="span" variant="body2">Exit Value: ${(trade.size_usd + trade.pnl_usd)?.toFixed(2)}</Typography><br />
                       <Typography component="span" variant="body2" color={trade.pnl_usd >= 0 ? 'success.main' : 'error.main'}>
@@ -81,6 +82,7 @@ const TradeHistory = () => {
               <TableCell>Exit Date</TableCell>
               <TableCell>Entry Reason</TableCell>
               <TableCell>Exit Reason</TableCell>
+              <TableCell>PnL Status</TableCell>
               <TableCell>Entry Value ($)</TableCell>
               <TableCell>Exit Value ($)</TableCell>
               <TableCell>PnL ($)</TableCell>
@@ -95,6 +97,7 @@ const TradeHistory = () => {
                 <TableCell>{trade.exit_date ? new Date(trade.exit_date).toLocaleString() : 'N/A'}</TableCell>
                 <TableCell>{trade.entry_reason}</TableCell>
                 <TableCell>{trade.exit_reason}</TableCell>
+                <TableCell>{trade.exit_pnl_status}</TableCell>
                 <TableCell>${trade.size_usd?.toFixed(2)}</TableCell>
                 <TableCell>${(trade.size_usd + trade.pnl_usd)?.toFixed(2)}</TableCell>
                 <TableCell>

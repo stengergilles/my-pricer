@@ -714,21 +714,28 @@ class PaperTradingEngine:
                 pnl_usd = (position_to_close['entry_price'] - current_price) * position_to_close['size_crypto']
             
             exit_timestamp = datetime.now().isoformat()
-            reason = signal # signal here is the reason for closing (e.g., "exit-signal", "stop-loss")
+            
+            exit_pnl_status = "profitable" if pnl_usd > 0 else ("unprofitable" if pnl_usd < 0 else "breakeven")
+
+            # The 'reason' variable already holds the trigger for closing (e.g., "stop-loss", "take-profit")
+            # We will use this as the exit_reason, and add exit_pnl_status for clarity.
+            # No change to 'reason' itself, as per user's request to not hide the dust.
+            reason_for_exit_trigger = signal
 
             closed_trade = {
                 **position_to_close,
                 "exit_price": current_price,
                 "exit_timestamp": exit_timestamp,
                 "pnl_usd": pnl_usd,
-                "reason": reason,
+                "reason": reason_for_exit_trigger,
                 "status": "closed",
 
                 # Add new fields for frontend
                 "entry_date": position_to_close.get('timestamp'),
                 "exit_date": exit_timestamp,
                 "entry_reason": position_to_close.get('entry_reason', 'N/A'),
-                "exit_reason": reason
+                "exit_reason": reason_for_exit_trigger,
+                "exit_pnl_status": exit_pnl_status
             }
             logging.info(f"Simulated CLOSE order for {crypto_id} at ${current_price:.2f}")
             return closed_trade
