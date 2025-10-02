@@ -460,29 +460,47 @@ class BayesianOptimizer:
         return max(valid_results, key=lambda x: x['best_value'])
     
     def _save_optimization_results(self, results: Dict[str, Any]) -> None:
-        """Save single optimization results to file."""
+        """Save single optimization results to file using a temporary file for atomic write."""
         filename = f"best_params_{results['crypto']}_{results['strategy']}.json"
         filepath = os.path.join(self.results_dir, filename)
+        temp_filepath = filepath + ".tmp"
         
         try:
-            with open(filepath, 'w') as f:
+            with open(temp_filepath, 'w') as f:
                 json.dump(results, f, indent=2)
+            os.replace(temp_filepath, filepath) # Atomic rename
             self.logger.info(f"Results saved to {filepath}")
         except OSError as e:
-            self.logger.error(f"Error saving results: {e}")
+            self.logger.error(f"Error saving results to {filepath}: {e}")
+            # Clean up temp file if rename failed
+            if os.path.exists(temp_filepath):
+                os.remove(temp_filepath)
+        except Exception as e:
+            self.logger.error(f"Unexpected error saving results to {filepath}: {e}")
+            if os.path.exists(temp_filepath):
+                os.remove(temp_filepath)
     
     def _save_batch_results(self, results: Dict[str, Any]) -> None:
-        """Save batch optimization results to file."""
+        """Save batch optimization results to file using a temporary file for atomic write."""
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         filename = f"volatile_optimization_results_{results['strategy']}_{timestamp}.json"
         filepath = os.path.join(self.results_dir, filename)
+        temp_filepath = filepath + ".tmp"
         
         try:
-            with open(filepath, 'w') as f:
+            with open(temp_filepath, 'w') as f:
                 json.dump(results, f, indent=2)
+            os.replace(temp_filepath, filepath) # Atomic rename
             self.logger.info(f"Batch results saved to {filepath}")
         except OSError as e:
-            self.logger.error(f"Error saving batch results: {e}")
+            self.logger.error(f"Error saving batch results to {filepath}: {e}")
+            # Clean up temp file if rename failed
+            if os.path.exists(temp_filepath):
+                os.remove(temp_filepath)
+        except Exception as e:
+            self.logger.error(f"Unexpected error saving batch results to {filepath}: {e}")
+            if os.path.exists(temp_filepath):
+                os.remove(temp_filepath)
     
     def load_optimization_results(self, crypto: str, strategy: str) -> Optional[Dict]:
         """Load optimization results for a specific crypto/strategy pair."""

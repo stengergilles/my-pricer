@@ -81,7 +81,7 @@ class PaperTradingAPI(Resource):
             }
             return status
         except Exception as e:
-            logging.root.error(f"Error getting paper trading status: {e}")
+            logging.root.error(f"Error getting paper trading status: {e}", exc_info=True)
             if "'Strategy' object has no attribute 'set_params'" in str(e):
                 return {'error': 'No analysis data available. Please run the optimizer.'}, 500
             return {'error': 'Failed to get paper trading status'}, 500

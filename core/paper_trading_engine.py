@@ -588,6 +588,18 @@ class PaperTradingEngine:
                         position['stop_loss_price'] = new_stop_loss_price
                         self.logger.info(f"Updated trailing stop loss for {position['crypto_id']} to ${new_stop_loss_price:.2f}")
 
+            # Take-profit logic (moved before stop-loss)
+            take_profit_price = position.get("take_profit_price")
+            if take_profit_price is not None:
+                if position['signal'] == 'LONG' and current_price >= take_profit_price:
+                    self.logger.info(f"Take profit triggered for LONG position on {position['crypto_id']}. Current Price: ${current_price:.2f}, TP: ${take_profit_price:.2f}")
+                    self._close_position(position, current_price, "take-profit")
+                    continue # Move to the next position if take-profit is hit
+                elif position['signal'] == 'SHORT' and current_price <= take_profit_price:
+                    self.logger.info(f"Take profit triggered for SHORT position on {position['crypto_id']}. Current Price: ${current_price:.2f}, TP: ${take_profit_price:.2f}")
+                    self._close_position(position, current_price, "take-profit")
+                    continue # Move to the next position if take-profit is hit
+
             stop_loss_triggered = False
             if position['signal'] == 'LONG' and current_price <= position['stop_loss_price']:
                 self.logger.info(f"Stop loss triggered for LONG position on {position['crypto_id']}")
@@ -599,22 +611,6 @@ class PaperTradingEngine:
             if stop_loss_triggered:
                 self._close_position(position, current_price, "stop-loss")
                 continue # Move to the next position
-
-            # Take-profit logic
-            take_profit_percentage = position.get("backtest_profit_percentage")
-            if take_profit_percentage is not None:
-                entry_price = position['entry_price']
-                if entry_price > 0:
-                    current_profit_percentage = 0
-                    if position['signal'] == 'LONG':
-                        current_profit_percentage = ((current_price - entry_price) / entry_price) * 100
-                    elif position['signal'] == 'SHORT':
-                        current_profit_percentage = ((entry_price - current_price) / entry_price) * 100
-                    
-                    self.logger.info(f"Checking take profit for {position['crypto_id']}. Current profit: {current_profit_percentage:.2f}%, Target: {take_profit_percentage:.2f}%")
-                    if current_profit_percentage >= take_profit_percentage:
-                        self.logger.info(f"Take profit triggered for {position['crypto_id']}")
-                        self._close_position(position, current_price, "take-profit")
 
     def _close_position(self, position, exit_price, reason):
         # Use _place_order to simulate the close
@@ -654,12 +650,16 @@ class PaperTradingEngine:
             atr_stop_loss_multiple = params.get('atr_stop_loss_multiple', 2.0)
             stop_loss_price = current_price - (atr_value * atr_stop_loss_multiple)
             trailing_stop_loss_percentage = params.get('trailing_stop_loss_percentage', 0.02)
+            take_profit_multiple = params.get('take_profit_multiple', 1.5) # Get take_profit_multiple
+            risk_amount = current_price - stop_loss_price # Calculate risk amount
+            take_profit_price = current_price + (risk_amount * take_profit_multiple) # Calculate take_profit_price
 
             position = {
                 "crypto_id": crypto_id,
                 "signal": signal,
                 "entry_price": current_price,
                 "stop_loss_price": stop_loss_price,
+                "take_profit_price": take_profit_price, # Store take_profit_price
                 "size_usd": position_size_usd,
                 "size_crypto": position_size_crypto,
                 "timestamp": datetime.now().isoformat(),
@@ -667,7 +667,8 @@ class PaperTradingEngine:
                 "backtest_profit_percentage": backtest_result.get('total_profit_percentage') if backtest_result else None,
                 "entry_reason": entry_reason,
                 "highest_price_seen": current_price,
-                "trailing_stop_loss_percentage": trailing_stop_loss_percentage
+                "trailing_stop_loss_percentage": trailing_stop_loss_percentage,
+                "take_profit_multiple": take_profit_multiple # Store take_profit_multiple
             }
             logging.info(f"Simulated BUY order for {crypto_id} at ${current_price:.2f}")
             return position
@@ -682,12 +683,16 @@ class PaperTradingEngine:
             atr_stop_loss_multiple = params.get('atr_stop_loss_multiple', 2.0)
             stop_loss_price = current_price + (atr_value * atr_stop_loss_multiple)
             trailing_stop_loss_percentage = params.get('trailing_stop_loss_percentage', 0.02)
+            take_profit_multiple = params.get('take_profit_multiple', 1.5) # Get take_profit_multiple
+            risk_amount = stop_loss_price - current_price # Calculate risk amount for SHORT
+            take_profit_price = current_price - (risk_amount * take_profit_multiple) # Calculate take_profit_price for SHORT
 
             position = {
                 "crypto_id": crypto_id,
                 "signal": signal,
                 "entry_price": current_price,
                 "stop_loss_price": stop_loss_price,
+                "take_profit_price": take_profit_price, # Store take_profit_price
                 "size_usd": position_size_usd,
                 "size_crypto": position_size_crypto,
                 "timestamp": datetime.now().isoformat(),
@@ -695,7 +700,8 @@ class PaperTradingEngine:
                 "backtest_profit_percentage": backtest_result.get('total_profit_percentage') if backtest_result else None,
                 "entry_reason": entry_reason,
                 "lowest_price_seen": current_price,
-                "trailing_stop_loss_percentage": trailing_stop_loss_percentage
+                "trailing_stop_loss_percentage": trailing_stop_loss_percentage,
+                "take_profit_multiple": take_profit_multiple # Store take_profit_multiple
             }
             logging.info(f"Simulated SELL order for {crypto_id} at ${current_price:.2f}")
             return position
