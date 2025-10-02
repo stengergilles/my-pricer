@@ -61,3 +61,13 @@ def calculate_atr(df, window=14):
     if window >= len(df):
         window = len(df) - 1
     return ta.volatility.average_true_range(high=df['high'], low=df['low'], close=df['close'], window=window)
+
+def calculate_adx(df, window=14):
+    """Calculates the Average Directional Movement Index (ADX)"""
+    adx_indicator = ta.trend.ADXIndicator(high=df['high'], low=df['low'], close=df['close'], window=window)
+    adx_df = pd.DataFrame({
+        'adx': adx_indicator.adx(),
+        'pdi': adx_indicator.adx_pos(), # +DI
+        'ndi': adx_indicator.adx_neg()  # -DI
+    })
+    return adx_df

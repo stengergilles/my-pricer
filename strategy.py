@@ -2,7 +2,7 @@ import pandas as pd
 from functools import reduce
 import operator
 import logging
-from indicators import calculate_sma, calculate_ema, calculate_rsi, calculate_macd, calculate_bbands, calculate_atr
+from indicators import calculate_sma, calculate_ema, calculate_rsi, calculate_macd, calculate_bbands, calculate_atr, calculate_adx
 from config import indicator_defaults # Added this import
 
 
@@ -39,6 +39,8 @@ def _get_required_indicators(strategy_config):
             required_indicators.add('macd')
         elif 'band' in signal_name: # For Bollinger Bands
             required_indicators.add('bbands')
+        elif 'adx' in signal_name: # For ADX
+            required_indicators.add('adx')
         # Add other indicators as needed
     return required_indicators
 
@@ -98,6 +100,14 @@ def get_trade_signal(df: pd.DataFrame, strategy_config: dict, params: dict):
         base_signals['price_breaks_lower_band'] = df_copy['low'] < bbands['bb_lband']
         base_signals['price_crosses_middle_band_from_top'] = (df_copy['close'].shift(1) > bbands['bb_mavg'].shift(1)) & (df_copy['close'] <= bbands['bb_mavg'])
         base_signals['price_crosses_middle_band_from_bottom'] = (df_copy['close'].shift(1) < bbands['bb_mavg'].shift(1)) & (df_copy['close'] >= bbands['bb_mavg'])
+    
+    # ADX
+    if 'adx' in required_indicators:
+        adx_period = params.get('adx_period', indicator_defaults.get('adx_period', 14))
+        adx_threshold = params.get('adx_threshold', indicator_defaults.get('adx_threshold', 20))
+        adx_data = calculate_adx(df_copy, window=adx_period)
+        base_signals['adx_uptrend_confirmed'] = (adx_data['pdi'].shift(1) < adx_data['ndi'].shift(1)) & (adx_data['pdi'] > adx_data['ndi']) & (adx_data['adx'] > adx_threshold)
+        base_signals['adx_downtrend_confirmed'] = (adx_data['ndi'].shift(1) < adx_data['pdi'].shift(1)) & (adx_data['ndi'] > adx_data['pdi']) & (adx_data['adx'] > adx_threshold)
 
     # Combined OR signals for new strategy (these are hardcoded and might need review based on actual strategy definitions)
     # For now, I'll keep them as is, assuming they are used by 'Combined_Trigger_Verifier'
@@ -181,9 +191,11 @@ class Strategy:
         self.indicators = indicators
         self.config = config
         self.params = {}
+        self.backtest_trend = None # Add backtest_trend attribute
 
     def set_params(self, params):
         self.params = params
 
-    def generate_signals(self, data, params):
-        return get_trade_signal(data, self.config, params)
+    def generate_signals(self, data, params, override_config=None):
+        config_to_use = override_config if override_config is not None else self.config
+        return get_trade_signal(data, config_to_use, params)

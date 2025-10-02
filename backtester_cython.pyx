@@ -67,6 +67,9 @@ def run_backtest_cython(np.ndarray[DTYPE_t, ndim=1] prices,
                         np.ndarray[UBYTE_t, ndim=1] long_exit,
                         np.ndarray[UBYTE_t, ndim=1] short_exit,
                         np.ndarray[DTYPE_t, ndim=1] atr_values,
+                        np.ndarray[DTYPE_t, ndim=1] adx,
+                        np.ndarray[DTYPE_t, ndim=1] pdi,
+                        np.ndarray[DTYPE_t, ndim=1] ndi,
                         double atr_multiple,
                         double fixed_stop_loss_percentage,
                         double take_profit_multiple,
@@ -285,7 +288,13 @@ def run_backtest_cython(np.ndarray[DTYPE_t, ndim=1] prices,
     # For now, return placeholder to unblock frontend
     cdef double sharpe_ratio = 0.0
 
-    
+    # Determine final trend state based on the last ADX values
+    cdef str backtest_trend = "NEUTRAL"
+    if n > 0:
+        if pdi[n-1] > ndi[n-1]:
+            backtest_trend = "UP"
+        else:
+            backtest_trend = "DOWN"
 
     return {
         "initial_capital": initial_capital,
@@ -302,5 +311,6 @@ def run_backtest_cython(np.ndarray[DTYPE_t, ndim=1] prices,
         "short_profit": short_profit,
         "num_long_trades": num_long_trades,
         "num_short_trades": num_short_trades,
-        "final_position": position # Add the final position
+        "final_position": position,
+        "backtest_trend": backtest_trend
     }

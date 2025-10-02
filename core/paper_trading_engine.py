@@ -13,7 +13,7 @@ from core.rate_limiter import RateLimiter, get_shared_rate_limiter
 
 from pricer_compatibility_fix import find_best_result_file
 from strategy import Strategy
-from indicators import Indicators
+from indicators import Indicators, calculate_adx
 from config import strategy_configs
 import json
 import os
@@ -341,6 +341,7 @@ class PaperTradingEngine:
                     strategy_config['name'] = strategy_name
                     strategy_instance = Strategy(indicators, strategy_config)
                     strategy_instance.set_params(params)
+                    strategy_instance.backtest_trend = backtest_result.get('backtest_trend') # Set the trend
                     profitable_strategies.append(strategy_instance)
         
         if not profitable_strategies:
@@ -350,15 +351,43 @@ class PaperTradingEngine:
 
     def _get_trade_signal_for_latest(self, df: pd.DataFrame, strategy: Strategy, open_position_signal: str = None):
         try:
-            long_entry, short_entry, long_exit, short_exit = strategy.generate_signals(df, strategy.params)
+            # 1. Determine current trend from the latest data
+            adx_data = calculate_adx(df, window=strategy.params.get('adx_period', 14))
+            current_trend = "NEUTRAL"
+            if not adx_data.empty and not adx_data['pdi'].isnull().all():
+                last_pdi = adx_data['pdi'].iloc[-1]
+                last_ndi = adx_data['ndi'].iloc[-1]
+                if last_pdi > last_ndi:
+                    current_trend = "UP"
+                else:
+                    current_trend = "DOWN"
 
-            # Prioritize exit signals
+            # 2. Get the trend from the backtest
+            backtest_trend = strategy.backtest_trend
+            self.logger.info(f"Comparing trends for {strategy.config.get('name')}: Current Trend is {current_trend}, Backtest Trend was {backtest_trend}")
+
+            config_to_use = strategy.config
+            # 3. If trends do not match, reverse the strategy
+            if backtest_trend and backtest_trend != "NEUTRAL" and current_trend != "NEUTRAL" and current_trend != backtest_trend:
+                self.logger.warning(f"Current trend ({current_trend}) mismatches backtest trend ({backtest_trend}). Reversing strategy.")
+                config_to_use = {
+                    **strategy.config,
+                    'long_entry': strategy.config['short_entry'],
+                    'short_entry': strategy.config['long_entry'],
+                    'long_exit': strategy.config['short_exit'],
+                    'short_exit': strategy.config['long_exit'],
+                }
+
+            # 4. Generate signals using the correct (normal or reversed) config
+            long_entry, short_entry, long_exit, short_exit = strategy.generate_signals(df, strategy.params, override_config=config_to_use)
+
+            # 5. Prioritize exit signals
             if open_position_signal == "LONG" and not long_exit.empty and long_exit.iloc[-1]:
                 return "EXIT_LONG"
             elif open_position_signal == "SHORT" and not short_exit.empty and short_exit.iloc[-1]:
                 return "EXIT_SHORT"
 
-            # Then check entry signals
+            # 6. Then check entry signals
             if not long_entry.empty and long_entry.iloc[-1]:
                 return "LONG"
             elif not short_entry.empty and short_entry.iloc[-1]:
@@ -366,7 +395,7 @@ class PaperTradingEngine:
             else:
                 return "HOLD"
         except Exception as e:
-            logging.error(f"Error generating trade signal: {e}")
+            self.logger.error(f"Error generating trade signal: {e}", exc_info=True)
             return "HOLD"
 
     def _get_aggregated_trade_signal(self, df: pd.DataFrame, profitable_strategies: List[Strategy], open_position_signal: str = None) -> Tuple[str, List[str]]:

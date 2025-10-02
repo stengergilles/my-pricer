@@ -12,7 +12,7 @@ import random
 import sys
 from config import strategy_configs, param_sets, DEFAULT_TIMEFRAME, DEFAULT_INTERVAL, DEFAULT_SPREAD_PERCENTAGE, DEFAULT_SLIPPAGE_PERCENTAGE, indicator_defaults
 
-from indicators import Indicators, calculate_atr
+from indicators import Indicators, calculate_atr, calculate_adx
 from strategy import Strategy
 from core.data_fetcher import DataFetcher
 from core.rate_limiter import RateLimiter, get_shared_rate_limiter
@@ -77,6 +77,12 @@ class Backtester:
 
         atr_values = calculate_atr(self.data, params.get('atr_period', indicator_defaults['atr_period'])).to_numpy(dtype=np.float64)
 
+        # Calculate ADX
+        adx_data = calculate_adx(self.data, window=params.get('adx_period', 14)) # Assuming adx_period can be a parameter
+        adx = adx_data['adx'].to_numpy(dtype=np.float64)
+        pdi = adx_data['pdi'].to_numpy(dtype=np.float64)
+        ndi = adx_data['ndi'].to_numpy(dtype=np.float64)
+
         atr_multiple = params.get('atr_multiple', indicator_defaults['atr_multiple'])
         fixed_stop_loss_percentage = params.get('fixed_stop_loss_percentage', indicator_defaults['fixed_stop_loss_percentage'])
         take_profit_multiple = params.get('take_profit_multiple', indicator_defaults['take_profit_multiple'])
@@ -95,6 +101,9 @@ class Backtester:
             long_exit,
             short_exit,
             atr_values,
+            adx,
+            pdi,
+            ndi,
             atr_multiple,
             fixed_stop_loss_percentage,
             take_profit_multiple,
