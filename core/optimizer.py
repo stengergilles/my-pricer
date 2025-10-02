@@ -428,13 +428,13 @@ class BayesianOptimizer:
             )
             
             if backtest_result and backtest_result.get('success'):
-                profit_percentage = backtest_result.get('total_profit_percentage', -100.0)
+                final_capital = backtest_result.get('final_capital', 0.0)
                 
                 # Store the full backtest result in the trial's user attributes
                 trial.set_user_attr("backtest_result", backtest_result)
                 
-                self.logger.info(f"Trial {trial.number} completed. Profit: {profit_percentage}%")
-                return profit_percentage
+                self.logger.info(f"Trial {trial.number} completed. Final Capital: {final_capital:.2f}")
+                return final_capital
             else:
                 error_message = backtest_result.get('error', 'Unknown error') if backtest_result else 'No result'
                 self.logger.warning(f"Backtest failed for trial {trial.number}: {error_message}")

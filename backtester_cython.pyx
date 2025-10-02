@@ -288,6 +288,7 @@ def run_backtest_cython(np.ndarray[DTYPE_t, ndim=1] prices,
     
 
     return {
+        "initial_capital": initial_capital,
         "final_capital": current_capital,
         "total_profit_loss": total_profit_loss,
         "total_profit_percentage": total_profit_percentage,

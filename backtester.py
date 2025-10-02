@@ -352,13 +352,13 @@ if __name__ == "__main__":
             results_list = list(tqdm(pool.imap(run_backtest_with_data_fetch, param_grid), total=len(param_grid)))
 
         # Find and display best results
-        best_profit = -float('inf')
+        best_capital = -float('inf')
         best_params = None
         best_results = None
 
         for i, results in enumerate(results_list):
-            if results and results['total_profit_loss'] > best_profit:
-                best_profit = results['total_profit_loss']
+            if results and results['final_capital'] > best_capital:
+                best_capital = results['final_capital']
                 best_params = param_grid[i]
                 best_results = results
 
