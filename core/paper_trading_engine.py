@@ -749,7 +749,7 @@ class PaperTradingEngine:
             # The 'reason' variable already holds the trigger for closing (e.g., "stop-loss", "take-profit")
             # We will use this as the exit_reason, and add exit_pnl_status for clarity.
             # No change to 'reason' itself, as per user's request to not hide the dust.
-            reason_for_exit_trigger = signal
+            reason_for_exit_trigger = reason
 
             closed_trade = {
                 **position_to_close,
