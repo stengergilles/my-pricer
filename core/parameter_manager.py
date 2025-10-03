@@ -13,7 +13,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 try:
-    from config import strategy_configs, indicator_defaults
+    from config import strategy_configs, indicator_defaults, param_sets
 except ImportError:
     strategy_configs = {}
     indicator_defaults = {}
@@ -33,89 +33,46 @@ class ParameterManager:
     Handles parameter definitions, validation, and Optuna suggestions.
     """
     
-    def __init__(self):
+    def __init__(self, param_set_name: str = 'small'):
         self.max_data_points = 300  # Conservative estimate for 7 days of 30min data
+        self.param_set_name = param_set_name
         self._parameter_ranges = self._define_parameter_ranges()
     
     def _define_parameter_ranges(self) -> Dict[str, Dict[str, ParameterRange]]:
-        """Define parameter ranges for all strategies."""
-        return {
-            'EMA_Only': {
-                'short_ema_period': ParameterRange(5, 30, 'int', description="Fast EMA period"),
-                'long_ema_period': ParameterRange(20, min(100, self.max_data_points // 3), 'int', 
-                                                description="Slow EMA period (must be > short_ema_period)"),
-                'rsi_oversold': ParameterRange(5, 35, 'int', description="RSI oversold threshold"),
-                'rsi_overbought': ParameterRange(65, 95, 'int', description="RSI overbought threshold"),
-                'atr_period': ParameterRange(5, min(30, self.max_data_points // 10), 'int', description="ATR calculation period"),
-                'atr_multiple': ParameterRange(1.0, 5.0, 'float', description="ATR multiplier for stops"),
-                'fixed_stop_loss_percentage': ParameterRange(0.005, 0.05, 'float', description="Fixed stop loss %"),
-                'take_profit_multiple': ParameterRange(1.5, 5.0, 'float', description="Take profit multiplier"),
-                'macd_fast_period': ParameterRange(5, 25, 'int', description="MACD fast period"),
-                'macd_slow_period': ParameterRange(20, min(50, self.max_data_points // 6), 'int', 
-                                                 description="MACD slow period"),
-                'macd_signal_period': ParameterRange(5, 20, 'int', description="MACD signal period"),
-            },
-            'Strict': {
-                'short_sma_period': ParameterRange(5, 50, 'int', description="Short SMA period"),
-                'long_sma_period': ParameterRange(51, min(200, self.max_data_points // 2), 'int', 
-                                                description="Long SMA period"),
-                'short_ema_period': ParameterRange(5, 30, 'int', description="Short EMA period"),
-                'long_ema_period': ParameterRange(31, min(100, self.max_data_points // 3), 'int', 
-                                                description="Long EMA period"),
-                'rsi_oversold': ParameterRange(5, 35, 'int', description="RSI oversold threshold"),
-                'rsi_overbought': ParameterRange(65, 95, 'int', description="RSI overbought threshold"),
-                'atr_period': ParameterRange(5, min(30, self.max_data_points // 10), 'int', description="ATR period"),
-                'atr_multiple': ParameterRange(1.0, 5.0, 'float', description="ATR multiplier"),
-                'fixed_stop_loss_percentage': ParameterRange(0.005, 0.05, 'float', description="Fixed stop loss %"),
-                'take_profit_multiple': ParameterRange(1.5, 5.0, 'float', description="Take profit multiplier"),
-                'macd_fast_period': ParameterRange(5, 25, 'int', description="MACD fast period"),
-                'macd_slow_period': ParameterRange(26, min(50, self.max_data_points // 6), 'int', 
-                                                 description="MACD slow period"),
-                'macd_signal_period': ParameterRange(5, 20, 'int', description="MACD signal period"),
-            },
-            'BB_Breakout': {
-                'bb_period': ParameterRange(10, min(50, self.max_data_points // 6), 'int', description="Bollinger Band period"),
-                'bb_std_dev': ParameterRange(1.5, 3.0, 'float', description="Bollinger Band standard deviation"),
-                'rsi_oversold': ParameterRange(5, 35, 'int', description="RSI oversold threshold"),
-                'rsi_overbought': ParameterRange(65, 95, 'int', description="RSI overbought threshold"),
-                'atr_period': ParameterRange(5, min(30, self.max_data_points // 10), 'int', description="ATR period"),
-                'atr_multiple': ParameterRange(1.0, 5.0, 'float', description="ATR multiplier"),
-                'fixed_stop_loss_percentage': ParameterRange(0.005, 0.05, 'float', description="Fixed stop loss %"),
-                'take_profit_multiple': ParameterRange(1.5, 5.0, 'float', description="Take profit multiplier"),
-            },
-            'BB_RSI': {
-                'bb_period': ParameterRange(10, min(50, self.max_data_points // 6), 'int', description="Bollinger Band period"),
-                'bb_std_dev': ParameterRange(1.5, 3.0, 'float', description="Bollinger Band standard deviation"),
-                'rsi_period': ParameterRange(5, min(30, self.max_data_points // 10), 'int', description="RSI period"),
-                'rsi_oversold': ParameterRange(5, 35, 'int', description="RSI oversold threshold"),
-                'rsi_overbought': ParameterRange(65, 95, 'int', description="RSI overbought threshold"),
-                'atr_period': ParameterRange(5, min(30, self.max_data_points // 10), 'int', description="ATR period"),
-                'atr_multiple': ParameterRange(1.0, 5.0, 'float', description="ATR multiplier"),
-                'fixed_stop_loss_percentage': ParameterRange(0.005, 0.05, 'float', description="Fixed stop loss %"),
-                'take_profit_multiple': ParameterRange(1.5, 5.0, 'float', description="Take profit multiplier"),
-            },
-            'Combined_Trigger_Verifier': {
-                'short_sma_period': ParameterRange(5, 50, 'int', description="Short SMA period"),
-                'long_sma_period': ParameterRange(51, min(200, self.max_data_points // 2), 'int',
-                                                description="Long SMA period"),
-                'short_ema_period': ParameterRange(5, 30, 'int', description="Short EMA period"),
-                'long_ema_period': ParameterRange(31, min(100, self.max_data_points // 3), 'int',
-                                                description="Long EMA period"),
-                'bb_period': ParameterRange(10, min(50, self.max_data_points // 6), 'int', description="Bollinger Band period"),
-                'bb_std_dev': ParameterRange(1.5, 3.0, 'float', description="Bollinger Band standard deviation"),
-                'rsi_period': ParameterRange(5, min(30, self.max_data_points // 10), 'int', description="RSI period"),
-                'rsi_oversold': ParameterRange(5, 35, 'int', description="RSI oversold threshold"),
-                'rsi_overbought': ParameterRange(65, 95, 'int', description="RSI overbought threshold"),
-                'atr_period': ParameterRange(5, min(30, self.max_data_points // 10), 'int', description="ATR period"),
-                'atr_multiple': ParameterRange(1.0, 5.0, 'float', description="ATR multiplier"),
-                'fixed_stop_loss_percentage': ParameterRange(0.005, 0.05, 'float', description="Fixed stop loss %"),
-                'take_profit_multiple': ParameterRange(1.5, 5.0, 'float', description="Take profit multiplier"),
-                'macd_fast_period': ParameterRange(5, 25, 'int', description="MACD fast period"),
-                'macd_slow_period': ParameterRange(26, min(50, self.max_data_points // 6), 'int',
-                                                 description="MACD slow period"),
-                'macd_signal_period': ParameterRange(5, 20, 'int', description="MACD signal period"),
-            }
-        }
+        """Define parameter ranges for all strategies based on the selected parameter set."""
+        
+        # Load the specified parameter set from config.py
+        selected_param_set = param_sets['default_sets'].get(self.param_set_name)
+        if not selected_param_set:
+            raise ValueError(f"Parameter set '{self.param_set_name}' not found in config.py")
+
+        # Initialize a dictionary to hold the strategy-specific parameter ranges
+        strategy_param_ranges = {}
+
+        # Iterate through each strategy defined in strategy_configs
+        for strategy_name in strategy_configs.keys():
+            # Determine which parameter set to use for the current strategy
+            # Prioritize strategy-specific sets, then default_sets, then the selected param_set_name
+            current_strategy_param_set = param_sets.get(strategy_name, {})
+            
+            if not current_strategy_param_set:
+                current_strategy_param_set = param_sets['default_sets'].get(self.param_set_name)
+            
+            if not current_strategy_param_set:
+                raise ValueError(f"No parameter set found for strategy '{strategy_name}' or default set '{self.param_set_name}'")
+
+            strategy_param_ranges[strategy_name] = {}
+            # Apply the ranges from the current_strategy_param_set to the strategy's parameters
+            for param_name_with_range, (min_val, max_val, step) in current_strategy_param_set.items():
+                # Remove "_range" suffix from parameter name
+                clean_param_name = param_name_with_range.replace('_range', '')
+                # Determine param_type based on whether min_val/max_val are integers or floats
+                param_type = 'int' if isinstance(min_val, int) and isinstance(max_val, int) else 'float'
+                strategy_param_ranges[strategy_name][clean_param_name] = ParameterRange(min_val, max_val, param_type)
+        
+        return strategy_param_ranges
+
+        
     
     def get_strategy_parameters(self, strategy_name: str) -> Dict[str, ParameterRange]:
         """Get parameter definitions for a strategy."""

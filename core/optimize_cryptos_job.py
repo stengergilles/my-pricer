@@ -34,7 +34,7 @@ def run_optimize_cryptos_job(
     data_fetcher = pte.data_fetcher
 
     optimizer = BayesianOptimizer(results_dir=config.RESULTS_DIR, logger=logger, data_fetcher=data_fetcher)
-    param_manager = ParameterManager()
+    param_manager = ParameterManager(param_set_name='small')
     available_strategies = param_manager.get_available_strategies()
 
     if not available_strategies:

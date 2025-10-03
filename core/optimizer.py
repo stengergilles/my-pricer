@@ -81,7 +81,7 @@ class BayesianOptimizer:
         
         # Initialize components
         self.config = Config()
-        self.param_manager = ParameterManager()
+        self.param_manager = ParameterManager(param_set_name='small')
         self.crypto_discovery = CryptoDiscovery(results_dir, data_fetcher=self.data_fetcher)
         self.result_manager = ResultManager(self.config)
         self.backtester_wrapper = BacktesterWrapper(self.config, data_fetcher=self.data_fetcher) # Initialize BacktesterWrapper

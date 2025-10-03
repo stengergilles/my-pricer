@@ -33,7 +33,10 @@ class Backtester:
         self.initial_capital = 100.0
         if data_fetcher is None:
             # Instantiate its own DataFetcher if not provided
-            self.data_fetcher = DataFetcher(get_shared_rate_limiter())
+            # Need to provide a response_queue and config for DataFetcher
+            # Assuming a multiprocessing.Queue for response_queue in this context
+            import multiprocessing
+            self.data_fetcher = DataFetcher(multiprocessing.Queue(), self.config)
         else:
             self.data_fetcher = data_fetcher
         self.data = None # Data will be fetched later

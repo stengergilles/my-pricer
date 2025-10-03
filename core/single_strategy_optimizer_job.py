@@ -27,7 +27,7 @@ def run_single_strategy_optimization_job(
 
     config = Config()
     optimizer = BayesianOptimizer(results_dir=config.RESULTS_DIR, logger=logger)
-    param_manager = ParameterManager()
+    param_manager = ParameterManager(param_set_name='small')
 
     if strategy_name not in param_manager.get_available_strategies():
         error_message = f"Strategy '{strategy_name}' not found among available strategies."

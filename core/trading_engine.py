@@ -45,7 +45,7 @@ class TradingEngine:
         self.data_manager = DataManager(self.config.CACHE_DIR)
         
         # Initialize unified components
-        self.param_manager = ParameterManager()
+        self.param_manager = ParameterManager(param_set_name='small')
         self.logger.debug(f"TradingEngine init: Passing data_fetcher ({type(self.data_fetcher)}) to CryptoDiscovery")
         self.crypto_discovery = CryptoDiscovery(self.config.RESULTS_DIR, data_fetcher=self.data_fetcher)
         self.optimizer = BayesianOptimizer(self.config.RESULTS_DIR, data_fetcher=self.data_fetcher) # Pass data_fetcher to optimizer
