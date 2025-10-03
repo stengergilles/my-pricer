@@ -153,7 +153,7 @@ class PaperTradingEngine:
                     has_optimization_file_for_crypto = True
                     optimization_result = self.trading_engine.get_optimization_results(crypto_id, strategy_name)
                     if optimization_result and optimization_result.get('best_params'):
-                        profit = optimization_result.get('backtest_result', {}).get('total_profit_percentage', 0)
+                        profit = (optimization_result.get('backtest_result') or {}).get('total_profit_percentage', 0)
                         if profit > 0:
                             has_profitable_strategy_for_crypto = True
                             break # Found a profitable strategy for this crypto, move to next crypto
@@ -605,20 +605,38 @@ class PaperTradingEngine:
             if position['signal'] == 'LONG':
                 if current_price > position.get('highest_price_seen', position['entry_price']):
                     position['highest_price_seen'] = current_price
-                    new_stop_loss_price = current_price * (1 - position['trailing_stop_loss_percentage'])
-                    if new_stop_loss_price > position['stop_loss_price']:
-                        position['stop_loss_price'] = new_stop_loss_price
-                        self.logger.info(f"Updated trailing stop loss for {position['crypto_id']} to ${new_stop_loss_price:.2f}")
+                    atr_value = position.get('atr_value')
+                    atr_multiple = position.get('atr_stop_loss_multiple')
+                    if atr_value and atr_multiple:
+                        new_stop_loss_price = current_price - (atr_value * atr_multiple)
+                        if new_stop_loss_price > position['stop_loss_price']:
+                            position['stop_loss_price'] = new_stop_loss_price
+                            self.logger.info(f"Updated ATR-based trailing stop loss for {position['crypto_id']} to ${new_stop_loss_price:.2f}")
+                    else: # Fallback to percentage if ATR values are not available
+                        new_stop_loss_price = current_price * (1 - position['trailing_stop_loss_percentage'])
+                        if new_stop_loss_price > position['stop_loss_price']:
+                            position['stop_loss_price'] = new_stop_loss_price
+                            self.logger.info(f"Updated percentage-based trailing stop loss for {position['crypto_id']} to ${new_stop_loss_price:.2f}")
+
             elif position['signal'] == 'SHORT':
                 if current_price < position.get('lowest_price_seen', position['entry_price']):
                     position['lowest_price_seen'] = current_price
-                    new_stop_loss_price = current_price * (1 + position['trailing_stop_loss_percentage'])
-                    if new_stop_loss_price < position['stop_loss_price']:
-                        position['stop_loss_price'] = new_stop_loss_price
-                        self.logger.info(f"Updated trailing stop loss for {position['crypto_id']} to ${new_stop_loss_price:.2f}")
+                    atr_value = position.get('atr_value')
+                    atr_multiple = position.get('atr_stop_loss_multiple')
+                    if atr_value and atr_multiple:
+                        new_stop_loss_price = current_price + (atr_value * atr_multiple)
+                        if new_stop_loss_price < position['stop_loss_price']:
+                            position['stop_loss_price'] = new_stop_loss_price
+                            self.logger.info(f"Updated ATR-based trailing stop loss for {position['crypto_id']} to ${new_stop_loss_price:.2f}")
+                    else: # Fallback to percentage if ATR values are not available
+                        new_stop_loss_price = current_price * (1 + position['trailing_stop_loss_percentage'])
+                        if new_stop_loss_price < position['stop_loss_price']:
+                            position['stop_loss_price'] = new_stop_loss_price
+                            self.logger.info(f"Updated percentage-based trailing stop loss for {position['crypto_id']} to ${new_stop_loss_price:.2f}")
 
             # Take-profit logic (moved before stop-loss)
             take_profit_price = position.get("take_profit_price")
+            self.logger.info(f"TP Check for {position['crypto_id']}: Current Price=${current_price:.2f}, Take Profit Price=${take_profit_price}, Signal={position['signal']}")
             if take_profit_price is not None:
                 if position['signal'] == 'LONG' and current_price >= take_profit_price:
                     self.logger.info(f"Take profit triggered for LONG position on {position['crypto_id']}. Current Price: ${current_price:.2f}, TP: ${take_profit_price:.2f}")
@@ -697,7 +715,9 @@ class PaperTradingEngine:
                 "entry_reason": entry_reason,
                 "highest_price_seen": current_price,
                 "trailing_stop_loss_percentage": trailing_stop_loss_percentage,
-                "take_profit_multiple": take_profit_multiple # Store take_profit_multiple
+                "take_profit_multiple": take_profit_multiple, # Store take_profit_multiple
+                "atr_value": atr_value,
+                "atr_stop_loss_multiple": atr_stop_loss_multiple
             }
             logging.info(f"Simulated BUY order for {crypto_id} at ${current_price:.2f}")
             return position
@@ -730,7 +750,9 @@ class PaperTradingEngine:
                 "entry_reason": entry_reason,
                 "lowest_price_seen": current_price,
                 "trailing_stop_loss_percentage": trailing_stop_loss_percentage,
-                "take_profit_multiple": take_profit_multiple # Store take_profit_multiple
+                "take_profit_multiple": take_profit_multiple, # Store take_profit_multiple
+                "atr_value": atr_value,
+                "atr_stop_loss_multiple": atr_stop_loss_multiple
             }
             logging.info(f"Simulated SELL order for {crypto_id} at ${current_price:.2f}")
             return position
@@ -749,7 +771,7 @@ class PaperTradingEngine:
             # The 'reason' variable already holds the trigger for closing (e.g., "stop-loss", "take-profit")
             # We will use this as the exit_reason, and add exit_pnl_status for clarity.
             # No change to 'reason' itself, as per user's request to not hide the dust.
-            reason_for_exit_trigger = reason
+            reason_for_exit_trigger = signal
 
             closed_trade = {
                 **position_to_close,
