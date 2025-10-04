@@ -192,6 +192,7 @@ class Strategy:
         self.config = config
         self.params = {}
         self.backtest_trend = None # Add backtest_trend attribute
+        self.profit = 0.0 # Add profit attribute
 
     def set_params(self, params):
         self.params = params

@@ -288,7 +288,7 @@ class PaperTradingEngine:
 
     
 
-    def _get_profitable_strategies_for_crypto(self, crypto_id: str) -> List[Strategy]:
+    def _get_best_profitable_strategy(self, crypto_id: str) -> Optional[Strategy]:
         profitable_strategies = []
         available_strategies = self.trading_engine.get_strategies()
         result_manager = ResultManager(self.config)
@@ -299,12 +299,11 @@ class PaperTradingEngine:
                 timestamp_str = result_dict['backtest_result'].get('timestamp')
             if timestamp_str:
                 return datetime.fromisoformat(timestamp_str)
-            return datetime.min # Return a very old date if no timestamp is found
+            return datetime.min
 
         for strategy_info in available_strategies:
             strategy_name = strategy_info['name']
             
-            # Use the ResultManager to get the most recent backtest, whether from optimization or manual run
             backtest_history = result_manager.get_backtest_history(crypto_id, strategy_name, limit=1)
             optimization_history = result_manager.get_optimization_history(crypto_id, strategy_name, limit=1)
 
@@ -321,33 +320,36 @@ class PaperTradingEngine:
 
             if latest_result:
                 backtest_result = latest_result.get('backtest_result', latest_result)
-                if backtest_result: # Add this check
-                    profit = backtest_result.get('total_profit_percentage', 0)
-                else:
-                    profit = 0 # Default profit if backtest_result is None
+                profit = backtest_result.get('total_profit_percentage', 0) if backtest_result else 0
 
                 min_profit_threshold = (self.config.PAPER_TRADING_SPREAD_PERCENTAGE + self.config.PAPER_TRADING_SLIPPAGE_PERCENTAGE) * 100 + self.config.PAPER_TRADING_MIN_PROFIT_BUFFER
                 if profit > min_profit_threshold:
-                    # In optimization results, parameters are at the top level
                     params = latest_result.get('best_params') or backtest_result.get('parameters')
-
                     if not params:
                         logging.warning(f"No parameters found for profitable strategy {strategy_name} for {crypto_id}. Skipping.")
                         continue
 
-                    logging.info(f"Found profitable strategy for {crypto_id}: {strategy_name} with profit {profit:.2f}%")
                     strategy_config = strategy_configs[strategy_name]
                     indicators = Indicators()
                     strategy_config['name'] = strategy_name
                     strategy_instance = Strategy(indicators, strategy_config)
                     strategy_instance.set_params(params)
-                    strategy_instance.backtest_trend = backtest_result.get('backtest_trend') # Set the trend
+                    strategy_instance.backtest_trend = backtest_result.get('backtest_trend')
+                    strategy_instance.profit = profit # Store profit for sorting
                     profitable_strategies.append(strategy_instance)
         
         if not profitable_strategies:
             logging.warning(f"No profitable strategies found for {crypto_id}.")
+            return None
 
-        return profitable_strategies
+        # Sort by profit and return the best one
+        best_strategy = sorted(profitable_strategies, key=lambda s: s.profit, reverse=True)[0]
+        logging.info(f"Best profitable strategy for {crypto_id}: {best_strategy.config['name']} with profit {best_strategy.profit:.2f}%")
+        return best_strategy
+
+    def _get_trade_signal(self, df: pd.DataFrame, strategy: Strategy, open_position_signal: str = None) -> Tuple[str, List[str]]:
+        signal = self._get_trade_signal_for_latest(df, strategy, open_position_signal)
+        return signal, [strategy.config.get('name', 'N/A')] if signal != "HOLD" else []
 
     def _get_trade_signal_for_latest(self, df: pd.DataFrame, strategy: Strategy, open_position_signal: str = None):
         try:
@@ -362,79 +364,29 @@ class PaperTradingEngine:
                 else:
                     current_trend = "DOWN"
 
-            # 2. Get the trend from the backtest
-            backtest_trend = strategy.backtest_trend
-            self.logger.info(f"Comparing trends for {strategy.config.get('name')}: Current Trend is {current_trend}, Backtest Trend was {backtest_trend}")
+            self.logger.info(f"Current trend for {strategy.config.get('name')}: {current_trend}")
 
-            config_to_use = strategy.config
-            # 3. If trends do not match, reverse the strategy
-            if backtest_trend and backtest_trend != "NEUTRAL" and current_trend != "NEUTRAL" and current_trend != backtest_trend:
-                self.logger.warning(f"Current trend ({current_trend}) mismatches backtest trend ({backtest_trend}). Reversing strategy.")
-                config_to_use = {
-                    **strategy.config,
-                    'long_entry': strategy.config['short_entry'],
-                    'short_entry': strategy.config['long_entry'],
-                    'long_exit': strategy.config['short_exit'],
-                    'short_exit': strategy.config['long_exit'],
-                }
+            # 2. Generate signals from the strategy
+            long_entry, short_entry, long_exit, short_exit = strategy.generate_signals(df, strategy.params)
 
-            # 4. Generate signals using the correct (normal or reversed) config
-            long_entry, short_entry, long_exit, short_exit = strategy.generate_signals(df, strategy.params, override_config=config_to_use)
-
-            # 5. Prioritize exit signals
+            # 3. Prioritize exit signals
             if open_position_signal == "LONG" and not long_exit.empty and long_exit.iloc[-1]:
                 return "EXIT_LONG"
             elif open_position_signal == "SHORT" and not short_exit.empty and short_exit.iloc[-1]:
                 return "EXIT_SHORT"
 
-            # 6. Then check entry signals
-            if not long_entry.empty and long_entry.iloc[-1]:
-                return "LONG"
-            elif not short_entry.empty and short_entry.iloc[-1]:
-                return "SHORT"
-            else:
-                return "HOLD"
+            # 4. Then check entry signals based on trend
+            if current_trend == "UP":
+                if not long_entry.empty and long_entry.iloc[-1]:
+                    return "LONG"
+            elif current_trend == "DOWN":
+                if not short_entry.empty and short_entry.iloc[-1]:
+                    return "SHORT"
+            
+            return "HOLD"
         except Exception as e:
             self.logger.error(f"Error generating trade signal: {e}", exc_info=True)
             return "HOLD"
-
-    def _get_aggregated_trade_signal(self, df: pd.DataFrame, profitable_strategies: List[Strategy], open_position_signal: str = None) -> Tuple[str, List[str]]:
-        if not profitable_strategies:
-            return "HOLD", []
-
-        buy_strategies = []
-        sell_strategies = []
-        exit_long_strategies = []
-        exit_short_strategies = []
-        
-        for strategy in profitable_strategies:
-            signal = self._get_trade_signal_for_latest(df, strategy, open_position_signal)
-            strategy_name = strategy.config.get('name', 'N/A')
-            if signal == "LONG":
-                buy_strategies.append(strategy_name)
-            elif signal == "SHORT":
-                sell_strategies.append(strategy_name)
-            elif signal == "EXIT_LONG":
-                exit_long_strategies.append(strategy_name)
-            elif signal == "EXIT_SHORT":
-                exit_short_strategies.append(strategy_name)
-        
-        num_strategies = len(profitable_strategies)
-        majority_threshold = num_strategies / 2
-
-        # Prioritize exit signals
-        if open_position_signal == "LONG" and len(exit_long_strategies) > majority_threshold:
-            return "EXIT_LONG", exit_long_strategies
-        elif open_position_signal == "SHORT" and len(exit_short_strategies) > majority_threshold:
-            return "EXIT_SHORT", exit_short_strategies
-        
-        # Then check entry signals
-        if buy_strategies: # Any profitable strategy says buy
-            return "LONG", buy_strategies
-        elif sell_strategies: # Any profitable strategy says sell
-            return "SHORT", sell_strategies
-        
-        return "HOLD", []
 
     def analysis_task(self):
         if not self._is_trading_hours():
@@ -454,36 +406,29 @@ class PaperTradingEngine:
         logging.info(f"Found {len(open_position_cryptos)} cryptos with open positions: {list(open_position_cryptos)}")
         logging.info(f"Analyzing a total of {len(cryptos_to_analyze)} unique cryptos.")
 
-        # Batch fetch prices for all cryptos to be analyzed
         prices = self.data_fetcher.get_current_prices(list(cryptos_to_analyze))
         
         for crypto_id in cryptos_to_analyze:
             open_position = next((p for p in self.open_positions if p['crypto_id'] == crypto_id), None)
             is_volatile = crypto_id in volatile_crypto_ids
 
-            # Skip opening new positions for non-volatile cryptos
             if not open_position and not is_volatile:
                 logging.info(f"Skipping analysis for {crypto_id} as it is not volatile and has no open position.")
                 continue
 
-            # If max concurrent positions reached and no open position for this crypto, skip
             if not open_position and len(self.open_positions) >= self.max_concurrent_positions:
                 logging.info(f"Max concurrent positions reached. Skipping new analysis for {crypto_id}.")
                 continue
 
-            # Get profitable strategies for the crypto
-            profitable_strategies = self._get_profitable_strategies_for_crypto(crypto_id)
+            best_strategy = self._get_best_profitable_strategy(crypto_id)
             current_price = prices.get(crypto_id)
 
-            if not profitable_strategies:
+            if not best_strategy:
                 logging.info(f"No profitable strategies found for {crypto_id}. Skipping.")
                 continue
 
-            logging.info(f"Found {len(profitable_strategies)} profitable strategies for {crypto_id}.")
-
-            # Fetch data (1 day of minute-level data)
             try:
-                df = self.data_fetcher.get_crypto_data_merged(crypto_id, days=1) # Use data_fetcher
+                df = self.data_fetcher.get_crypto_data_merged(crypto_id, days=1)
             except CoinGeckoRateLimitError as e:
                 logging.warning(f"Rate limit hit for {crypto_id}: {e}. Skipping this crypto for now.")
                 continue
@@ -491,32 +436,24 @@ class PaperTradingEngine:
                 logging.error(f"No data for {crypto_id}. Skipping.")
                 continue
 
-            # Calculate ATR
             from indicators import calculate_atr
-            atr_period = profitable_strategies[0].params.get('atr_period', 14)
+            atr_period = best_strategy.params.get('atr_period', 14)
             atr_value = calculate_atr(df, window=atr_period).iloc[-1]
 
             time.sleep(self.config.DATA_FETCH_DELAY_SECONDS)
 
-            # Get aggregated signal
             open_position_signal_type = open_position['signal'] if open_position else None
-            signal, contributing_strategies = self._get_aggregated_trade_signal(df, profitable_strategies, open_position_signal=open_position_signal_type)
+            signal, contributing_strategies = self._get_trade_signal(df, best_strategy, open_position_signal=open_position_signal_type)
 
-            logging.info(f"Aggregated Signal for {crypto_id}: {signal}")
+            logging.info(f"Signal for {crypto_id} using {best_strategy.config['name']}: {signal}")
 
             if not current_price:
                 logging.warning(f"Could not fetch current price for {crypto_id} during analysis task. Skipping analysis history save.")
                 continue
 
-            # Get the backtest result from the first profitable strategy, if available
-            backtest_result = None
-            strategy_used = "N/A"
-            if profitable_strategies:
-                # Assuming the first profitable strategy is representative
-                strategy_used = profitable_strategies[0].config.get('name', 'N/A')
-                optimization_result = self.trading_engine.get_optimization_results(crypto_id, strategy_used)
-                if optimization_result and optimization_result.get('backtest_result'):
-                    backtest_result = optimization_result['backtest_result']
+            strategy_used = best_strategy.config.get('name', 'N/A')
+            optimization_result = self.trading_engine.get_optimization_results(crypto_id, strategy_used)
+            backtest_result = optimization_result.get('backtest_result') if optimization_result else None
 
             analysis_entry = {
                 'analysis_id': str(uuid.uuid4()),
@@ -525,29 +462,22 @@ class PaperTradingEngine:
                 'current_signal': signal,
                 'current_price': current_price,
                 'analysis_timestamp': datetime.now().isoformat(),
-                'active_resistance_lines': [], # Placeholder for now
-                'active_support_lines': [],    # Placeholder for now
-                'parameters_used': representative_params if 'representative_params' in locals() else {},
-                'timeframe_days': 1, # Based on get_crypto_data_merged(days=1)
-                'engine_version': "1.0.0-paper-trader", # Placeholder
+                'active_resistance_lines': [],
+                'active_support_lines': [],
+                'parameters_used': best_strategy.params,
+                'timeframe_days': 1,
+                'engine_version': "1.0.0-paper-trader",
                 'backtest_result': backtest_result
             }
-            self.current_analysis_state[crypto_id] = analysis_entry # Update current state
+            self.current_analysis_state[crypto_id] = analysis_entry
 
-            # Limit the size of the analysis history
-            self.analysis_history.append(analysis_entry) # Still append to history for logging/storage
+            self.analysis_history.append(analysis_entry)
             self.analysis_history = self.analysis_history[-100:]
             self._save_analysis_history()
 
-            # Execute trade based on signal
             if signal != "HOLD":
-                # For execution, we need params. Since we are using multiple strategies,
-                # we can use the params of the first profitable strategy as a representative,
-                # or refine this to be an average/median of params if applicable.
-                # For now, let's use the params of the first profitable strategy.
-                representative_params = profitable_strategies[0].params
                 reason = f"{signal} triggered by {', '.join(contributing_strategies)}"
-                self.execute_trade(crypto_id, signal, representative_params, prices, backtest_result=backtest_result, entry_reason=reason, atr_value=atr_value)
+                self.execute_trade(crypto_id, signal, best_strategy.params, prices, backtest_result=backtest_result, entry_reason=reason, atr_value=atr_value)
 
     def _open_position(self, crypto_id, signal, params, prices, backtest_result=None, entry_reason=None, atr_value=None):
         current_price = prices.get(crypto_id)

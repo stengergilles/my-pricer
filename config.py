@@ -20,8 +20,8 @@ strategy_configs = {
         "short_exit": ["ema_crossover"],
     },
     "Strict": {
-        "long_entry": ["adx_uptrend_confirmed", "sma_crossover", "macd_is_bullish", "rsi_is_not_overbought"],
-        "short_entry": ["adx_downtrend_confirmed", "sma_crossunder", "macd_is_bearish", "rsi_is_not_oversold"],
+        "long_entry": ["sma_crossover", "macd_is_bullish", "rsi_is_not_overbought"],
+        "short_entry": ["sma_crossunder", "macd_is_bearish", "rsi_is_not_oversold"],
         "long_exit": ["sma_crossunder"],
         "short_exit": ["sma_crossover"],
     },
