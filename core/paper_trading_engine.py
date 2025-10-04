@@ -311,6 +311,24 @@ class PaperTradingEngine:
                 logging.warning(f"Could not fetch current price for {position['crypto_id']} to close position at end of day.")
         logging.info("All open positions closed.")
 
+    def _is_data_stale(self, df: pd.DataFrame, crypto_id: str) -> bool:
+        """Checks if the latest data in the DataFrame is older than a defined threshold."""
+        if df.empty:
+            self.logger.warning(f"DataFrame for {crypto_id} is empty, considering it stale.")
+            return True
+        
+        latest_timestamp = df.index.max()
+        # Define stale threshold, e.g., 1.5 times the default interval to allow for some lag
+        # Assuming PAPER_TRADING_ANALYSIS_INTERVAL_MINUTES is in minutes, convert to timedelta
+        stale_threshold_minutes = self.config.PAPER_TRADING_ANALYSIS_INTERVAL_MINUTES * 1.5
+        stale_threshold = timedelta(minutes=stale_threshold_minutes)
+        
+        # Use UTC now for comparison as CoinGecko timestamps are UTC
+        if datetime.utcnow() - latest_timestamp > stale_threshold:
+            self.logger.warning(f"Data for {crypto_id} is stale. Latest timestamp: {latest_timestamp} UTC, Current UTC time: {datetime.utcnow()}, Threshold: {stale_threshold_minutes} minutes.")
+            return True
+        return False
+
     
 
     def _get_best_profitable_strategy(self, crypto_id: str) -> Optional[Strategy]:
@@ -457,9 +475,29 @@ class PaperTradingEngine:
                 logging.error(f"No data for {crypto_id}. Skipping.")
                 continue
 
+            # Check for stale data
+            if self._is_data_stale(df, crypto_id):
+                if not open_position: # If no position is open, remove from monitoring
+                    self._emit_activity(stage="Data", message="Data is stale and no position open, removing from volatile cryptos.", crypto_id=crypto_id)
+                    logging.warning(f"Data for {crypto_id} is stale and no position is open. Removing from volatile cryptos.")
+                    # Remove from cryptos_to_analyze for this run
+                    cryptos_to_analyze.remove(crypto_id) # This will remove it from the set for subsequent iterations
+                    continue # Skip further analysis for this crypto
+                else:
+                    self._emit_activity(stage="Data", message="Data is stale but position is open, freezing analysis.", crypto_id=crypto_id)
+                    logging.warning(f"Data for {crypto_id} is stale but position is open. Freezing analysis for this cycle.")
+                    # For analysis_task, if data is stale and position is open, we just skip further analysis for this cycle
+                    continue # Skip further analysis for this crypto
+
             from indicators import calculate_atr
             atr_period = best_strategy.params.get('atr_period', 14)
             atr_value = calculate_atr(df, window=atr_period).iloc[-1]
+
+            # Calculate current ADX
+            adx_period = best_strategy.params.get('adx_period', 14) # Assuming ADX period is part of strategy params
+            current_adx_data = calculate_adx(df, window=adx_period)
+            current_adx_value = current_adx_data['adx'].iloc[-1] if not current_adx_data.empty else None
+            current_adx_trend = current_adx_data['adx_full_trend'].iloc[-1] if not current_adx_data.empty else None
 
             time.sleep(self.config.DATA_FETCH_DELAY_SECONDS)
 
@@ -489,7 +527,10 @@ class PaperTradingEngine:
                 'parameters_used': best_strategy.params,
                 'timeframe_days': 1,
                 'engine_version': "1.0.0-paper-trader",
-                'backtest_result': backtest_result
+                'backtest_result': backtest_result,
+                'current_adx_value': current_adx_value,
+                'current_adx_trend': current_adx_trend,
+                'backtested_adx_trend': best_strategy.backtest_trend # Add backtested ADX trend
             }
             self.current_analysis_state[crypto_id] = analysis_entry
 
@@ -553,6 +594,35 @@ class PaperTradingEngine:
             if not current_price:
                 logging.warning(f"Could not fetch price for {position['crypto_id']} during monitoring.")
                 continue
+
+            # Fetch OHLC data for stale check
+            try:
+                df_for_stale_check = self.data_fetcher.get_crypto_data_merged(position['crypto_id'], days=1)
+            except CoinGeckoRateLimitError as e:
+                self._emit_activity(stage="Data", message="Rate limit hit during stale check, skipping.", crypto_id=position['crypto_id'], details={"error": str(e)})
+                logging.warning(f"Rate limit hit for {position['crypto_id']} during stale check: {e}. Skipping this crypto for now.")
+                continue
+            if df_for_stale_check is None or df_for_stale_check.empty:
+                self._emit_activity(stage="Data", message="No data found for stale check, skipping.", crypto_id=position['crypto_id'])
+                logging.error(f"No data for {position['crypto_id']} for stale check. Skipping.")
+                continue
+
+            if self._is_data_stale(df_for_stale_check, position['crypto_id']):
+                # Calculate current PnL for the position
+                pnl_usd = 0
+                if position['signal'] == 'LONG':
+                    pnl_usd = (current_price - position['entry_price']) * position['size_crypto']
+                else: # SHORT
+                    pnl_usd = (position['entry_price'] - current_price) * position['size_crypto']
+
+                if pnl_usd > 0: # Profitable
+                    self._emit_activity(stage="Monitoring", message="Data stale and profitable, closing position.", crypto_id=position['crypto_id'], details={'pnl_usd': pnl_usd})
+                    self.logger.info(f"Data for {position['crypto_id']} is stale and position is profitable. Closing position. PnL: ${pnl_usd:.2f}")
+                    self._close_position(position, current_price, "stale-data-profit-close")
+                else: # At a loss or breakeven
+                    self._emit_activity(stage="Monitoring", message="Data stale and at a loss, freezing position.", crypto_id=position['crypto_id'], details={'pnl_usd': pnl_usd})
+                    self.logger.warning(f"Data for {position['crypto_id']} is stale and position is at a loss. Freezing position until valid data. PnL: ${pnl_usd:.2f}")
+                continue # Skip further monitoring for this position in this cycle
 
             self._emit_activity(stage="Monitoring", message=f"Checking position ({position['signal']})", crypto_id=position['crypto_id'], details={'entry': position['entry_price'], 'current': current_price, 'sl': position['stop_loss_price']})
             self.logger.info(f"Monitoring {position['crypto_id']} ({position['signal']}): Entry Price=${position['entry_price']:.2f}, Current Price=${current_price:.2f}, SL=${position['stop_loss_price']:.2f}")

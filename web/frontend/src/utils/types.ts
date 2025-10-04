@@ -141,6 +141,9 @@ export interface Analysis {
   backtest_result?: {
     total_profit_percentage?: number;
   };
+  current_adx_value?: number; // Added for current ADX value
+  current_adx_trend?: string; // Added for current ADX trend (e.g., "Strong Up Trend")
+  backtested_adx_trend?: string; // Added for backtested ADX trend (e.g., "UP", "DOWN", "NEUTRAL")
 }
 
 export interface PaperTradingStatus {

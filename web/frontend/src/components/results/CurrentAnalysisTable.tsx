@@ -34,7 +34,28 @@ const CurrentAnalysisTable: React.FC<CurrentAnalysisTableProps> = ({ currentAnal
       <TableContainer component={Paper} sx={{ mt: 2 }}>
         <Table sx={{ minWidth: isPortrait ? 'auto' : 650 }} aria-label="current analysis table">
           <TableHead>
-            <TableRow>{isPortrait ? (<TableCell>Crypto / Strategy / Type</TableCell>) : (<><TableCell>Crypto</TableCell><TableCell>Strategy</TableCell><TableCell>Type</TableCell></>)}{isPortrait ? '' : <TableCell>Analysis Date</TableCell>}{isPortrait ? (<TableCell>Position & Profit</TableCell>) : (<><TableCell>Position Value</TableCell><TableCell>Expected Profit (Backtest)</TableCell></>)}</TableRow>
+            <TableRow>
+              {isPortrait ? (
+                <TableCell>Crypto / Strategy / Type</TableCell>
+              ) : (
+                <>
+                  <TableCell>Crypto</TableCell>
+                  <TableCell>Strategy</TableCell>
+                  <TableCell>Type</TableCell>
+                </>
+              )}
+              {isPortrait ? null : <TableCell>Analysis Date</TableCell>}
+              <TableCell>Current ADX</TableCell>
+              <TableCell>Backtest ADX Trend</TableCell>
+              {isPortrait ? (
+                <TableCell>Position & Profit</TableCell>
+              ) : (
+                <>
+                  <TableCell>Position Value</TableCell>
+                  <TableCell>Expected Profit (Backtest)</TableCell>
+                </>
+              )}
+            </TableRow>
           </TableHead>
           <TableBody>
             {currentAnalysis.map((analysis) => {
@@ -46,10 +67,37 @@ const CurrentAnalysisTable: React.FC<CurrentAnalysisTableProps> = ({ currentAnal
 
               return (
                 <TableRow key={analysis.analysis_id}>
-                  {isPortrait ? (<TableCell><Typography variant="body2">{analysis.crypto_id}</Typography><Typography variant="body2">{analysis.strategy_used}</Typography><Typography variant="body2">Type: {position?.signal || 'N/A'}</Typography></TableCell>) : (<><TableCell>{analysis.crypto_id}</TableCell><TableCell>{analysis.strategy_used}</TableCell><TableCell>{position?.signal || 'N/A'}</TableCell></>)}
+                  {isPortrait ? (
+                    <TableCell>
+                      <Typography variant="body2">{analysis.crypto_id}</Typography>
+                      <Typography variant="body2">{analysis.strategy_used}</Typography>
+                      <Typography variant="body2">Type: {position?.signal || 'N/A'}</Typography>
+                    </TableCell>
+                  ) : (
+                    <>
+                      <TableCell>{analysis.crypto_id}</TableCell>
+                      <TableCell>{analysis.strategy_used}</TableCell>
+                      <TableCell>{position?.signal || 'N/A'}</TableCell>
+                    </>
+                  )}
                   {isPortrait ? null : <TableCell>{analysisDate.toLocaleString()}</TableCell>}
-                  {isPortrait ? (<TableCell><Typography variant="body2">Position Value:<Typography component="span" color={position ? (position.pnl_usd >= 0 ? 'success.main' : 'error.main') : 'inherit'}>{' '}{positionValue}</Typography></Typography><Typography variant="body2">Backtest Profit %: {analysis.backtest_result?.total_profit_percentage?.toFixed(2) ?? 'N/A'}%</Typography></TableCell>) : (<><TableCell><Typography color={position ? (position.pnl_usd >= 0 ? 'success.main' : 'error.main') : 'inherit'}>{positionValue}</Typography></TableCell><TableCell>{analysis.backtest_result?.total_profit_percentage?.toFixed(2) ?? 'N/A'}%</TableCell></>)}
-                  
+                  <TableCell>{analysis.current_adx_trend ?? 'N/A'}</TableCell>
+                  <TableCell>{analysis.backtested_adx_trend ?? 'N/A'}</TableCell>
+                  {isPortrait ? (
+                    <TableCell>
+                      <Typography variant="body2">Position Value:
+                        <Typography component="span" color={position ? (position.pnl_usd >= 0 ? 'success.main' : 'error.main') : 'inherit'}>{' '}{positionValue}</Typography>
+                      </Typography>
+                      <Typography variant="body2">Backtest Profit %: {analysis.backtest_result?.total_profit_percentage?.toFixed(2) ?? 'N/A'}%</Typography>
+                    </TableCell>
+                  ) : (
+                    <>
+                      <TableCell>
+                        <Typography color={position ? (position.pnl_usd >= 0 ? 'success.main' : 'error.main') : 'inherit'}>{positionValue}</Typography>
+                      </TableCell>
+                      <TableCell>{analysis.backtest_result?.total_profit_percentage?.toFixed(2) ?? 'N/A'}%</TableCell>
+                    </>
+                  )}
                 </TableRow>
               );
             })}

@@ -70,4 +70,18 @@ def calculate_adx(df, window=14):
         'pdi': adx_indicator.adx_pos(), # +DI
         'ndi': adx_indicator.adx_neg()  # -DI
     })
+
+    # Determine ADX Trend (Strength)
+    adx_df['adx_trend'] = 'No strong trend'
+    adx_df.loc[adx_df['adx'] > 20, 'adx_trend'] = 'Emerging trend'
+    adx_df.loc[adx_df['adx'] > 25, 'adx_trend'] = 'Strong trend'
+
+    # Determine ADX Direction
+    adx_df['adx_direction'] = 'Neutral'
+    adx_df.loc[adx_df['pdi'] > adx_df['ndi'], 'adx_direction'] = 'Up'
+    adx_df.loc[adx_df['ndi'] > adx_df['pdi'], 'adx_direction'] = 'Down'
+
+    # Combine trend and direction
+    adx_df['adx_full_trend'] = adx_df.apply(lambda row: f"{row['adx_trend']} ({row['adx_direction']})" if row['adx_trend'] != 'No strong trend' else f"No strong trend ({row['adx_direction']})", axis=1)
+
     return adx_df
