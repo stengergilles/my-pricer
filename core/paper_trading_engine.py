@@ -454,6 +454,9 @@ class PaperTradingEngine:
 
         prices = self.data_fetcher.get_current_prices(list(cryptos_to_analyze))
         
+        # Initialize a new state for the current analysis run
+        updated_analysis_state: Dict[str, Any] = {}
+
         for crypto_id in list(cryptos_to_analyze):
             self._emit_activity(stage="Analysis", message=f"Analyzing...", crypto_id=crypto_id)
             open_position = next((p for p in self.open_positions if p['crypto_id'] == crypto_id), None)
@@ -494,14 +497,15 @@ class PaperTradingEngine:
                 if not open_position: # If no position is open, remove from monitoring
                     self._emit_activity(stage="Data", message="Data is stale and no position open, removing from volatile cryptos.", crypto_id=crypto_id)
                     logging.warning(f"Data for {crypto_id} is stale and no position is open. Removing from volatile cryptos.")
-                    # Remove from cryptos_to_analyze for this run
-                    cryptos_to_analyze.remove(crypto_id) # This will remove it from the set for subsequent iterations
+                    # No need to explicitly remove from updated_analysis_state here, as it was never added
                     continue # Skip further analysis for this crypto
                 else:
                     self._emit_activity(stage="Data", message="Data is stale but position is open, freezing analysis.", crypto_id=crypto_id)
                     logging.warning(f"Data for {crypto_id} is stale but position is open. Freezing analysis for this cycle.")
-                    # For analysis_task, if data is stale and position is open, we just skip further analysis for this cycle
-                    continue # Skip further analysis for this crypto
+                    # If data is stale but position is open, we still want to keep its last known analysis state
+                    # in updated_analysis_state, so we don't 'continue' here without adding it.
+                    # We will add the existing state to updated_analysis_state below.
+                    pass # Continue to add existing analysis state if available
 
             from indicators import calculate_atr
             atr_period = best_strategy.params.get('atr_period', 14)
@@ -523,6 +527,10 @@ class PaperTradingEngine:
 
             if not current_price:
                 logging.warning(f"Could not fetch current price for {crypto_id} during analysis task. Skipping analysis history save.")
+                # If current_price is not available, we should also remove it from current_analysis_state if it was there
+                if crypto_id in self.current_analysis_state: # Check original state
+                    # If it was in the original state, but we can't get a current price, don't carry it over
+                    pass # Don't add to updated_analysis_state
                 continue
 
             strategy_used = best_strategy.config.get('name', 'N/A')
@@ -546,7 +554,7 @@ class PaperTradingEngine:
                 'current_adx_trend': current_adx_trend,
                 'backtested_adx_trend': best_strategy.backtest_trend # Add backtested ADX trend
             }
-            self.current_analysis_state[crypto_id] = analysis_entry
+            updated_analysis_state[crypto_id] = analysis_entry # Add to the new state
 
             self.analysis_history.append(analysis_entry)
             self.analysis_history = self.analysis_history[-100:]
@@ -557,6 +565,9 @@ class PaperTradingEngine:
                 self.execute_trade(crypto_id, signal, best_strategy.params, prices, backtest_result=backtest_result, entry_reason=reason, atr_value=atr_value)
             else:
                 self._emit_activity(stage="Decision", message="Holding. No action taken.", crypto_id=crypto_id)
+        
+        # After iterating through all cryptos, update the main analysis state
+        self.current_analysis_state = updated_analysis_state
 
     def _open_position(self, crypto_id, signal, params, prices, backtest_result=None, entry_reason=None, atr_value=None):
         current_price = prices.get(crypto_id)
