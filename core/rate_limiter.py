@@ -84,6 +84,7 @@ class RateLimiter:
             raise error
         return result
 
+
 _shared_rate_limiter = None
 
 def get_shared_rate_limiter(requests_per_minute=7, seconds_per_request=1.11):

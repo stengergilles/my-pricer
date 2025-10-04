@@ -104,6 +104,22 @@ class PaperTradingEngine:
         logging.info(f"Capital per Trade: ${self.capital_per_trade:.2f}")
         logging.info(f"Max Concurrent Positions: {self.max_concurrent_positions}")
 
+    def _emit_activity(self, stage: str, message: str, crypto_id: str = None, details: Dict = None):
+        """Emits a structured log message to the frontend via websocket."""
+        if not self.socketio:
+            return
+        try:
+            log_entry = {
+                "timestamp": datetime.now().isoformat(),
+                "stage": stage,
+                "message": message,
+                "crypto_id": crypto_id,
+                "details": details or {}
+            }
+            self.socketio.emit('trader_activity', log_entry)
+        except Exception as e:
+            self.logger.error(f"Error emitting websocket activity: {e}")
+
     def _log_trade(self, trade_data: Dict):
         """Logs trade data to a daily file for the specific crypto."""
         try:
@@ -204,6 +220,7 @@ class PaperTradingEngine:
         return list(self.current_analysis_state.values())
 
     def execute_trade(self, crypto_id, signal, params, prices, backtest_result=None, entry_reason=None, atr_value=None):
+        self._emit_activity(stage="Decision", message=f"Attempting to execute trade: {signal}", crypto_id=crypto_id, details={"reason": entry_reason})
         self.logger.info(f"Executing trade for {crypto_id} with signal {signal}")
         # Check if there's an open position for this crypto
         open_position = next((p for p in self.open_positions if p['crypto_id'] == crypto_id), None)
@@ -215,8 +232,10 @@ class PaperTradingEngine:
                     self.logger.info(f"Opening LONG position for {crypto_id}")
                     self._open_position(crypto_id, signal, params, prices, backtest_result=backtest_result, entry_reason=entry_reason, atr_value=atr_value)
                 else:
+                    self._emit_activity(stage="Decision", message="Insufficient capital to open LONG position.", crypto_id=crypto_id, details={"available": f"${self.available_capital:.2f}", "needed": f"${self.capital_per_trade:.2f}"})
                     logging.info(f"Insufficient capital to open LONG position for {crypto_id}. Capital: ${self.available_capital:.2f}")
             else:
+                self._emit_activity(stage="Decision", message="Skipping LONG: Position already open.", crypto_id=crypto_id)
                 logging.info(f"Already have an open position for {crypto_id}. Not opening another LONG.")
         elif signal == "SHORT":
             if not open_position:
@@ -225,8 +244,10 @@ class PaperTradingEngine:
                     self.logger.info(f"Opening SHORT position for {crypto_id}")
                     self._open_position(crypto_id, signal, params, prices, backtest_result=backtest_result, entry_reason=entry_reason, atr_value=atr_value)
                 else:
+                    self._emit_activity(stage="Decision", message="Insufficient capital to open SHORT position.", crypto_id=crypto_id, details={"available": f"${self.available_capital:.2f}", "needed": f"${self.capital_per_trade:.2f}"})
                     logging.info(f"Insufficient capital to open SHORT position for {crypto_id}. Capital: ${self.available_capital:.2f}")
             else:
+                self._emit_activity(stage="Decision", message="Skipping SHORT: Position already open.", crypto_id=crypto_id)
                 logging.info(f"Already have an open position for {crypto_id}. Not opening another SHORT.")
         elif signal == "EXIT_LONG":
             if open_position and open_position['signal'] == "LONG":
@@ -235,8 +256,10 @@ class PaperTradingEngine:
                     self.logger.info(f"Closing LONG position for {crypto_id}")
                     self._close_position(open_position, current_price, entry_reason)
                 else:
+                    self._emit_activity(stage="Decision", message="Could not close LONG: Price unavailable.", crypto_id=crypto_id)
                     logging.warning(f"Could not fetch current price for {crypto_id} to close LONG position on exit signal.")
             else:
+                self._emit_activity(stage="Decision", message="Skipping EXIT_LONG: No active position.", crypto_id=crypto_id)
                 logging.info(f"No active LONG position for {crypto_id} to exit.")
         elif signal == "EXIT_SHORT":
             if open_position and open_position['signal'] == "SHORT":
@@ -245,8 +268,10 @@ class PaperTradingEngine:
                     self.logger.info(f"Closing SHORT position for {crypto_id}")
                     self._close_position(open_position, current_price, entry_reason)
                 else:
+                    self._emit_activity(stage="Decision", message="Could not close SHORT: Price unavailable.", crypto_id=crypto_id)
                     logging.warning(f"Could not fetch current price for {crypto_id} to close SHORT position on exit signal.")
             else:
+                self._emit_activity(stage="Decision", message="Skipping EXIT_SHORT: No active position.", crypto_id=crypto_id)
                 logging.info(f"No active SHORT position for {crypto_id} to exit.")
         else:
             logging.info(f"No trade executed for {crypto_id}. Signal: {signal}")
@@ -353,34 +378,20 @@ class PaperTradingEngine:
 
     def _get_trade_signal_for_latest(self, df: pd.DataFrame, strategy: Strategy, open_position_signal: str = None):
         try:
-            # 1. Determine current trend from the latest data
-            adx_data = calculate_adx(df, window=strategy.params.get('adx_period', 14))
-            current_trend = "NEUTRAL"
-            if not adx_data.empty and not adx_data['pdi'].isnull().all():
-                last_pdi = adx_data['pdi'].iloc[-1]
-                last_ndi = adx_data['ndi'].iloc[-1]
-                if last_pdi > last_ndi:
-                    current_trend = "UP"
-                else:
-                    current_trend = "DOWN"
-
-            self.logger.info(f"Current trend for {strategy.config.get('name')}: {current_trend}")
-
-            # 2. Generate signals from the strategy
+            # Generate signals from the strategy
             long_entry, short_entry, long_exit, short_exit = strategy.generate_signals(df, strategy.params)
 
-            # 3. Prioritize exit signals
+            # Prioritize exit signals
             if open_position_signal == "LONG" and not long_exit.empty and long_exit.iloc[-1]:
                 return "EXIT_LONG"
             elif open_position_signal == "SHORT" and not short_exit.empty and short_exit.iloc[-1]:
                 return "EXIT_SHORT"
 
-            # 4. Then check entry signals based on trend
-            if current_trend == "UP":
+            # Then check entry signals if no position is open
+            if not open_position_signal:
                 if not long_entry.empty and long_entry.iloc[-1]:
                     return "LONG"
-            elif current_trend == "DOWN":
-                if not short_entry.empty and short_entry.iloc[-1]:
+                elif not short_entry.empty and short_entry.iloc[-1]:
                     return "SHORT"
             
             return "HOLD"
@@ -391,8 +402,10 @@ class PaperTradingEngine:
     def analysis_task(self):
         if not self._is_trading_hours():
             logging.debug("Skipping analysis task: outside trading hours.")
+            self._emit_activity(stage="Lifecycle", message="Skipping analysis: Outside trading hours.")
             return
 
+        self._emit_activity(stage="Lifecycle", message="Starting analysis task.")
         logging.info("--- Running Analysis Task ---")
         self.last_analysis_run_time = datetime.now().isoformat()
         
@@ -402,6 +415,7 @@ class PaperTradingEngine:
         
         cryptos_to_analyze = volatile_crypto_ids | open_position_cryptos
         
+        self._emit_activity(stage="Discovery", message=f"Found {len(volatile_cryptos)} volatile cryptos and {len(open_position_cryptos)} with open positions.", details={'volatile': volatile_cryptos, 'open': list(open_position_cryptos)})
         logging.info(f"Found {len(volatile_cryptos)} volatile cryptos: {volatile_cryptos}")
         logging.info(f"Found {len(open_position_cryptos)} cryptos with open positions: {list(open_position_cryptos)}")
         logging.info(f"Analyzing a total of {len(cryptos_to_analyze)} unique cryptos.")
@@ -409,6 +423,7 @@ class PaperTradingEngine:
         prices = self.data_fetcher.get_current_prices(list(cryptos_to_analyze))
         
         for crypto_id in cryptos_to_analyze:
+            self._emit_activity(stage="Analysis", message=f"Analyzing...", crypto_id=crypto_id)
             open_position = next((p for p in self.open_positions if p['crypto_id'] == crypto_id), None)
             is_volatile = crypto_id in volatile_crypto_ids
 
@@ -417,6 +432,7 @@ class PaperTradingEngine:
                 continue
 
             if not open_position and len(self.open_positions) >= self.max_concurrent_positions:
+                self._emit_activity(stage="Analysis", message="Skipping: Max concurrent positions reached.", crypto_id=crypto_id)
                 logging.info(f"Max concurrent positions reached. Skipping new analysis for {crypto_id}.")
                 continue
 
@@ -424,15 +440,20 @@ class PaperTradingEngine:
             current_price = prices.get(crypto_id)
 
             if not best_strategy:
+                self._emit_activity(stage="Strategy", message="No profitable strategy found.", crypto_id=crypto_id)
                 logging.info(f"No profitable strategies found for {crypto_id}. Skipping.")
                 continue
+            
+            self._emit_activity(stage="Strategy", message=f"Selected best strategy: {best_strategy.config['name']}", crypto_id=crypto_id, details={'profit': f"{best_strategy.profit:.2f}%"})
 
             try:
                 df = self.data_fetcher.get_crypto_data_merged(crypto_id, days=1)
             except CoinGeckoRateLimitError as e:
+                self._emit_activity(stage="Data", message="Rate limit hit, skipping.", crypto_id=crypto_id, details={"error": str(e)})
                 logging.warning(f"Rate limit hit for {crypto_id}: {e}. Skipping this crypto for now.")
                 continue
             if df is None or df.empty:
+                self._emit_activity(stage="Data", message="No data found, skipping.", crypto_id=crypto_id)
                 logging.error(f"No data for {crypto_id}. Skipping.")
                 continue
 
@@ -445,6 +466,7 @@ class PaperTradingEngine:
             open_position_signal_type = open_position['signal'] if open_position else None
             signal, contributing_strategies = self._get_trade_signal(df, best_strategy, open_position_signal=open_position_signal_type)
 
+            self._emit_activity(stage="Signal", message=f"Generated signal: {signal}", crypto_id=crypto_id, details={'strategy': best_strategy.config['name']})
             logging.info(f"Signal for {crypto_id} using {best_strategy.config['name']}: {signal}")
 
             if not current_price:
@@ -478,6 +500,8 @@ class PaperTradingEngine:
             if signal != "HOLD":
                 reason = f"{signal} triggered by {', '.join(contributing_strategies)}"
                 self.execute_trade(crypto_id, signal, best_strategy.params, prices, backtest_result=backtest_result, entry_reason=reason, atr_value=atr_value)
+            else:
+                self._emit_activity(stage="Decision", message="Holding. No action taken.", crypto_id=crypto_id)
 
     def _open_position(self, crypto_id, signal, params, prices, backtest_result=None, entry_reason=None, atr_value=None):
         current_price = prices.get(crypto_id)
@@ -514,6 +538,7 @@ class PaperTradingEngine:
         if not self.open_positions:
             return
 
+        self._emit_activity(stage="Lifecycle", message="Starting price monitoring task.")
         self.logger.info("--- Running Price Monitoring Task ---")
         
         if self.data_fetcher is None:
@@ -529,6 +554,7 @@ class PaperTradingEngine:
                 logging.warning(f"Could not fetch price for {position['crypto_id']} during monitoring.")
                 continue
 
+            self._emit_activity(stage="Monitoring", message=f"Checking position ({position['signal']})", crypto_id=position['crypto_id'], details={'entry': position['entry_price'], 'current': current_price, 'sl': position['stop_loss_price']})
             self.logger.info(f"Monitoring {position['crypto_id']} ({position['signal']}): Entry Price=${position['entry_price']:.2f}, Current Price=${current_price:.2f}, SL=${position['stop_loss_price']:.2f}")
 
             # Trailing stop loss logic
@@ -541,11 +567,13 @@ class PaperTradingEngine:
                         new_stop_loss_price = current_price - (atr_value * atr_multiple)
                         if new_stop_loss_price > position['stop_loss_price']:
                             position['stop_loss_price'] = new_stop_loss_price
+                            self._emit_activity(stage="Monitoring", message=f"Trailing stop loss updated", crypto_id=position['crypto_id'], details={'new_sl': new_stop_loss_price})
                             self.logger.info(f"Updated ATR-based trailing stop loss for {position['crypto_id']} to ${new_stop_loss_price:.2f}")
                     else: # Fallback to percentage if ATR values are not available
                         new_stop_loss_price = current_price * (1 - position['trailing_stop_loss_percentage'])
                         if new_stop_loss_price > position['stop_loss_price']:
                             position['stop_loss_price'] = new_stop_loss_price
+                            self._emit_activity(stage="Monitoring", message=f"Trailing stop loss updated", crypto_id=position['crypto_id'], details={'new_sl': new_stop_loss_price})
                             self.logger.info(f"Updated percentage-based trailing stop loss for {position['crypto_id']} to ${new_stop_loss_price:.2f}")
 
             elif position['signal'] == 'SHORT':
@@ -557,11 +585,13 @@ class PaperTradingEngine:
                         new_stop_loss_price = current_price + (atr_value * atr_multiple)
                         if new_stop_loss_price < position['stop_loss_price']:
                             position['stop_loss_price'] = new_stop_loss_price
+                            self._emit_activity(stage="Monitoring", message=f"Trailing stop loss updated", crypto_id=position['crypto_id'], details={'new_sl': new_stop_loss_price})
                             self.logger.info(f"Updated ATR-based trailing stop loss for {position['crypto_id']} to ${new_stop_loss_price:.2f}")
                     else: # Fallback to percentage if ATR values are not available
                         new_stop_loss_price = current_price * (1 + position['trailing_stop_loss_percentage'])
                         if new_stop_loss_price < position['stop_loss_price']:
                             position['stop_loss_price'] = new_stop_loss_price
+                            self._emit_activity(stage="Monitoring", message=f"Trailing stop loss updated", crypto_id=position['crypto_id'], details={'new_sl': new_stop_loss_price})
                             self.logger.info(f"Updated percentage-based trailing stop loss for {position['crypto_id']} to ${new_stop_loss_price:.2f}")
 
             # Take-profit logic (moved before stop-loss)

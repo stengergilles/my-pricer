@@ -8,6 +8,7 @@ import AnalyticsIcon from '@mui/icons-material/Analytics';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import ScheduleIcon from '@mui/icons-material/Schedule';
 import HistoryIcon from '@mui/icons-material/History';
+import TimelineIcon from '@mui/icons-material/Timeline';
 import { io } from 'socket.io-client';
 
 // Import components that were in page.tsx
@@ -24,6 +25,7 @@ const BacktestRunner = lazy(() => import('./components/BacktestRunner.tsx').then
 const VolatileCryptoList = lazy(() => import('./components/VolatileCryptoList.tsx').then(module => ({ default: module.VolatileCryptoList })));
 const ScheduleTab = lazy(() => import('./components/ScheduleTab.tsx').then(module => ({ default: module.ScheduleTab })));
 const TradeHistory = lazy(() => import('./components/TradeHistory.tsx').then(module => ({ default: module.default })));
+const ActivityLogPage = lazy(() => import('./components/ActivityLogPage.tsx'));
 
 
 // Styled components for navigation tabs
@@ -184,6 +186,12 @@ function AppContent() {
             <ListItemText primary="Trade History" />
           </ListItemButton>
         </ListItem>
+        <ListItem disablePadding>
+          <ListItemButton component={Link} to="/activity">
+            <ListItemIcon><TimelineIcon /></ListItemIcon>
+            <ListItemText primary="Activity Log" />
+          </ListItemButton>
+        </ListItem>
       </List>
     </Box>
   );
@@ -241,6 +249,11 @@ function AppContent() {
                 <ListItemText primary="Trade History" />
               </ListItemButton>
             </ListItem>
+            <ListItem disablePadding sx={{ width: 'auto' }}>
+              <ListItemButton component={Link} to="/activity">
+                <ListItemText primary="Activity Log" />
+              </ListItemButton>
+            </ListItem>
           </List>
         </Box>
       )}
@@ -255,6 +268,7 @@ function AppContent() {
               <Route path="/backtest" element={<ConfigProvider><BacktestRunner selectedCrypto={selectedCryptoForBacktest} onSetResult={setBacktestResult} initialResult={backtestResult} /></ConfigProvider>} />
               <Route path="/schedule" element={<ConfigProvider><ScheduleTab /></ConfigProvider>} />
               <Route path="/history" element={<ConfigProvider><TradeHistory /></ConfigProvider>} />
+              <Route path="/activity" element={<ConfigProvider><ActivityLogPage /></ConfigProvider>} />
             </Routes>
           </Suspense>
         </Box>
