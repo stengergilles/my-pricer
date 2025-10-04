@@ -1,5 +1,6 @@
 import React from 'react';
-import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Typography, useMediaQuery } from '@mui/material';
+import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Typography, useMediaQuery, Box } from '@mui/material';
+import BlockIcon from '@mui/icons-material/Block';
 
 
 import { Analysis, OpenPosition } from '../../utils/types';
@@ -45,8 +46,14 @@ const CurrentAnalysisTable: React.FC<CurrentAnalysisTableProps> = ({ currentAnal
                 </>
               )}
               {isPortrait ? null : <TableCell>Analysis Date</TableCell>}
-              <TableCell>Current ADX</TableCell>
-              <TableCell>Backtest ADX Trend</TableCell>
+              {isPortrait ? (
+                <TableCell>ADX Trends</TableCell>
+              ) : (
+                <>
+                  <TableCell>Current ADX</TableCell>
+                  <TableCell>Backtest ADX Trend</TableCell>
+                </>
+              )}
               {isPortrait ? (
                 <TableCell>Position & Profit</TableCell>
               ) : (
@@ -66,23 +73,40 @@ const CurrentAnalysisTable: React.FC<CurrentAnalysisTableProps> = ({ currentAnal
               
 
               return (
-                <TableRow key={analysis.analysis_id}>
+                <TableRow key={analysis.analysis_id} sx={{ backgroundColor: position?.is_frozen ? 'rgba(255, 0, 0, 0.1)' : 'inherit' }}>
                   {isPortrait ? (
                     <TableCell>
-                      <Typography variant="body2">{analysis.crypto_id}</Typography>
+                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                        <Typography variant="body2">{analysis.crypto_id}</Typography>
+                        {position?.is_frozen && <BlockIcon color="error" sx={{ ml: 0.5, fontSize: 'small' }} />}
+                      </Box>
                       <Typography variant="body2">{analysis.strategy_used}</Typography>
                       <Typography variant="body2">Type: {position?.signal || 'N/A'}</Typography>
                     </TableCell>
                   ) : (
                     <>
-                      <TableCell>{analysis.crypto_id}</TableCell>
+                      <TableCell>
+                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                          <Typography>{analysis.crypto_id}</Typography>
+                          {position?.is_frozen && <BlockIcon color="error" sx={{ ml: 0.5, fontSize: 'small' }} />}
+                        </Box>
+                      </TableCell>
                       <TableCell>{analysis.strategy_used}</TableCell>
                       <TableCell>{position?.signal || 'N/A'}</TableCell>
                     </>
                   )}
                   {isPortrait ? null : <TableCell>{analysisDate.toLocaleString()}</TableCell>}
-                  <TableCell>{analysis.current_adx_trend ?? 'N/A'}</TableCell>
-                  <TableCell>{analysis.backtested_adx_trend ?? 'N/A'}</TableCell>
+                  {isPortrait ? (
+                    <TableCell>
+                      <Typography variant="body2">Current: {analysis.current_adx_trend ?? 'N/A'}</Typography>
+                      <Typography variant="body2">Backtest: {analysis.backtested_adx_trend ?? 'N/A'}</Typography>
+                    </TableCell>
+                  ) : (
+                    <>
+                      <TableCell>{analysis.current_adx_trend ?? 'N/A'}</TableCell>
+                      <TableCell>{analysis.backtested_adx_trend ?? 'N/A'}</TableCell>
+                    </>
+                  )}
                   {isPortrait ? (
                     <TableCell>
                       <Typography variant="body2">Position Value:

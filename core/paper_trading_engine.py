@@ -14,7 +14,7 @@ from core.rate_limiter import RateLimiter, get_shared_rate_limiter
 from pricer_compatibility_fix import find_best_result_file
 from strategy import Strategy
 from indicators import Indicators, calculate_adx
-from config import strategy_configs
+from config import strategy_configs, DEFAULT_INTERVAL
 import json
 import os
 from core.crypto_discovery import CryptoDiscovery
@@ -318,9 +318,23 @@ class PaperTradingEngine:
             return True
         
         latest_timestamp = df.index.max()
-        # Define stale threshold, e.g., 1.5 times the default interval to allow for some lag
-        # Assuming PAPER_TRADING_ANALYSIS_INTERVAL_MINUTES is in minutes, convert to timedelta
-        stale_threshold_minutes = self.config.PAPER_TRADING_ANALYSIS_INTERVAL_MINUTES * 1.5
+        self.logger.debug(f"Latest timestamp for {crypto_id}: {latest_timestamp} UTC")
+        # Parse DEFAULT_INTERVAL to get minutes
+        interval_value = int(DEFAULT_INTERVAL[:-1]) # e.g., "30m" -> 30
+        interval_unit = DEFAULT_INTERVAL[-1] # e.g., "30m" -> "m"
+
+        if interval_unit == 'm':
+            base_threshold_minutes = interval_value
+        elif interval_unit == 'h':
+            base_threshold_minutes = interval_value * 60
+        elif interval_unit == 'd':
+            base_threshold_minutes = interval_value * 24 * 60
+        else:
+            self.logger.error(f"Unknown interval unit: {interval_unit}. Using default stale threshold.")
+            base_threshold_minutes = self.config.PAPER_TRADING_ANALYSIS_INTERVAL_MINUTES
+
+        # Define stale threshold as 1.5 times the base interval, plus a small buffer
+        stale_threshold_minutes = base_threshold_minutes * 1.5 + 5 # Add 5 minutes buffer
         stale_threshold = timedelta(minutes=stale_threshold_minutes)
         
         # Use UTC now for comparison as CoinGecko timestamps are UTC
@@ -440,7 +454,7 @@ class PaperTradingEngine:
 
         prices = self.data_fetcher.get_current_prices(list(cryptos_to_analyze))
         
-        for crypto_id in cryptos_to_analyze:
+        for crypto_id in list(cryptos_to_analyze):
             self._emit_activity(stage="Analysis", message=f"Analyzing...", crypto_id=crypto_id)
             open_position = next((p for p in self.open_positions if p['crypto_id'] == crypto_id), None)
             is_volatile = crypto_id in volatile_crypto_ids
