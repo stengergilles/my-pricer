@@ -493,20 +493,19 @@ class PaperTradingEngine:
                 continue
 
             # Check for stale data
-            if self._is_data_stale(df, crypto_id):
-                if not open_position: # If no position is open, remove from monitoring
-                    self._emit_activity(stage="Data", message="Data is stale and no position open, removing from volatile cryptos.", crypto_id=crypto_id)
-                    logging.warning(f"Data for {crypto_id} is stale and no position is open. Removing from volatile cryptos.")
-                    # No need to explicitly remove from updated_analysis_state here, as it was never added
-                    continue # Skip further analysis for this crypto
+            is_stale = self._is_data_stale(df, crypto_id)
+            if is_stale:
+                if not open_position:
+                    self._emit_activity(stage="Data", message="Data is stale and no position open, freezing analysis.", crypto_id=crypto_id)
+                    logging.warning(f"Data for {crypto_id} is stale and no position is open. Freezing analysis for this cycle.")
+                    # Continue to add existing analysis state if available, but mark as frozen
                 else:
                     self._emit_activity(stage="Data", message="Data is stale but position is open, freezing analysis.", crypto_id=crypto_id)
                     logging.warning(f"Data for {crypto_id} is stale but position is open. Freezing analysis for this cycle.")
-                    # If data is stale but position is open, we still want to keep its last known analysis state
-                    # in updated_analysis_state, so we don't 'continue' here without adding it.
-                    # We will add the existing state to updated_analysis_state below.
-                    pass # Continue to add existing analysis state if available
-
+                # If data is stale, we still want to keep its last known analysis state
+                # in updated_analysis_state, so we don't 'continue' here without adding it.
+                # We will add the existing state to updated_analysis_state below, marked as frozen.
+            
             from indicators import calculate_atr
             atr_period = best_strategy.params.get('atr_period', 14)
             atr_value = calculate_atr(df, window=atr_period).iloc[-1]
@@ -531,8 +530,11 @@ class PaperTradingEngine:
                 if crypto_id in self.current_analysis_state: # Check original state
                     # If it was in the original state, but we can't get a current price, don't carry it over
                     pass # Don't add to updated_analysis_state
-                continue
-
+                # If data is stale, we still want to keep its last known analysis state
+                # in updated_analysis_state, so we don't 'continue' here without adding it.
+                # We will add the existing state to updated_analysis_state below, marked as frozen.
+                is_stale = True # Mark as stale if price is not available
+            
             strategy_used = best_strategy.config.get('name', 'N/A')
             optimization_result = self.trading_engine.get_optimization_results(crypto_id, strategy_used)
             backtest_result = optimization_result.get('backtest_result') if optimization_result else None
@@ -552,7 +554,8 @@ class PaperTradingEngine:
                 'backtest_result': backtest_result,
                 'current_adx_value': current_adx_value,
                 'current_adx_trend': current_adx_trend,
-                'backtested_adx_trend': best_strategy.backtest_trend # Add backtested ADX trend
+                'backtested_adx_trend': best_strategy.backtest_trend, # Add backtested ADX trend
+                'is_frozen_due_to_stale_data': is_stale # New field to indicate frozen status
             }
             updated_analysis_state[crypto_id] = analysis_entry # Add to the new state
 
@@ -560,14 +563,18 @@ class PaperTradingEngine:
             self.analysis_history = self.analysis_history[-100:]
             self._save_analysis_history()
 
-            if signal != "HOLD":
+            if signal != "HOLD" and not is_stale: # Only execute trade if not stale
                 reason = f"{signal} triggered by {', '.join(contributing_strategies)}"
                 self.execute_trade(crypto_id, signal, best_strategy.params, prices, backtest_result=backtest_result, entry_reason=reason, atr_value=atr_value)
+            elif is_stale:
+                self._emit_activity(stage="Decision", message="Holding. Data is stale.", crypto_id=crypto_id)
             else:
                 self._emit_activity(stage="Decision", message="Holding. No action taken.", crypto_id=crypto_id)
         
         # After iterating through all cryptos, update the main analysis state
         self.current_analysis_state = updated_analysis_state
+
+        
 
     def _open_position(self, crypto_id, signal, params, prices, backtest_result=None, entry_reason=None, atr_value=None):
         current_price = prices.get(crypto_id)
