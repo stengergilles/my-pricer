@@ -144,6 +144,7 @@ export interface Analysis {
   current_adx_value?: number; // Added for current ADX value
   current_adx_trend?: string; // Added for current ADX trend (e.g., "Strong Up Trend")
   backtested_adx_trend?: string; // Added for backtested ADX trend (e.g., "UP", "DOWN", "NEUTRAL")
+  is_frozen_due_to_stale_data?: boolean;
 }
 
 export interface PaperTradingStatus {
@@ -170,4 +171,5 @@ export interface OpenPosition {
   current_price?: number; // Added in backend for display
   current_value_usd?: number; // Added in backend for display
   pnl_usd?: number; // Added in backend for display
+  is_frozen_due_to_stale_data?: boolean;
 }

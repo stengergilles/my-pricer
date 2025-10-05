@@ -67,18 +67,19 @@ const CurrentAnalysisTable: React.FC<CurrentAnalysisTableProps> = ({ currentAnal
           <TableBody>
             {currentAnalysis.map((analysis) => {
               const position = openPositions.find(pos => pos.crypto_id === analysis.crypto_id);
+              const isFrozen = analysis.is_frozen_due_to_stale_data || position?.is_frozen_due_to_stale_data;
               console.log("Position in CurrentAnalysisTable:", position); // Debugging line
               const positionValue = position?.current_value_usd ? `${position.current_value_usd}` : 'N/A';
               const analysisDate = new Date(analysis.analysis_timestamp);
               
 
               return (
-                <TableRow key={analysis.analysis_id} sx={{ backgroundColor: position?.is_frozen ? 'rgba(255, 0, 0, 0.1)' : 'inherit' }}>
+                <TableRow key={analysis.analysis_id} sx={{ backgroundColor: isFrozen ? 'rgba(255, 0, 0, 0.1)' : 'inherit' }}>
                   {isPortrait ? (
                     <TableCell>
                       <Box sx={{ display: 'flex', alignItems: 'center' }}>
                         <Typography variant="body2">{analysis.crypto_id}</Typography>
-                        {position?.is_frozen && <BlockIcon color="error" sx={{ ml: 0.5, fontSize: 'small' }} />}
+                        {isFrozen && <BlockIcon color="error" sx={{ ml: 0.5, fontSize: 'small' }} />}
                       </Box>
                       <Typography variant="body2">{analysis.strategy_used}</Typography>
                       <Typography variant="body2">Type: {position?.signal || 'N/A'}</Typography>
@@ -88,7 +89,7 @@ const CurrentAnalysisTable: React.FC<CurrentAnalysisTableProps> = ({ currentAnal
                       <TableCell>
                         <Box sx={{ display: 'flex', alignItems: 'center' }}>
                           <Typography>{analysis.crypto_id}</Typography>
-                          {position?.is_frozen && <BlockIcon color="error" sx={{ ml: 0.5, fontSize: 'small' }} />}
+                          {isFrozen && <BlockIcon color="error" sx={{ ml: 0.5, fontSize: 'small' }} />}
                         </Box>
                       </TableCell>
                       <TableCell>{analysis.strategy_used}</TableCell>

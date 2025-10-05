@@ -647,14 +647,16 @@ class PaperTradingEngine:
                 else: # SHORT
                     pnl_usd = (position['entry_price'] - current_price) * position['size_crypto']
 
-                if pnl_usd > 0: # Profitable
-                    self._emit_activity(stage="Monitoring", message="Data stale and profitable, closing position.", crypto_id=position['crypto_id'], details={'pnl_usd': pnl_usd})
-                    self.logger.info(f"Data for {position['crypto_id']} is stale and position is profitable. Closing position. PnL: ${pnl_usd:.2f}")
-                    self._close_position(position, current_price, "stale-data-profit-close")
-                else: # At a loss or breakeven
-                    self._emit_activity(stage="Monitoring", message="Data stale and at a loss, freezing position.", crypto_id=position['crypto_id'], details={'pnl_usd': pnl_usd})
-                    self.logger.warning(f"Data for {position['crypto_id']} is stale and position is at a loss. Freezing position until valid data. PnL: ${pnl_usd:.2f}")
+                position['is_frozen_due_to_stale_data'] = True
+                self._emit_activity(stage="Monitoring", message="Data is stale, freezing position.", crypto_id=position['crypto_id'], details={'pnl_usd': pnl_usd})
+                self.logger.warning(f"Data for {position['crypto_id']} is stale. Freezing position until valid data. Current PnL: ${pnl_usd:.2f}")
                 continue # Skip further monitoring for this position in this cycle
+            
+            # If data is not stale, ensure the frozen flag is reset
+            if position.get('is_frozen_due_to_stale_data'):
+                position['is_frozen_due_to_stale_data'] = False
+                self._emit_activity(stage="Monitoring", message="Data is now valid, unfreezing position.", crypto_id=position['crypto_id'])
+                self.logger.info(f"Data for {position['crypto_id']} is now valid. Unfreezing position.")
 
             self._emit_activity(stage="Monitoring", message=f"Checking position ({position['signal']})", crypto_id=position['crypto_id'], details={'entry': position['entry_price'], 'current': current_price, 'sl': position['stop_loss_price']})
             self.logger.info(f"Monitoring {position['crypto_id']} ({position['signal']}): Entry Price=${position['entry_price']:.2f}, Current Price=${current_price:.2f}, SL=${position['stop_loss_price']:.2f}")
@@ -773,6 +775,7 @@ class PaperTradingEngine:
                 "size_crypto": position_size_crypto,
                 "timestamp": datetime.now().isoformat(),
                 "status": "open",
+                "is_frozen_due_to_stale_data": False,
                 "backtest_profit_percentage": backtest_result.get('total_profit_percentage') if backtest_result else None,
                 "entry_reason": entry_reason,
                 "highest_price_seen": current_price,
@@ -808,6 +811,7 @@ class PaperTradingEngine:
                 "size_crypto": position_size_crypto,
                 "timestamp": datetime.now().isoformat(),
                 "status": "open",
+                "is_frozen_due_to_stale_data": False,
                 "backtest_profit_percentage": backtest_result.get('total_profit_percentage') if backtest_result else None,
                 "entry_reason": entry_reason,
                 "lowest_price_seen": current_price,
